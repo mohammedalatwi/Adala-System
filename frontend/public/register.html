@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب - نظام عدالة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .register-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+        }
+
+        .register-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .register-logo {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .register-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .password-strength {
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .strength-weak { color: #dc3545; }
+        .strength-medium { color: #ffc107; }
+        .strength-strong { color: #28a745; }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color: #667eea; margin-bottom: 1rem;"></i>
+            <div>جاري إنشاء الحساب...</div>
+        </div>
+    </div>
+
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <div class="register-logo">
+                    <i class="fas fa-gavel"></i>
+                </div>
+                <h1>إنشاء حساب جديد</h1>
+                <p>انضم إلى نظام عدالة لإدارة مكاتب المحاماة</p>
+            </div>
+
+            <!-- رسائل التنبيه -->
+            <div class="alert" id="messageAlert"></div>
+
+            <form id="registerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="full_name" class="form-label">الاسم الكامل *</label>
+                        <input type="text" id="full_name" class="form-control" required placeholder="ادخل اسمك الكامل">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username" class="form-label">اسم المستخدم *</label>
+                        <input type="text" id="username" class="form-control" required placeholder="ادخل اسم المستخدم">
+                        <small class="text-muted" id="usernameFeedback"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email" class="form-label">البريد الإلكتروني *</label>
+                        <input type="email" id="email" class="form-control" required placeholder="ادخل بريدك الإلكتروني">
+                        <small class="text-muted" id="emailFeedback"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone" class="form-label">رقم الهاتف</label>
+                        <input type="tel" id="phone" class="form-control" placeholder="ادخل رقم الهاتف">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">كلمة المرور *</label>
+                        <input type="password" id="password" class="form-control" required placeholder="ادخل كلمة المرور">
+                        <div class="password-strength" id="passwordStrength"></div>
+                        <div style="text-align: left; margin-top: 0.5rem;">
+                            <label style="font-size: 0.9rem; cursor: pointer;">
+                                <input type="checkbox" id="showPassword"> إظهار كلمة المرور
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password" class="form-label">تأكيد كلمة المرور *</label>
+                        <input type="password" id="confirm_password" class="form-control" required placeholder="أعد إدخال كلمة المرور">
+                        <small class="text-muted" id="confirmFeedback"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="role" class="form-label">الدور *</label>
+                        <select id="role" class="form-control" required>
+                            <option value="">اختر الدور</option>
+                            <option value="lawyer">محامي</option>
+                            <option value="assistant">مساعد قانوني</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="specialization" class="form-label">التخصص</label>
+                        <input type="text" id="specialization" class="form-control" placeholder="التخصص القانوني">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="registerBtn">
+                    <i class="fas fa-user-plus"></i>
+                    إنشاء حساب
+                </button>
+            </form>
+
+            <div class="register-footer">
+                <p>لديك حساب بالفعل؟ <a href="/login" class="text-primary">تسجيل الدخول</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // التحقق من حالة المصادقة
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.log('المستخدم غير مسجل الدخول');
+            }
+        }
+
+        // إظهار رسالة
+        function showMessage(message, type = 'error') {
+            const alert = document.getElementById('messageAlert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // إظهار التحميل
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // إخفاء التحميل
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // التحقق من قوة كلمة المرور
+        function checkPasswordStrength(password) {
+            const strength = document.getElementById('passwordStrength');
+            
+            if (password.length === 0) {
+                strength.textContent = '';
+                return;
+            }
+
+            let score = 0;
+            if (password.length >= 6) score++;
+            if (password.length >= 8) score++;
+            if (/[A-Z]/.test(password)) score++;
+            if (/[0-9]/.test(password)) score++;
+            if (/[^A-Za-z0-9]/.test(password)) score++;
+
+            let strengthText = '';
+            let strengthClass = '';
+
+            if (score <= 2) {
+                strengthText = 'ضعيفة';
+                strengthClass = 'strength-weak';
+            } else if (score <= 4) {
+                strengthText = 'متوسطة';
+                strengthClass = 'strength-medium';
+            } else {
+                strengthText = 'قوية';
+                strengthClass = 'strength-strong';
+            }
+
+            strength.textContent = `قوة الكلمة: ${strengthText}`;
+            strength.className = `password-strength ${strengthClass}`;
+        }
+
+        // التحقق من توفر اسم المستخدم
+        async function checkUsernameAvailability(username) {
+            if (username.length < 3) {
+                document.getElementById('usernameFeedback').textContent = 'يجب أن يكون 3 أحرف على الأقل';
+                document.getElementById('usernameFeedback').style.color = '#dc3545';
+                return false;
+            }
+
+            try {
+                const response = await fetch(`/api/auth/check-username/${username}`);
+                const data = await response.json();
+                
+                if (data.available) {
+                    document.getElementById('usernameFeedback').textContent = '✓ متاح';
+                    document.getElementById('usernameFeedback').style.color = '#28a745';
+                    return true;
+                } else {
+                    document.getElementById('usernameFeedback').textContent = '✗ غير متاح';
+                    document.getElementById('usernameFeedback').style.color = '#dc3545';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error checking username:', error);
+                return false;
+            }
+        }
+
+        // التحقق من توفر البريد الإلكتروني
+        async function checkEmailAvailability(email) {
+            if (!isValidEmail(email)) {
+                document.getElementById('emailFeedback').textContent = 'البريد الإلكتروني غير صالح';
+                document.getElementById('emailFeedback').style.color = '#dc3545';
+                return false;
+            }
+
+            try {
+                const response = await fetch(`/api/auth/check-email/${email}`);
+                const data = await response.json();
+                
+                if (data.available) {
+                    document.getElementById('emailFeedback').textContent = '✓ متاح';
+                    document.getElementById('emailFeedback').style.color = '#28a745';
+                    return true;
+                } else {
+                    document.getElementById('emailFeedback').textContent = '✗ غير متاح';
+                    document.getElementById('emailFeedback').style.color = '#dc3545';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error checking email:', error);
+                return false;
+            }
+        }
+
+        // التحقق من تطابق كلمة المرور
+        function checkPasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm_password').value;
+            const feedback = document.getElementById('confirmFeedback');
+
+            if (confirmPassword.length === 0) {
+                feedback.textContent = '';
+                return false;
+            }
+
+            if (password === confirmPassword) {
+                feedback.textContent = '✓ متطابقة';
+                feedback.style.color = '#28a745';
+                return true;
+            } else {
+                feedback.textContent = '✗ غير متطابقة';
+                feedback.style.color = '#dc3545';
+                return false;
+            }
+        }
+
+        // إنشاء حساب جديد
+        async function register(userData) {
+            try {
+                showLoading();
+                
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('تم إنشاء الحساب بنجاح! سيتم توجيهك إلى صفحة تسجيل الدخول.', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 3000);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Register error:', error);
+                showMessage(error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // التحقق من صحة البريد الإلكتروني
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // التحقق من صحة البيانات
+        function validateForm(data) {
+            const errors = [];
+
+            if (data.full_name.length < 2) {
+                errors.push('الاسم الكامل يجب أن يكون على الأقل حرفين');
+            }
+
+            if (data.username.length < 3) {
+                errors.push('اسم المستخدم يجب أن يكون على الأقل 3 أحرف');
+            }
+
+            if (!isValidEmail(data.email)) {
+                errors.push('البريد الإلكتروني غير صالح');
+            }
+
+            if (data.password.length < 6) {
+                errors.push('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+            }
+
+            if (data.password !== data.confirm_password) {
+                errors.push('كلمات المرور غير متطابقة');
+            }
+
+            if (!data.role) {
+                errors.push('يجب اختيار الدور');
+            }
+
+            return errors;
+        }
+
+        // إعداد النموذج
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+
+            // التحقق من اسم المستخدم أثناء الكتابة
+            document.getElementById('username').addEventListener('input', function() {
+                if (this.value.length >= 3) {
+                    checkUsernameAvailability(this.value);
+                }
+            });
+
+            // التحقق من البريد الإلكتروني أثناء الكتابة
+            document.getElementById('email').addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    checkEmailAvailability(this.value);
+                }
+            });
+
+            // التحقق من قوة كلمة المرور
+            document.getElementById('password').addEventListener('input', function() {
+                checkPasswordStrength(this.value);
+                checkPasswordMatch();
+            });
+
+            // التحقق من تطابق كلمة المرور
+            document.getElementById('confirm_password').addEventListener('input', checkPasswordMatch);
+
+            // إظهار/إخفاء كلمة المرور
+            document.getElementById('showPassword').addEventListener('change', function() {
+                const passwordInput = document.getElementById('password');
+                const confirmInput = document.getElementById('confirm_password');
+                passwordInput.type = this.checked ? 'text' : 'password';
+                confirmInput.type = this.checked ? 'text' : 'password';
+            });
+
+            // إرسال النموذج
+            document.getElementById('registerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    full_name: document.getElementById('full_name').value.trim(),
+                    username: document.getElementById('username').value.trim(),
+                    email: document.getElementById('email').value.trim(),
+                    phone: document.getElementById('phone').value.trim(),
+                    password: document.getElementById('password').value,
+                    confirm_password: document.getElementById('confirm_password').value,
+                    role: document.getElementById('role').value,
+                    specialization: document.getElementById('specialization').value.trim()
+                };
+
+                // التحقق من البيانات
+                const errors = validateForm(formData);
+                if (errors.length > 0) {
+                    showMessage(errors.join('<br>'));
+                    return;
+                }
+
+                // التحقق النهائي من التوفر
+                const isUsernameAvailable = await checkUsernameAvailability(formData.username);
+                const isEmailAvailable = await checkEmailAvailability(formData.email);
+                const isPasswordMatch = checkPasswordMatch();
+
+                if (!isUsernameAvailable || !isEmailAvailable || !isPasswordMatch) {
+                    showMessage('يرجى تصحيح الأخطاء في النموذج');
+                    return;
+                }
+
+                // إرسال البيانات (إزالة confirm_password)
+                const { confirm_password, ...userData } = formData;
+                register(userData);
+            });
+        });
+
+        // السماح بالإدخال بالضغط على Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('registerForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

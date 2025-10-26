@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام عدالة - إدارة مكاتب المحاماة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .hero-subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .features-section {
+            padding: 4rem 2rem;
+            background: var(--gray-50);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius-lg);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .feature-icon {
+            font-size: 3rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .cta-section {
+            background: var(--primary-color);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <i class="fas fa-gavel"></i>
+                نظام عدالة
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="/" class="nav-link active">الرئيسية</a></li>
+                <li><a href="/login" class="nav-link">تسجيل الدخول</a></li>
+                <li><a href="/register" class="nav-link">إنشاء حساب</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- قسم البطل -->
+    <section class="hero-section">
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <i class="fas fa-gavel"></i><br>
+                نظام عدالة
+            </h1>
+            <p class="hero-subtitle">
+                نظام متكامل لإدارة مكاتب المحاماة والقضايا القانونية
+            </p>
+            <div class="hero-buttons">
+                <a href="/login" class="btn btn-light btn-lg">
+                    <i class="fas fa-sign-in-alt"></i>
+                    تسجيل الدخول
+                </a>
+                <a href="/register" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-user-plus"></i>
+                    إنشاء حساب
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- قسم الميزات -->
+    <section class="features-section">
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-gavel"></i>
+                </div>
+                <h3>إدارة القضايا</h3>
+                <p>إدارة كاملة للقضايا والمحاكمات مع متابعة حالة كل قضية</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <h3>إدارة العملاء</h3>
+                <p>تنظيم بيانات العملاء وتاريخ التعامل معهم</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <h3>جدولة الجلسات</h3>
+                <p>ترتيب مواعيد الجلسات وإرسال التذكيرات</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-file-contract"></i>
+                </div>
+                <h3>المستندات</h3>
+                <p>أرشيف آمن للمستندات القانونية والمرافعات</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- قسم الدعوة للإجراء -->
+    <section class="cta-section">
+        <div class="hero-content">
+            <h2>ابدأ في إدارة مكتبك الآن</h2>
+            <p>انضم إلى نظام عدالة وتمتع بميزات متكاملة لإدارة مكاتب المحاماة</p>
+            <a href="/register" class="btn btn-light btn-lg">
+                <i class="fas fa-rocket"></i>
+                ابدأ مجاناً
+            </a>
+        </div>
+    </section>
+
+    <!-- التذييل -->
+    <footer style="background: var(--gray-900); color: white; padding: 2rem; text-align: center;">
+        <p>© 2024 نظام عدالة - جميع الحقوق محفوظة</p>
+    </footer>
+
+    <script>
+        // التحقق من حالة المصادقة
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.log('User not authenticated');
+            }
+        }
+
+        // التحقق عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+</html>

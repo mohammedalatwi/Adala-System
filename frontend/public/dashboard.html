@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - نظام عدالة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .dashboard-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            padding: 2rem;
+            border-radius: var(--border-radius-lg);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle fill="rgba(255,255,255,0.1)" cx="50" cy="50" r="2"/></svg>');
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .welcome-section h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+            position: relative;
+            z-index: 2;
+        }
+
+        .action-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .action-card:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .action-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card.cases { border-left-color: var(--primary-color); }
+        .stat-card.clients { border-left-color: var(--success-color); }
+        .stat-card.sessions { border-left-color: var(--warning-color); }
+        .stat-card.documents { border-left-color: var(--info-color); }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        .recent-section {
+            margin: 2rem 0;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        .items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .list-item {
+            background: white;
+            padding: 1.25rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+            border-right: 4px solid var(--primary-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .list-item:hover {
+            transform: translateX(-5px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .list-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.5rem;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 0.25rem;
+        }
+
+        .list-item-meta {
+            display: flex;
+            gap: 1rem;
+            color: var(--gray-600);
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-primary { background: var(--primary-color); color: white; }
+        .badge-success { background: var(--success-color); color: white; }
+        .badge-warning { background: var(--warning-color); color: white; }
+        .badge-danger { background: var(--danger-color); color: white; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--gray-500);
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--secondary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        @media (max-width: 768px) {
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .list-item-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .welcome-section h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <i class="fas fa-gavel"></i>
+                نظام عدالة
+            </div>
+            
+            <ul class="navbar-nav">
+                <li><a href="/dashboard" class="nav-link active"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
+                <li><a href="/cases" class="nav-link"><i class="fas fa-gavel"></i> القضايا</a></li>
+                <li><a href="/sessions" class="nav-link"><i class="fas fa-calendar-alt"></i> الجلسات</a></li>
+                <li><a href="/clients" class="nav-link"><i class="fas fa-users"></i> العملاء</a></li>
+                <li><a href="/documents" class="nav-link"><i class="fas fa-file-contract"></i> المستندات</a></li>
+                <li>
+                    <span class="nav-link" id="userName">
+                        <i class="fas fa-user"></i> تحميل...
+                    </span>
+                </li>
+                <li>
+                    <button class="btn btn-danger btn-sm" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> خروج
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- المحتوى الرئيسي -->
+    <div class="main-container">
+        <!-- رأس لوحة التحكم -->
+        <div class="dashboard-header">
+            <div class="welcome-section">
+                <h1 id="welcomeTitle">مرحباً بعودتك!</h1>
+                <p>إدارة قضاياك وجلساتك من مكان واحد</p>
+            </div>
+
+            <!-- معلومات المستخدم -->
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <div id="userFullName">مدير النظام</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;" id="userRole">مدير النظام</div>
+                </div>
+            </div>
+
+            <!-- الإجراءات السريعة -->
+            <div class="quick-actions">
+                <div class="action-card" onclick="window.location.href='/cases?action=new'">
+                    <div class="action-icon">📁</div>
+                    <h4>إضافة قضية</h4>
+                    <p>إضافة قضية جديدة للنظام</p>
+                </div>
+                
+                <div class="action-card" onclick="window.location.href='/sessions?action=new'">
+                    <div class="action-icon">📅</div>
+                    <h4>جدولة جلسة</h4>
+                    <p>ترتيب موعد جلسة قضائية</p>
+                </div>
+                
+                <div class="action-card" onclick="window.location.href='/clients?action=new'">
+                    <div class="action-icon">👥</div>
+                    <h4>إضافة عميل</h4>
+                    <p>إضافة عميل جديد للنظام</p>
+                </div>
+                
+                <div class="action-card" onclick="window.location.href='/documents'">
+                    <div class="action-icon">📄</div>
+                    <h4>المستندات</h4>
+                    <p>إدارة المستندات القانونية</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- شبكة المحتوى -->
+        <div class="grid grid-2">
+            <!-- الإحصائيات -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-chart-bar"></i> نظرة سريعة</h3>
+                </div>
+                <div class="card-body">
+                    <div class="stats-grid">
+                        <div class="stat-card cases">
+                            <div class="stat-number" id="totalCases">12</div>
+                            <div class="stat-label">إجمالي القضايا</div>
+                        </div>
+                        <div class="stat-card clients">
+                            <div class="stat-number" id="totalClients">8</div>
+                            <div class="stat-label">إجمالي العملاء</div>
+                        </div>
+                        <div class="stat-card sessions">
+                            <div class="stat-number" id="upcomingSessions">5</div>
+                            <div class="stat-label">جلسات قادمة</div>
+                        </div>
+                        <div class="stat-card documents">
+                            <div class="stat-number" id="totalDocuments">23</div>
+                            <div class="stat-label">المستندات</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الجلسات القادمة -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="section-header">
+                        <h3><i class="fas fa-calendar-alt"></i> الجلسات القادمة</h3>
+                        <a href="/sessions" class="btn btn-primary btn-sm">عرض الكل</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="items-list" id="upcomingSessionsList">
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-title">جلسة نظر قضية التعويض</div>
+                                <span class="badge badge-warning">غداً</span>
+                            </div>
+                            <div class="list-item-meta">
+                                <span><i class="fas fa-clock"></i> 10:00 صباحاً</span>
+                                <span><i class="fas fa-map-marker-alt"></i> محكمة الرياض</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-title">جلسة استماع - قضية تجارية</div>
+                                <span class="badge badge-primary">بعد غد</span>
+                            </div>
+                            <div class="list-item-meta">
+                                <span><i class="fas fa-clock"></i> 02:00 مساءً</span>
+                                <span><i class="fas fa-map-marker-alt"></i> محكمة التجارة</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- القضايا الحديثة -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="section-header">
+                        <h3><i class="fas fa-gavel"></i> أحدث القضايا</h3>
+                        <a href="/cases" class="btn btn-primary btn-sm">عرض الكل</a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="items-list" id="recentCasesList">
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-title">قضية تعويض عن ضرر مادي</div>
+                                <span class="badge badge-warning">قيد الدراسة</span>
+                            </div>
+                            <div class="list-item-meta">
+                                <span><i class="fas fa-hashtag"></i> CASE-2024-001</span>
+                                <span><i class="fas fa-user"></i> سعود العتيبي</span>
+                                <span><i class="fas fa-calendar"></i> 2024-01-15</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-title">قضية نزاع عقاري</div>
+                                <span class="badge badge-primary">جديد</span>
+                            </div>
+                            <div class="list-item-meta">
+                                <span><i class="fas fa-hashtag"></i> CASE-2024-002</span>
+                                <span><i class="fas fa-user"></i> نورة القحطاني</span>
+                                <span><i class="fas fa-calendar"></i> 2024-01-10</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- الإشعارات -->
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-bell"></i> آخر الإشعارات</h3>
+                </div>
+                <div class="card-body">
+                    <div class="items-list" id="notificationsList">
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-title">جلسة قريبة</div>
+                                <span class="badge badge-danger">مهم</span>
+                            </div>
+                            <div class="list-item-meta">
+                                <span>جلسة قضية التعويض غداً الساعة 10:00 صباحاً</span>
+                            </div>
+                        </div>
+                        <div class="list-item">
+                            <div class="list-item-header">
+                                <div class="list-item-title">مستند جديد</div>
+                                <span class="badge badge-success">معلومات</span>
+                            </div>
+                            <div class="list-item-meta">
+                                <span>تم رفع مستند جديد في قضية النزاع العقاري</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- تحديث البيانات -->
+        <div class="text-center mt-4">
+            <button class="btn btn-secondary" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i> تحديث البيانات
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/dashboard.js"></script>
+    
+    <script>
+        // إضافة بعض الأنماط الإضافية
+        const style = document.createElement('style');
+        style.textContent = `
+            .d-flex { display: flex; }
+            .justify-between { justify-content: space-between; }
+            .justify-center { justify-content: center; }
+            .align-center { align-items: center; }
+            .align-start { align-items: flex-start; }
+            .text-center { text-align: center; }
+            .text-left { text-align: left; }
+            .mt-4 { margin-top: 2rem; }
+            .mb-1 { margin-bottom: 0.5rem; }
+            .mb-2 { margin-bottom: 1rem; }
+            .p-3 { padding: 1.5rem; }
+            .border-primary { border: 2px solid var(--primary-color); }
+            
+            .grid { display: grid; gap: 2rem; }
+            .grid-2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+            
+            @media (max-width: 768px) {
+                .grid-2 { grid-template-columns: 1fr; }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // تهيئة Dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Dashboard loaded');
+            
+            // تحديث معلومات المستخدم
+            const user = {
+                full_name: 'مدير النظام',
+                role: 'admin'
+            };
+            
+            document.getElementById('userName').innerHTML = `<i class="fas fa-user"></i> ${user.full_name}`;
+            document.getElementById('userFullName').textContent = user.full_name;
+            document.getElementById('userRole').textContent = user.role;
+            document.getElementById('welcomeTitle').textContent = `مرحباً ${user.full_name}!`;
+            
+            // إعداد event listeners
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                if (confirm('هل تريد تسجيل الخروج؟')) {
+                    window.location.href = '/login';
+                }
+            });
+            
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                location.reload();
+            });
+        });
+    </script>
+</body>
+</html>

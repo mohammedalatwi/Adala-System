@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول - نظام عدالة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: white;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-logo {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .demo-credentials {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin fa-2x" style="color: #667eea; margin-bottom: 1rem;"></i>
+            <div>جاري المعالجة...</div>
+        </div>
+    </div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">
+                    <i class="fas fa-gavel"></i>
+                </div>
+                <h1>تسجيل الدخول</h1>
+                <p>ادخل إلى نظام عدالة</p>
+            </div>
+
+            <!-- رسائل التنبيه -->
+            <div class="alert" id="messageAlert"></div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email" class="form-label">البريد الإلكتروني</label>
+                    <input type="email" id="email" class="form-control" required placeholder="ادخل بريدك الإلكتروني">
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">كلمة المرور</label>
+                    <input type="password" id="password" class="form-control" required placeholder="ادخل كلمة المرور">
+                    <div style="text-align: left; margin-top: 0.5rem;">
+                        <label style="font-size: 0.9rem; cursor: pointer;">
+                            <input type="checkbox" id="showPassword"> إظهار كلمة المرور
+                        </label>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+                    <i class="fas fa-sign-in-alt"></i>
+                    تسجيل الدخول
+                </button>
+            </form>
+
+            <div class="login-footer">
+                <p>ليس لديك حساب؟ <a href="/register" class="text-primary">إنشاء حساب جديد</a></p>
+                
+                <div class="demo-credentials">
+                    <small class="text-muted">
+                        <strong>بيانات تجريبية:</strong><br>
+                        البريد: admin@adala.com<br>
+                        كلمة المرور: password123
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // التحقق من حالة المصادقة
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/status', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    window.location.href = '/dashboard';
+                }
+            } catch (error) {
+                console.log('المستخدم غير مسجل الدخول');
+            }
+        }
+
+        // إظهار/إخفاء كلمة المرور
+        document.getElementById('showPassword').addEventListener('change', function() {
+            const passwordInput = document.getElementById('password');
+            passwordInput.type = this.checked ? 'text' : 'password';
+        });
+
+        // إظهار رسالة
+        function showMessage(message, type = 'error') {
+            const alert = document.getElementById('messageAlert');
+            alert.textContent = message;
+            alert.className = `alert alert-${type}`;
+            alert.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // إظهار التحميل
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // إخفاء التحميل
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // تسجيل الدخول
+        async function login(email, password) {
+            try {
+                showLoading();
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/dashboard';
+                    }, 1000);
+                } else {
+                    throw new Error(data.message);
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage(error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // إعداد النموذج
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+
+            document.getElementById('loginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+
+                if (!email || !password) {
+                    showMessage('يرجى ملء جميع الحقول');
+                    return;
+                }
+
+                if (!isValidEmail(email)) {
+                    showMessage('البريد الإلكتروني غير صالح');
+                    return;
+                }
+
+                login(email, password);
+            });
+
+            // إدخال البيانات التجريبية
+            document.getElementById('email').value = 'admin@adala.com';
+            document.getElementById('password').value = 'password123';
+        });
+
+        // التحقق من صحة البريد الإلكتروني
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+
+        // السماح بالإدخال بالضغط على Enter
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
