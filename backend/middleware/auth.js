@@ -1,8 +1,8 @@
-const Database = require('../db/database');
+const db = require('../db/database');
 
 class AuthMiddleware {
     constructor() {
-        this.db = new Database();
+        this.db = db;
     }
 
     // ✅ التحقق من تسجيل الدخول
@@ -79,7 +79,8 @@ class AuthMiddleware {
                 null,
                 null,
                 ip,
-                userAgent
+                userAgent,
+                req.session.officeId
             );
         }
 
@@ -103,7 +104,7 @@ class AuthMiddleware {
 
             if (user) {
                 req.currentUser = user;
-                
+
                 // تحديث آخر نشاط
                 await this.db.run(
                     'UPDATE users SET last_login = datetime("now") WHERE id = ?',
@@ -118,12 +119,12 @@ class AuthMiddleware {
     };
 
     // ✅ تسجيل النشاط
-    async logActivity(userId, description, actionType, entityType = null, entityId = null, ipAddress = null, userAgent = null) {
+    async logActivity(userId, description, actionType, entityType = null, entityId = null, ipAddress = null, userAgent = null, officeId = null) {
         try {
             await this.db.run(
-                `INSERT INTO activities (user_id, action_type, entity_type, entity_id, description, ip_address, user_agent)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [userId, actionType, entityType, entityId, description, ipAddress, userAgent]
+                `INSERT INTO activities (user_id, action_type, entity_type, entity_id, description, ip_address, user_agent, office_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [userId, actionType, entityType, entityId, description, ipAddress, userAgent, officeId]
             );
         } catch (error) {
             console.error('Error logging activity:', error);
@@ -131,12 +132,12 @@ class AuthMiddleware {
     }
 
     // ✅ إنشاء إشعار
-    async createNotification(userId, title, message, type = 'info', relatedEntityType = null, relatedEntityId = null, actionUrl = null) {
+    async createNotification(userId, title, message, type = 'info', relatedEntityType = null, relatedEntityId = null, actionUrl = null, officeId = null) {
         try {
             await this.db.run(
-                `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, action_url)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [userId, title, message, type, relatedEntityType, relatedEntityId, actionUrl]
+                `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, action_url, office_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [userId, title, message, type, relatedEntityType, relatedEntityId, actionUrl, officeId]
             );
         } catch (error) {
             console.error('Error creating notification:', error);
@@ -146,7 +147,10 @@ class AuthMiddleware {
     // ✅ التحقق من ملكية المورد
     checkOwnership = (entityType) => {
         return async (req, res, next) => {
-            if (!req.session.userId) {
+            const userId = req.session.userId;
+            const officeId = req.session.officeId;
+
+            if (!userId || !officeId) {
                 return res.status(401).json({
                     success: false,
                     message: 'يجب تسجيل الدخول'
@@ -155,11 +159,15 @@ class AuthMiddleware {
 
             try {
                 const user = await this.db.get(
-                    'SELECT role FROM users WHERE id = ?',
-                    [req.session.userId]
+                    'SELECT role FROM users WHERE id = ? AND office_id = ?',
+                    [userId, officeId]
                 );
 
-                // المديرين يمكنهم الوصول لكل شيء
+                if (!user) {
+                    return res.status(403).json({ success: false, message: 'غير مصرح بالوصول' });
+                }
+
+                // المديرين يمكنهم الوصول لكل شيء في مكتبهم
                 if (user.role === 'admin') {
                     return next();
                 }
@@ -170,20 +178,20 @@ class AuthMiddleware {
                 switch (entityType) {
                     case 'case':
                         ownershipCheck = await this.db.get(
-                            'SELECT id FROM cases WHERE id = ? AND lawyer_id = ?',
-                            [entityId, req.session.userId]
+                            'SELECT id FROM cases WHERE id = ? AND lawyer_id = ? AND office_id = ?',
+                            [entityId, userId, officeId]
                         );
                         break;
                     case 'client':
                         ownershipCheck = await this.db.get(
-                            'SELECT id FROM clients WHERE id = ? AND created_by = ?',
-                            [entityId, req.session.userId]
+                            'SELECT id FROM clients WHERE id = ? AND created_by = ? AND office_id = ?',
+                            [entityId, userId, officeId]
                         );
                         break;
                     case 'session':
                         ownershipCheck = await this.db.get(
-                            'SELECT s.id FROM sessions s JOIN cases c ON s.case_id = c.id WHERE s.id = ? AND c.lawyer_id = ?',
-                            [entityId, req.session.userId]
+                            'SELECT s.id FROM sessions s JOIN cases c ON s.case_id = c.id WHERE s.id = ? AND c.lawyer_id = ? AND s.office_id = ?',
+                            [entityId, userId, officeId]
                         );
                         break;
                     default:

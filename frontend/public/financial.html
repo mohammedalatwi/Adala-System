@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الإدارة المالية - نظام عدالة V3</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-container">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-name">نظام عدالة</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i class="fas fa-home"></i> <span>الرئيسية</span>
+                </a>
+                <a href="/cases" class="nav-item">
+                    <i class="fas fa-gavel"></i> <span>القضايا</span>
+                </a>
+                <a href="/sessions" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
+                <a href="/clients" class="nav-item">
+                    <i class="fas fa-users"></i> <span>العملاء</span>
+                </a>
+                <a href="/documents" class="nav-item">
+                    <i class="fas fa-file-contract"></i> <span>المستندات</span>
+                </a>
+                <a href="/financial" class="nav-item active">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
+                </a>
+                <a href="/reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> <span>التقارير</span>
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <i class="fas fa-tasks"></i> <span>المهام</span>
+                </a>
+                <a href="/team" class="nav-item">
+                    <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
+                </a>
+                <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <a href="/settings" class="nav-item">
+                        <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
+                    </a>
+                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                        <i class="fas fa-adjust"></i> <span>المظهر</span>
+                    </a>
+                    <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
+                        <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="بحث في الفواتير...">
+                </div>
+
+                <div class="header-actions">
+                    <button class="btn btn-outline" style="border:none;"><i class="fas fa-bell"></i></button>
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <div>
+                            <div style="font-weight:bold; font-size:0.9rem;" id="userName">...</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);" id="userRole">...</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                    <div>
+                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">الإدارة المالية</h1>
+                        <p style="color:var(--text-muted);">الفواتير والمصروفات والمدفوعات</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="FinanceManager.openInvoiceModal()">
+                        <i class="fas fa-plus"></i> فاتورة جديدة
+                    </button>
+                </div>
+
+                <!-- Stats Grid -->
+                <div
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+                    <div class="card stat-card">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div>
+                                <div class="stat-label">إجمالي الفواتير</div>
+                                <div class="stat-number" id="statsTotal">0.00 ر.س</div>
+                            </div>
+                            <div
+                                style="background:rgba(59, 130, 246, 0.1); color:var(--brand-primary); padding:0.5rem; border-radius:8px;">
+                                <i class="fas fa-file-invoice"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div>
+                                <div class="stat-label">المدفوع</div>
+                                <div class="stat-number text-success" id="statsPaid" style="color:#10b981;">0.00 ر.س
+                                </div>
+                            </div>
+                            <div
+                                style="background:rgba(16, 185, 129, 0.1); color:#10b981; padding:0.5rem; border-radius:8px;">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                            <div>
+                                <div class="stat-label">المستحق</div>
+                                <div class="stat-number text-danger" id="statsDue" style="color:#ef4444;">0.00 ر.س</div>
+                            </div>
+                            <div
+                                style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:0.5rem; border-radius:8px;">
+                                <i class="fas fa-exclamation-circle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs -->
+                <div
+                    style="margin-bottom:1.5rem; border-bottom:1px solid var(--border-color); display:flex; gap:1.5rem;">
+                    <button class="btn btn-outline active" id="tabInvoices"
+                        onclick="FinanceManager.switchTab('invoices')"
+                        style="border:none; border-bottom:2px solid var(--brand-primary); border-radius:0; color:var(--brand-primary);">الفواتير</button>
+                    <button class="btn btn-outline" id="tabExpenses" onclick="FinanceManager.switchTab('expenses')"
+                        style="border:none; border-radius:0; color:var(--text-muted);">المصروفات</button>
+                </div>
+
+                <!-- Invoices List -->
+                <div id="invoicesView">
+                    <div class="card" style="padding:0; overflow:hidden;">
+                        <table class="table" style="margin:0;">
+                            <thead>
+                                <tr style="background:var(--bg-body);">
+                                    <th>رقم الفاتورة</th>
+                                    <th>العميل</th>
+                                    <th>التاريخ</th>
+                                    <th>المبلغ</th>
+                                    <th>المدفوع</th>
+                                    <th>المتبقي</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="invoicesList">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Expenses List -->
+                <div id="expensesView" style="display:none;">
+                    <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
+                        <button class="btn btn-primary" onclick="FinanceManager.openExpenseModal()">
+                            <i class="fas fa-plus"></i> إضافة مصروف
+                        </button>
+                    </div>
+                    <div class="card" style="padding:0; overflow:hidden;">
+                        <table class="table" style="margin:0;">
+                            <thead>
+                                <tr style="background:var(--bg-body);">
+                                    <th>العنوان</th>
+                                    <th>الفئة</th>
+                                    <th>التاريخ</th>
+                                    <th>المبلغ</th>
+                                    <th>قابلة للفوترة</th>
+                                    <th>القضية</th>
+                                    <th>بواسطة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesList">
+                                <!-- Loaded via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for New Invoice -->
+    <div id="invoiceModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 id="modalTitle">إصدار فاتورة جديدة</h3>
+                <button class="modal-close" onclick="FinanceManager.closeInvoiceModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="invoiceForm">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+                        <div class="form-group">
+                            <label class="form-label">العميل *</label>
+                            <select id="invClient" class="form-control" required>
+                                <option value="">اختر العميل</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">القضية ذات الصلة</label>
+                            <select id="invCase" class="form-control">
+                                <option value="">(اختياري)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1rem;">
+                        <div class="form-group">
+                            <label class="form-label">تاريخ الإصدار</label>
+                            <input type="date" id="invIssueDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">تاريخ الاستحقاق</label>
+                            <input type="date" id="invDueDate" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:2rem; background:var(--bg-body); padding:1rem; border-radius:var(--radius);">
+                        <label class="form-label" style="margin-bottom:1rem;">بنود الفاتورة</label>
+                        <div id="invItems">
+                            <div class="item-row"
+                                style="display:grid; grid-template-columns: 3fr 1fr 1fr auto; gap:0.5rem; margin-bottom:0.5rem; align-items:center;">
+                                <input type="text" class="form-control item-desc" placeholder="الوصف" required>
+                                <input type="number" class="form-control item-qty" placeholder="الكمية" value="1"
+                                    min="1" onchange="FinanceManager.calculateTotal()">
+                                <input type="number" class="form-control item-price" placeholder="السعر" step="0.01"
+                                    onchange="FinanceManager.calculateTotal()">
+                                <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger);"
+                                    disabled><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline" onclick="FinanceManager.addItemRow()">
+                            <i class="fas fa-plus"></i> إضافة بند
+                        </button>
+
+                        <div style="text-align:left; margin-top:1rem; font-weight:bold; font-size:1.2rem;">
+                            الإجمالي: <span id="invTotal">0.00</span> ر.س
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
+                    onclick="FinanceManager.closeInvoiceModal()">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="FinanceManager.saveInvoice()">إصدار
+                    الفاتورة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>تسجيل دفعة</h3>
+                <button class="modal-close"
+                    onclick="document.getElementById('paymentModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="payInvoiceId">
+                <div class="form-group">
+                    <label class="form-label">المبلغ المدفوع</label>
+                    <input type="number" id="payAmount" class="form-control" step="0.01" required>
+                </div>
+                <div class="form-group" style="margin-top:1rem;">
+                    <label class="form-label">الملاحظات</label>
+                    <input type="text" id="payNotes" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="FinanceManager.submitPayment()">حفظ
+                    الدفعة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expenseModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>تسجيل مصروف جديد</h3>
+                <button class="modal-close" onclick="FinanceManager.closeExpenseModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="expenseForm">
+                    <div class="form-group">
+                        <label class="form-label">عنوان المصروف *</label>
+                        <input type="text" id="expTitle" class="form-control" required>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
+                        <div class="form-group">
+                            <label class="form-label">المبلغ *</label>
+                            <input type="number" id="expAmount" class="form-control" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">التاريخ *</label>
+                            <input type="date" id="expDate" class="form-control" required>
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
+                        <div class="form-group">
+                            <label class="form-label">الفئة</label>
+                            <select id="expCategory" class="form-control">
+                                <option value="رسوم قضائية">رسوم قضائية</option>
+                                <option value="مواصلات">مواصلات</option>
+                                <option value="قرطاسية">قرطاسية</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">القضية (اختياري)</label>
+                            <select id="expCase" class="form-control">
+                                <option value="">عام</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea id="expNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem; display:flex; align-items:center; gap:0.5rem;">
+                        <input type="checkbox" id="expBillable">
+                        <label for="expBillable" class="form-label" style="margin:0;">قابلة للفوترة (إعادة شحنها
+                            للعميل)</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
+                    onclick="FinanceManager.closeExpenseModal()">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="FinanceManager.saveExpense()">حفظ
+                    المصروف</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/finance.js"></script>
+</body>
+
+</html>

@@ -1,9 +1,9 @@
-const Database = require('../db/database');
+const db = require('../db/database');
 const AuthMiddleware = require('../middleware/auth');
 
 class CaseController {
     constructor() {
-        this.db = new Database();
+        this.db = db;
     }
 
     // ✅ إنشاء قضية جديدة
@@ -33,10 +33,12 @@ class CaseController {
                 tags
             } = req.body;
 
+            const officeId = req.session.officeId;
+
             // التحقق من توفر رقم القضية
             const existingCase = await this.db.get(
-                'SELECT id FROM cases WHERE case_number = ?',
-                [case_number]
+                'SELECT id FROM cases WHERE case_number = ? AND office_id = ?',
+                [case_number, officeId]
             );
 
             if (existingCase) {
@@ -46,20 +48,20 @@ class CaseController {
                 });
             }
 
-            const result = await this.db.run(
+            const result = await db.run(
                 `INSERT INTO cases (
                     case_number, title, description, case_type, client_id, lawyer_id, 
                     assistant_lawyer_id, status, priority, court_name, court_type, 
                     judge_name, case_subject, legal_description, initial_claim_amount,
                     expected_compensation, start_date, expected_end_date, next_session_date,
-                    is_confidential, tags
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    is_confidential, tags, office_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     case_number, title, description, case_type, client_id, lawyer_id,
                     assistant_lawyer_id, status, priority, court_name, court_type,
                     judge_name, case_subject, legal_description, initial_claim_amount,
                     expected_compensation, start_date, expected_end_date, next_session_date,
-                    is_confidential ? 1 : 0, tags
+                    is_confidential ? 1 : 0, tags, officeId
                 ]
             );
 
@@ -99,9 +101,13 @@ class CaseController {
                 search
             } = req.query;
 
+            const officeId = req.session.officeId;
+            const userId = req.session.userId;
+            const userRole = req.session.userRole;
+
             const offset = (page - 1) * limit;
-            let whereConditions = ['1=1'];
-            let params = [];
+            let whereConditions = ['c.office_id = ?'];
+            let params = [officeId];
 
             // الفلاتر
             if (status) {
@@ -123,6 +129,26 @@ class CaseController {
                 whereConditions.push('(c.title LIKE ? OR c.case_number LIKE ? OR cl.full_name LIKE ?)');
                 params.push(`%${search}%`, `%${search}%`, `%${search}%`);
             }
+
+            // --- RBAC Implementation ---
+            const userClientId = req.session.clientId; // Added for clients
+
+            if (userRole === 'client') {
+                if (!userClientId) {
+                    return res.status(403).json({ success: false, message: 'غير مصرح للعميل بالوصول' });
+                }
+                whereConditions.push('c.client_id = ?');
+                params.push(userClientId);
+            } else if (userRole === 'lawyer' || userRole === 'assistant') {
+                whereConditions.push('(c.lawyer_id = ? OR c.assistant_lawyer_id = ?)');
+                params.push(userId, userId);
+            } else if (userRole === 'trainee') {
+                // المتدرب يرى فقط القضايا الموكلة له كمساعد
+                whereConditions.push('c.assistant_lawyer_id = ?');
+                params.push(userId);
+            }
+            // Admins see all, no extra where conditions.
+            // ---------------------------
 
             const whereClause = whereConditions.join(' AND ');
 
@@ -195,8 +221,8 @@ class CaseController {
                 LEFT JOIN clients cl ON c.client_id = cl.id
                 LEFT JOIN users u ON c.lawyer_id = u.id
                 LEFT JOIN users a ON c.assistant_lawyer_id = a.id
-                WHERE c.id = ?
-            `, [id]);
+                WHERE c.id = ? AND c.office_id = ?
+            `, [id, req.session.officeId]);
 
             if (!caseData) {
                 return res.status(404).json({
@@ -205,19 +231,42 @@ class CaseController {
                 });
             }
 
+            // --- RBAC Implementation ---
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            let hasAccess = false;
+            if (userRole === 'admin') {
+                hasAccess = true;
+            } else if (userRole === 'client' && caseData.client_id === userClientId) {
+                hasAccess = true;
+            } else if ((userRole === 'lawyer' || userRole === 'assistant') &&
+                (caseData.lawyer_id === userId || caseData.assistant_lawyer_id === userId)) {
+                hasAccess = true;
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'غير مصرح لك بالوصول لهذه القضية'
+                });
+            }
+            // ---------------------------
+
             // جلب الجلسات المرتبطة
             const sessions = await this.db.all(`
                 SELECT * FROM sessions 
-                WHERE case_id = ? 
+                WHERE case_id = ? AND office_id = ?
                 ORDER BY session_date DESC
-            `, [id]);
+            `, [id, req.session.officeId]);
 
             // جلب المستندات المرتبطة
             const documents = await this.db.all(`
                 SELECT * FROM documents 
-                WHERE case_id = ? 
+                WHERE case_id = ? AND office_id = ?
                 ORDER BY uploaded_at DESC
-            `, [id]);
+            `, [id, req.session.officeId]);
 
             res.json({
                 success: true,
@@ -245,8 +294,8 @@ class CaseController {
 
             // التحقق من وجود القضية
             const existingCase = await this.db.get(
-                'SELECT id, title FROM cases WHERE id = ?',
-                [id]
+                'SELECT id, title FROM cases WHERE id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (!existingCase) {
@@ -291,8 +340,8 @@ class CaseController {
             values.push(id);
 
             await this.db.run(
-                `UPDATE cases SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                `UPDATE cases SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`,
+                [...values, req.session.officeId]
             );
 
             // تسجيل النشاط
@@ -325,8 +374,8 @@ class CaseController {
 
             // التحقق من وجود القضية
             const existingCase = await this.db.get(
-                'SELECT id, title FROM cases WHERE id = ?',
-                [id]
+                'SELECT id, title FROM cases WHERE id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (!existingCase) {
@@ -338,8 +387,8 @@ class CaseController {
 
             // التحقق من عدم وجود جلسات مرتبطة
             const sessionsCount = await this.db.get(
-                'SELECT COUNT(*) as count FROM sessions WHERE case_id = ?',
-                [id]
+                'SELECT COUNT(*) as count FROM sessions WHERE case_id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (sessionsCount.count > 0) {
@@ -349,7 +398,7 @@ class CaseController {
                 });
             }
 
-            await this.db.run('DELETE FROM cases WHERE id = ?', [id]);
+            await this.db.run('DELETE FROM cases WHERE id = ? AND office_id = ?', [id, req.session.officeId]);
 
             // تسجيل النشاط
             await AuthMiddleware.logActivity(
@@ -390,20 +439,23 @@ class CaseController {
                         ELSE 6
                     END as sort_order
                 FROM cases 
+                WHERE office_id = ?
                 GROUP BY status
                 ORDER BY sort_order
-            `);
+            `, [req.session.officeId]);
 
             const typeStats = await this.db.all(`
                 SELECT case_type, COUNT(*) as count
                 FROM cases 
+                WHERE office_id = ?
                 GROUP BY case_type
                 ORDER BY count DESC
-            `);
+            `, [req.session.officeId]);
 
             const priorityStats = await this.db.all(`
                 SELECT priority, COUNT(*) as count
                 FROM cases 
+                WHERE office_id = ?
                 GROUP BY priority
                 ORDER BY 
                     CASE priority
@@ -413,7 +465,7 @@ class CaseController {
                         WHEN 'منخفض' THEN 4
                         ELSE 5
                     END
-            `);
+            `, [req.session.officeId]);
 
             res.json({
                 success: true,

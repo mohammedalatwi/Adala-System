@@ -1,6 +1,5 @@
-const Database = require('../db/database');
+const db = require('../db/database');
 const bcrypt = require('bcryptjs');
-const db = new Database();
 
 class AuthController {
     // ✅ تسجيل مستخدم جديد
@@ -25,11 +24,15 @@ class AuthController {
             const saltRounds = 10;
             const passwordHash = await bcrypt.hash(password, saltRounds);
 
+            // الحصول على Office ID جديد
+            const maxOffice = await db.get('SELECT MAX(office_id) as maxId FROM users');
+            const officeId = (maxOffice.maxId || 0) + 1;
+
             // إضافة المستخدم
             const result = await db.run(
-                `INSERT INTO users (full_name, username, email, password_hash, phone, role, specialization)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [full_name, username, email, passwordHash, phone, role || 'lawyer', specialization]
+                `INSERT INTO users (full_name, username, email, password_hash, phone, role, specialization, office_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [full_name, username, email, passwordHash, phone, role || 'lawyer', specialization, officeId]
             );
 
             res.status(201).json({
@@ -50,24 +53,30 @@ class AuthController {
     // ✅ تسجيل الدخول
     login = async (req, res) => {
         try {
-            const { email, password } = req.body;
+            const { email, password } = req.body; // email field can now contain username too
+            console.log('Login attempt for:', email);
 
-            // البحث عن المستخدم
+            // البحث عن المستخدم بالبريد الإلكتروني أو اسم المستخدم
             const user = await db.get(
-                'SELECT * FROM users WHERE email = ? AND is_active = 1',
-                [email]
+                'SELECT * FROM users WHERE (email = ? OR username = ?) AND is_active = 1',
+                [email, email]
             );
 
             if (!user) {
+                console.log('User not found or inactive');
                 return res.status(401).json({
                     success: false,
                     message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
                 });
             }
 
+            console.log('User found:', user.username);
+            console.log('Stored hash:', user.password_hash);
+
             // التحقق من كلمة المرور
             const isValidPassword = await bcrypt.compare(password, user.password_hash);
-            
+            console.log('Password valid:', isValidPassword);
+
             if (!isValidPassword) {
                 return res.status(401).json({
                     success: false,
@@ -78,7 +87,8 @@ class AuthController {
             // إنشاء الجلسة
             req.session.userId = user.id;
             req.session.userRole = user.role;
-            
+            req.session.officeId = user.office_id;
+
             // تحديث آخر دخول
             await db.run(
                 'UPDATE users SET last_login = datetime("now") WHERE id = ?',
@@ -87,8 +97,8 @@ class AuthController {
 
             // تسجيل النشاط
             await db.run(
-                'INSERT INTO activities (user_id, action_type, description) VALUES (?, ?, ?)',
-                [user.id, 'login', 'تسجيل الدخول إلى النظام']
+                'INSERT INTO activities (user_id, action_type, description, entity_type) VALUES (?, ?, ?, ?)',
+                [user.id, 'login', 'تسجيل الدخول إلى النظام', 'system']
             );
 
             res.json({
@@ -100,7 +110,9 @@ class AuthController {
                     username: user.username,
                     email: user.email,
                     role: user.role,
-                    specialization: user.specialization
+                    specialization: user.specialization,
+                    client_id: user.client_id,
+                    office_id: user.office_id
                 }
             });
 
@@ -151,7 +163,7 @@ class AuthController {
             }
 
             const user = await db.get(
-                `SELECT id, full_name, username, email, role, specialization, 
+                `SELECT id, full_name, username, email, role, specialization, client_id, office_id,
                         avatar_url, created_at 
                  FROM users 
                  WHERE id = ? AND is_active = 1`,

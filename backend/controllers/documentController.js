@@ -1,31 +1,38 @@
-const Database = require('../db/database');
+const db = require('../db/database');
 const path = require('path');
 const fs = require('fs');
-const db = new Database();
 
 class DocumentController {
     // ✅ إنشاء مستند جديد
     createDocument = async (req, res) => {
         try {
+            if (!req.file) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'لم يتم رفع أي ملف'
+                });
+            }
+
             const {
                 case_id,
                 session_id,
                 title,
                 description,
                 document_type,
-                file_name,
-                file_path,
-                file_size,
-                file_type,
                 version = '1.0',
                 is_confidential = false
             } = req.body;
 
+            const file_name = req.file.originalname;
+            const file_path = req.file.path;
+            const file_size = req.file.size;
+            const file_type = req.file.mimetype;
+
             // التحقق من وجود القضية أو الجلسة
             if (case_id) {
                 const caseExists = await db.get(
-                    'SELECT id, title FROM cases WHERE id = ?',
-                    [case_id]
+                    'SELECT id, title FROM cases WHERE id = ? AND office_id = ?',
+                    [case_id, req.session.officeId]
                 );
                 if (!caseExists) {
                     return res.status(404).json({
@@ -37,8 +44,8 @@ class DocumentController {
 
             if (session_id) {
                 const sessionExists = await db.get(
-                    'SELECT id FROM sessions WHERE id = ?',
-                    [session_id]
+                    'SELECT id FROM sessions WHERE id = ? AND office_id = ?',
+                    [session_id, req.session.officeId]
                 );
                 if (!sessionExists) {
                     return res.status(404).json({
@@ -52,12 +59,12 @@ class DocumentController {
                 `INSERT INTO documents (
                     case_id, session_id, title, description, document_type,
                     file_name, file_path, file_size, file_type, version,
-                    is_confidential, uploaded_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    is_confidential, uploaded_by, office_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     case_id, session_id, title, description, document_type,
                     file_name, file_path, file_size, file_type, version,
-                    is_confidential ? 1 : 0, req.session.userId
+                    is_confidential ? 1 : 0, req.session.userId, req.session.officeId
                 ]
             );
 
@@ -94,9 +101,10 @@ class DocumentController {
                 search
             } = req.query;
 
+            const officeId = req.session.officeId;
             const offset = (page - 1) * limit;
-            let whereConditions = ['1=1'];
-            let params = [];
+            let whereConditions = ['d.office_id = ?'];
+            let params = [officeId];
 
             if (document_type) {
                 whereConditions.push('d.document_type = ?');
@@ -118,6 +126,24 @@ class DocumentController {
                 params.push(`%${search}%`, `%${search}%`, `%${search}%`);
             }
 
+            // --- RBAC Implementation ---
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            if (userRole === 'client') {
+                whereConditions.push('c.client_id = ?');
+                params.push(userClientId);
+            } else if (userRole === 'lawyer' || userRole === 'assistant') {
+                whereConditions.push('(c.lawyer_id = ? OR c.assistant_lawyer_id = ?)');
+                params.push(userId, userId);
+            } else if (userRole === 'trainee') {
+                // المتدرب يرى فقط مستندات القضايا الموكلة له
+                whereConditions.push('c.assistant_lawyer_id = ?');
+                params.push(userId);
+            }
+            // ---------------------------
+
             const whereClause = whereConditions.join(' AND ');
 
             const documents = await db.all(`
@@ -131,7 +157,7 @@ class DocumentController {
                 LEFT JOIN cases c ON d.case_id = c.id
                 LEFT JOIN sessions s ON d.session_id = s.id
                 LEFT JOIN users u ON d.uploaded_by = u.id
-                WHERE ${whereClause}
+                WHERE ${whereClause} AND d.is_active = 1
                 ORDER BY d.uploaded_at DESC
                 LIMIT ? OFFSET ?
             `, [...params, limit, offset]);
@@ -139,7 +165,7 @@ class DocumentController {
             const totalResult = await db.get(`
                 SELECT COUNT(*) as total 
                 FROM documents d
-                WHERE ${whereClause}
+                WHERE ${whereClause} AND d.is_active = 1
             `, params);
 
             res.json({
@@ -180,8 +206,8 @@ class DocumentController {
                 LEFT JOIN cases c ON d.case_id = c.id
                 LEFT JOIN sessions s ON d.session_id = s.id
                 LEFT JOIN users u ON d.uploaded_by = u.id
-                WHERE d.id = ?
-            `, [id]);
+                WHERE d.id = ? AND d.office_id = ? AND d.is_active = 1
+            `, [id, req.session.officeId]);
 
             if (!document) {
                 return res.status(404).json({
@@ -189,6 +215,32 @@ class DocumentController {
                     message: 'المستند غير موجود'
                 });
             }
+
+            // --- RBAC Implementation ---
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            let hasAccess = false;
+            if (userRole === 'admin') {
+                hasAccess = true;
+            } else if (userRole === 'client') {
+                // We need to check if the case belongs to the client
+                const caseObj = await db.get('SELECT client_id FROM cases WHERE id = ?', [document.case_id]);
+                if (caseObj && caseObj.client_id === userClientId) hasAccess = true;
+            } else if (userRole === 'lawyer' || userRole === 'assistant') {
+                // Check if lawyer is assigned to the case
+                const caseObj = await db.get('SELECT lawyer_id, assistant_lawyer_id FROM cases WHERE id = ?', [document.case_id]);
+                if (caseObj && (caseObj.lawyer_id === userId || caseObj.assistant_lawyer_id === userId)) hasAccess = true;
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'غير مصرح لك بالوصول لهذا المستند'
+                });
+            }
+            // ---------------------------
 
             res.json({
                 success: true,
@@ -211,8 +263,8 @@ class DocumentController {
             const updateData = req.body;
 
             const existingDocument = await db.get(
-                'SELECT id, title FROM documents WHERE id = ?',
-                [id]
+                'SELECT id, title FROM documents WHERE id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (!existingDocument) {
@@ -252,8 +304,8 @@ class DocumentController {
             values.push(id);
 
             await db.run(
-                `UPDATE documents SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                `UPDATE documents SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`,
+                [...values, req.session.officeId]
             );
 
             // تسجيل النشاط
@@ -282,8 +334,8 @@ class DocumentController {
             const { id } = req.params;
 
             const existingDocument = await db.get(
-                'SELECT id, title, file_path FROM documents WHERE id = ?',
-                [id]
+                'SELECT id, title, file_path FROM documents WHERE id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (!existingDocument) {
@@ -293,17 +345,13 @@ class DocumentController {
                 });
             }
 
-            // حذف الملف الفعلي من الخادم إذا كان موجوداً
-            if (existingDocument.file_path && fs.existsSync(existingDocument.file_path)) {
-                fs.unlinkSync(existingDocument.file_path);
-            }
-
-            await db.run('DELETE FROM documents WHERE id = ?', [id]);
+            // Soft delete: update is_active to 0
+            await db.run('UPDATE documents SET is_active = 0 WHERE id = ? AND office_id = ?', [id, req.session.officeId]);
 
             // تسجيل النشاط
             await db.run(
                 'INSERT INTO activities (user_id, action_type, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)',
-                [req.session.userId, 'delete', 'document', id, `حذف المستند: ${existingDocument.title}`]
+                [req.session.userId, 'delete', 'document', id, `حذف المستند (Soft Delete): ${existingDocument.title}`]
             );
 
             res.json({
@@ -326,8 +374,8 @@ class DocumentController {
             const { id } = req.params;
 
             const document = await db.get(
-                'SELECT file_name, file_path FROM documents WHERE id = ?',
-                [id]
+                'SELECT file_name, file_path, case_id FROM documents WHERE id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (!document) {
@@ -336,6 +384,30 @@ class DocumentController {
                     message: 'المستند غير موجود'
                 });
             }
+
+            // --- RBAC Implementation ---
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            let hasAccess = false;
+            if (userRole === 'admin') {
+                hasAccess = true;
+            } else if (userRole === 'client') {
+                const caseObj = await db.get('SELECT client_id FROM cases WHERE id = ?', [document.case_id]);
+                if (caseObj && caseObj.client_id === userClientId) hasAccess = true;
+            } else if (userRole === 'lawyer' || userRole === 'assistant') {
+                const caseObj = await db.get('SELECT lawyer_id, assistant_lawyer_id FROM cases WHERE id = ?', [document.case_id]);
+                if (caseObj && (caseObj.lawyer_id === userId || caseObj.assistant_lawyer_id === userId)) hasAccess = true;
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'غير مصرح لك بتحميل هذا المستند'
+                });
+            }
+            // ---------------------------
 
             if (!document.file_path || !fs.existsSync(document.file_path)) {
                 return res.status(404).json({
@@ -370,9 +442,10 @@ class DocumentController {
                     COUNT(*) as count,
                     SUM(file_size) as total_size
                 FROM documents 
+                WHERE office_id = ?
                 GROUP BY document_type
                 ORDER BY count DESC
-            `);
+            `, [req.session.officeId]);
 
             const monthlyStats = await db.all(`
                 SELECT 
@@ -380,10 +453,10 @@ class DocumentController {
                     COUNT(*) as count,
                     SUM(file_size) as total_size
                 FROM documents 
-                WHERE uploaded_at >= datetime('now', '-6 months')
+                WHERE uploaded_at >= datetime('now', '-6 months') AND office_id = ?
                 GROUP BY month
                 ORDER BY month
-            `);
+            `, [req.session.officeId]);
 
             const caseStats = await db.all(`
                 SELECT 
@@ -393,11 +466,12 @@ class DocumentController {
                     SUM(d.file_size) as total_size
                 FROM cases c
                 LEFT JOIN documents d ON c.id = d.case_id
+                WHERE c.office_id = ?
                 GROUP BY c.id
                 HAVING documents_count > 0
                 ORDER BY documents_count DESC
                 LIMIT 10
-            `);
+            `, [req.session.officeId]);
 
             res.json({
                 success: true,

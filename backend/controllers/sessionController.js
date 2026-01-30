@@ -1,5 +1,5 @@
-const Database = require('../db/database');
-const db = new Database();
+const db = require('../db/database');
+const notificationService = require('../services/notificationService');
 
 class SessionController {
     // ✅ إنشاء جلسة جديدة
@@ -7,7 +7,7 @@ class SessionController {
         try {
             const {
                 case_id,
-                session_number,
+                // session_number removed (calculated automatically)
                 session_date,
                 session_type,
                 location,
@@ -23,8 +23,8 @@ class SessionController {
 
             // التحقق من وجود القضية
             const caseExists = await db.get(
-                'SELECT id, title FROM cases WHERE id = ?',
-                [case_id]
+                'SELECT id, title FROM cases WHERE id = ? AND office_id = ?',
+                [case_id, req.session.officeId]
             );
 
             if (!caseExists) {
@@ -34,16 +34,23 @@ class SessionController {
                 });
             }
 
+            // حساب رقم الجلسة
+            const sessionsCount = await db.get(
+                'SELECT COUNT(*) as count FROM sessions WHERE case_id = ? AND office_id = ?',
+                [case_id, req.session.officeId]
+            );
+            const session_number = (sessionsCount?.count || 0) + 1;
+
             const result = await db.run(
                 `INSERT INTO sessions (
                     case_id, session_number, session_date, session_type, location,
                     judge_name, session_notes, session_result, decisions_taken,
-                    next_steps, status, preparation_status, documents_required, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    next_steps, status, preparation_status, documents_required, created_by, office_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     case_id, session_number, session_date, session_type, location,
                     judge_name, session_notes, session_result, decisions_taken,
-                    next_steps, status, preparation_status, documents_required, req.session.userId
+                    next_steps, status, preparation_status, documents_required, req.session.userId, req.session.officeId
                 ]
             );
 
@@ -99,9 +106,10 @@ class SessionController {
                 upcoming
             } = req.query;
 
+            const officeId = req.session.officeId;
             const offset = (page - 1) * limit;
-            let whereConditions = ['1=1'];
-            let params = [];
+            let whereConditions = ['s.is_active = 1', 's.office_id = ?'];
+            let params = [officeId];
 
             if (status) {
                 whereConditions.push('s.status = ?');
@@ -117,6 +125,28 @@ class SessionController {
                 whereConditions.push('s.session_date > datetime("now")');
                 whereConditions.push('s.status = "مجدول"');
             }
+
+            // --- RBAC Implementation ---
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            if (userRole === 'client') {
+                if (!userClientId) {
+                    return res.status(403).json({ success: false, message: 'غير مصرح للعميل بالوصول' });
+                }
+                whereConditions.push('c.client_id = ?');
+                params.push(userClientId);
+            } else if (userRole === 'lawyer' || userRole === 'assistant') {
+                whereConditions.push('(c.lawyer_id = ? OR c.assistant_lawyer_id = ?)');
+                params.push(userId, userId);
+            } else if (userRole === 'trainee') {
+                // المتدرب يرى فقط جلسات القضايا الموكلة له
+                whereConditions.push('c.assistant_lawyer_id = ?');
+                params.push(userId);
+            }
+            // Admins see all.
+            // ---------------------------
 
             const whereClause = whereConditions.join(' AND ');
 
@@ -168,7 +198,7 @@ class SessionController {
         try {
             const { limit = 5 } = req.query;
 
-            const sessions = await db.all(`
+            let sessionsQuery = `
                 SELECT 
                     s.*,
                     c.case_number,
@@ -182,9 +212,27 @@ class SessionController {
                 LEFT JOIN users u ON c.lawyer_id = u.id
                 WHERE s.session_date > datetime("now") 
                 AND s.status = 'مجدول'
-                ORDER BY s.session_date ASC
-                LIMIT ?
-            `, [limit]);
+                AND s.is_active = 1
+                AND s.office_id = ?
+            `;
+            let sessionsParams = [req.session.officeId];
+
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            if (userRole === 'client') {
+                sessionsQuery += ' AND c.client_id = ?';
+                sessionsParams.push(userClientId);
+            } else if (userRole === 'lawyer' || userRole === 'assistant') {
+                sessionsQuery += ' AND (c.lawyer_id = ? OR c.assistant_lawyer_id = ?)';
+                sessionsParams.push(userId, userId);
+            }
+
+            sessionsQuery += ' ORDER BY s.session_date ASC LIMIT ?';
+            sessionsParams.push(parseInt(limit));
+
+            const sessions = await db.all(sessionsQuery, sessionsParams);
 
             res.json({
                 success: true,
@@ -212,6 +260,8 @@ class SessionController {
                     c.title as case_title,
                     c.case_type,
                     c.client_id,
+                    c.lawyer_id,
+                    c.assistant_lawyer_id,
                     cl.full_name as client_name,
                     cl.phone as client_phone,
                     u.full_name as lawyer_name,
@@ -220,8 +270,8 @@ class SessionController {
                 LEFT JOIN cases c ON s.case_id = c.id
                 LEFT JOIN clients cl ON c.client_id = cl.id
                 LEFT JOIN users u ON c.lawyer_id = u.id
-                WHERE s.id = ?
-            `, [id]);
+                WHERE s.id = ? AND s.office_id = ? AND s.is_active = 1
+            `, [id, req.session.officeId]);
 
             if (!session) {
                 return res.status(404).json({
@@ -230,12 +280,35 @@ class SessionController {
                 });
             }
 
+            // --- RBAC Implementation ---
+            const userRole = req.session.userRole;
+            const userId = req.session.userId;
+            const userClientId = req.session.clientId;
+
+            let hasAccess = false;
+            if (userRole === 'admin') {
+                hasAccess = true;
+            } else if (userRole === 'client' && session.client_id === userClientId) {
+                hasAccess = true;
+            } else if ((userRole === 'lawyer' || userRole === 'assistant') &&
+                (session.lawyer_id === userId || session.assistant_lawyer_id === userId)) {
+                hasAccess = true;
+            }
+
+            if (!hasAccess) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'غير مصرح لك بالوصول لهذه الجلسة'
+                });
+            }
+            // ---------------------------
+
             // جلب المستندات المرتبطة
             const documents = await db.all(`
-                SELECT * FROM documents 
-                WHERE session_id = ? 
+            SELECT * FROM documents 
+                WHERE session_id = ? AND office_id = ?
                 ORDER BY uploaded_at DESC
-            `, [id]);
+            `, [id, req.session.officeId]);
 
             res.json({
                 success: true,
@@ -261,7 +334,7 @@ class SessionController {
             const updateData = req.body;
 
             const existingSession = await db.get(
-                'SELECT id, case_id FROM sessions WHERE id = ?',
+                'SELECT id, case_id FROM sessions WHERE id = ? AND is_active = 1',
                 [id]
             );
 
@@ -299,16 +372,22 @@ class SessionController {
             values.push(id);
 
             await db.run(
-                `UPDATE sessions SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                `UPDATE sessions SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`,
+                [...values, req.session.officeId]
             );
 
-            // إذا تم تحديث تاريخ الجلسة، تحديث القضية
+            // إذا تم تحديث تاريخ الجلسة، تحديث القضية وإرسال تنبيه
             if (updateData.session_date) {
                 await db.run(
                     'UPDATE cases SET next_session_date = ?, updated_at = datetime("now") WHERE id = ?',
                     [updateData.session_date, existingSession.case_id]
                 );
+                await notificationService.sendInstantSessionAlert(id, 'time');
+            }
+
+            // إذا تم تحديث الحالة، إرسال تنبيه فوري
+            if (updateData.status && updateData.status !== existingSession.status) {
+                await notificationService.sendInstantSessionAlert(id, 'status');
             }
 
             // تسجيل النشاط
@@ -337,7 +416,7 @@ class SessionController {
             const { id } = req.params;
 
             const existingSession = await db.get(
-                'SELECT id, case_id FROM sessions WHERE id = ?',
+                'SELECT id, case_id FROM sessions WHERE id = ? AND is_active = 1',
                 [id]
             );
 
@@ -348,7 +427,7 @@ class SessionController {
                 });
             }
 
-            await db.run('DELETE FROM sessions WHERE id = ?', [id]);
+            await db.run('UPDATE sessions SET is_active = 0, updated_at = datetime("now") WHERE id = ? AND office_id = ?', [id, req.session.officeId]);
 
             // تسجيل النشاط
             await db.run(
@@ -374,38 +453,40 @@ class SessionController {
     getSessionStats = async (req, res) => {
         try {
             const stats = await db.all(`
-                SELECT 
-                    status,
-                    COUNT(*) as count,
-                    CASE 
+                SELECT
+            status,
+                COUNT(*) as count,
+                CASE 
                         WHEN status = 'مجدول' THEN 1
                         WHEN status = 'منعقد' THEN 2
                         WHEN status = 'ملغي' THEN 3
                         WHEN status = 'مؤجل' THEN 4
                         WHEN status = 'منتهي' THEN 5
                         ELSE 6
-                    END as sort_order
+            END as sort_order
                 FROM sessions 
+                WHERE is_active = 1 AND office_id = ?
                 GROUP BY status
                 ORDER BY sort_order
-            `);
+                `, [req.session.officeId]);
 
             const typeStats = await db.all(`
                 SELECT session_type, COUNT(*) as count
                 FROM sessions 
+                WHERE is_active = 1 AND office_id = ?
                 GROUP BY session_type
                 ORDER BY count DESC
-            `);
+                `, [req.session.officeId]);
 
             const monthlyStats = await db.all(`
-                SELECT 
-                    strftime('%Y-%m', session_date) as month,
-                    COUNT(*) as count
+            SELECT
+            strftime('%Y-%m', session_date) as month,
+                COUNT(*) as count
                 FROM sessions 
-                WHERE session_date >= datetime('now', '-6 months')
+                WHERE session_date >= datetime('now', '-6 months') AND is_active = 1 AND office_id = ?
                 GROUP BY month
                 ORDER BY month
-            `);
+                `, [req.session.officeId]);
 
             res.json({
                 success: true,

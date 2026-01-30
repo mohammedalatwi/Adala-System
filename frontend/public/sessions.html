@@ -1,963 +1,228 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة الجلسات - نظام عدالة</title>
+    <title>إدارة الجلسات - نظام عدالة V2</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        .sessions-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
-        }
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css">
 
-        .filters-section {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr auto;
-            gap: 1rem;
-            align-items: end;
-        }
-
-        .sessions-table {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th {
-            background: #f8f9fa;
-            padding: 1rem;
-            text-align: right;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .table td {
-            padding: 1rem;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .status-scheduled { background: #d1ecf1; color: #0c5460; }
-        .status-held { background: #d4edda; color: #155724; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
-        .status-postponed { background: #fff3cd; color: #856404; }
-
-        .type-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            background: #e9ecef;
-            color: #495057;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-icon {
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-icon:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-view { background: #17a2b8; color: white; }
-        .btn-edit { background: #ffc107; color: white; }
-        .btn-delete { background: #dc3545; color: white; }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 2% auto;
-            padding: 0;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            padding: 1.5rem;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        .upcoming-badge {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            animation: pulse 2s infinite;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .alert-warning {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            color: #856404;
-        }
-
-        .alert-info {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .loading-spinner {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        @media (max-width: 768px) {
-            .filter-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
-    <!-- Loading Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin fa-2x" style="color: #667eea; margin-bottom: 1rem;"></i>
-            <div id="loadingText">جاري التحميل...</div>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-container">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-name">نظام عدالة</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i class="fas fa-home"></i> <span>الرئيسية</span>
+                </a>
+                <a href="/cases" class="nav-item">
+                    <i class="fas fa-gavel"></i> <span>القضايا</span>
+                </a>
+                <a href="/sessions" class="nav-item active">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
+                <a href="/clients" class="nav-item">
+                    <i class="fas fa-users"></i> <span>العملاء</span>
+                </a>
+                <a href="/documents" class="nav-item">
+                    <i class="fas fa-file-contract"></i> <span>المستندات</span>
+                </a>
+                <a href="/financial" class="nav-item">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
+                </a>
+                <a href="/reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> <span>التقارير</span>
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <i class="fas fa-tasks"></i> <span>المهام</span>
+                </a>
+                <a href="/team" class="nav-item">
+                    <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
+                </a>
+                <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <a href="/settings" class="nav-item">
+                        <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
+                    </a>
+                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                        <i class="fas fa-adjust"></i> <span>المظهر</span>
+                    </a>
+                    <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
+                        <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="بحث في الجلسات...">
+                </div>
+
+                <div class="header-actions">
+                    <button class="btn btn-outline" style="border:none;"><i class="fas fa-bell"></i></button>
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <div>
+                            <div style="font-weight:bold; font-size:0.9rem;" id="userName">...</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);" id="userRole">...</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                    <div>
+                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">إدارة الجلسات</h1>
+                        <p style="color:var(--text-muted);">جدول الجلسات والمواعيد القضائية</p>
+                    </div>
+                    <div style="display:flex; gap:1rem;">
+                        <div
+                            style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:var(--radius); display:flex; padding:2px;">
+                            <button class="btn btn-sm active" id="listViewBtn"
+                                style="border-radius:6px; background:var(--brand-primary); color:white;">
+                                <i class="fas fa-list"></i> قائمة
+                            </button>
+                            <button class="btn btn-sm" id="calendarViewBtn"
+                                style="border-radius:6px; background:transparent; color:var(--text-muted);">
+                                <i class="fas fa-calendar"></i> تقويم
+                            </button>
+                        </div>
+                        <button class="btn btn-primary" onclick="SessionsManager.openNewSessionModal()">
+                            <i class="fas fa-plus"></i> جلسة جديدة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters (List View Only) -->
+                <div id="filtersSection" class="card"
+                    style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label">القضية</label>
+                        <select id="caseFilter" class="form-control">
+                            <option value="">جميع القضايا</option>
+                        </select>
+                    </div>
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label">الحالة</label>
+                        <select id="statusFilter" class="form-control">
+                            <option value="">جميع الحالات</option>
+                            <option value="مجدول">مجدول</option>
+                            <option value="منعقد">منعقد</option>
+                            <option value="مكتمل">مكتمل</option>
+                            <option value="ملغي">ملغي</option>
+                        </select>
+                    </div>
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label">الفترة</label>
+                        <select id="timelineFilter" class="form-control">
+                            <option value="">الكل</option>
+                            <option value="upcoming">القادمة</option>
+                            <option value="today">اليوم</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="SessionsManager.loadSessions()">
+                            <i class="fas fa-filter"></i> تصفية
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sessions List Container -->
+                <div id="sessionsContainer" style="display:grid; gap:1rem;">
+                    <!-- Loaded Dynamically -->
+                </div>
+
+                <!-- Calendar Container -->
+                <div id="calendarWrapper" class="card" style="display:none; height:700px;">
+                    <div id="calendar"></div>
+                </div>
+            </main>
         </div>
     </div>
 
-    <nav class="navbar">
-        <div class="navbar-container">
-            <div class="navbar-brand">
-                <i class="fas fa-gavel"></i>
-                نظام عدالة
-            </div>
-            
-            <ul class="navbar-nav">
-                <li><a href="/dashboard" class="nav-link"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
-                <li><a href="/cases" class="nav-link"><i class="fas fa-gavel"></i> القضايا</a></li>
-                <li><a href="/sessions" class="nav-link active"><i class="fas fa-calendar-alt"></i> الجلسات</a></li>
-                <li><a href="/clients" class="nav-link"><i class="fas fa-users"></i> العملاء</a></li>
-                <li>
-                    <button class="btn btn-danger btn-sm" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> خروج
-                    </button>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <div class="main-container">
-        <!-- رأس الصفحة -->
-        <div class="sessions-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1><i class="fas fa-calendar-alt"></i> إدارة الجلسات</h1>
-                    <p>جدولة ومتابعة جميع الجلسات القضائية</p>
-                </div>
-                <button class="btn btn-light btn-lg" onclick="openAddModal()">
-                    <i class="fas fa-plus"></i> جدولة جلسة جديدة
-                </button>
-            </div>
-        </div>
-
-        <!-- الفلاتر والبحث -->
-        <div class="filters-section">
-            <div class="filter-grid">
-                <div>
-                    <label for="searchInput" class="form-label">بحث</label>
-                    <input type="text" id="searchInput" class="form-control" placeholder="ابحث في الجلسات...">
-                </div>
-                <div>
-                    <label for="caseFilter" class="form-label">القضية</label>
-                    <select id="caseFilter" class="form-control">
-                        <option value="">جميع القضايا</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="statusFilter" class="form-label">حالة الجلسة</label>
-                    <select id="statusFilter" class="form-control">
-                        <option value="">جميع الحالات</option>
-                        <option value="مجدول">مجدول</option>
-                        <option value="منعقد">منعقد</option>
-                        <option value="ملغي">ملغي</option>
-                        <option value="مؤجل">مؤجل</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="typeFilter" class="form-label">نوع الجلسة</label>
-                    <select id="typeFilter" class="form-control">
-                        <option value="">جميع الأنواع</option>
-                        <option value="استماع">استماع</option>
-                        <option value="نظر">نظر</option>
-                        <option value="تحكيم">تحكيم</option>
-                        <option value="إثبات">إثبات</option>
-                        <option value="حكم">حكم</option>
-                    </select>
-                </div>
-                <div>
-                    <button class="btn btn-primary" onclick="loadSessions()">
-                        <i class="fas fa-search"></i> بحث
-                    </button>
-                    <button class="btn btn-outline-primary" onclick="showUpcomingOnly()">
-                        <i class="fas fa-clock"></i> القادمة فقط
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- جدول الجلسات -->
-        <div class="sessions-table">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>رقم الجلسة</th>
-                        <th>القضية</th>
-                        <th>تاريخ الجلسة</th>
-                        <th>النوع</th>
-                        <th>المحكمة</th>
-                        <th>الحالة</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="sessionsTableBody">
-                    <!-- سيتم ملؤها بالبيانات -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Modal إضافة/تعديل جلسة -->
-    <div id="sessionModal" class="modal">
-        <div class="modal-content">
+    <!-- Modal for New Session -->
+    <div id="sessionModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3 id="modalTitle">جدولة جلسة جديدة</h3>
-                <span style="cursor: pointer; font-size: 1.5rem;" onclick="closeModal()">&times;</span>
+                <button class="modal-close" onclick="SessionsManager.closeSessionModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="sessionForm">
-                    <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">القضية *</label>
+                        <select id="sessionCase" class="form-control" required>
+                            <option value="">اختر القضية</option>
+                        </select>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1rem;">
                         <div class="form-group">
-                            <label for="case_id" class="form-label">القضية *</label>
-                            <select id="case_id" name="case_id" class="form-control" required>
-                                <option value="">جاري تحميل القضايا...</option>
-                            </select>
+                            <label class="form-label">التاريخ والوقت *</label>
+                            <input type="datetime-local" id="sessionDate" class="form-control" required>
                         </div>
                         <div class="form-group">
-                            <label for="session_number" class="form-label">رقم الجلسة</label>
-                            <input type="number" id="session_number" name="session_number" class="form-control" placeholder="سيتم توليده تلقائياً">
-                        </div>
-                        <div class="form-group">
-                            <label for="session_date" class="form-label">تاريخ الجلسة *</label>
-                            <input type="datetime-local" id="session_date" name="session_date" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="session_type" class="form-label">نوع الجلسة *</label>
-                            <select id="session_type" name="session_type" class="form-control" required>
-                                <option value="">اختر النوع</option>
-                                <option value="استماع">استماع</option>
+                            <label class="form-label">نوع الجلسة</label>
+                            <select id="sessionType" class="form-control">
                                 <option value="نظر">نظر</option>
+                                <option value="استماع">استماع</option>
+                                <option value="حكم">حكم</option>
                                 <option value="تحكيم">تحكيم</option>
                                 <option value="إثبات">إثبات</option>
-                                <option value="حكم">حكم</option>
                             </select>
                         </div>
-                        <div class="form-group">
-                            <label for="location" class="form-label">مكان الجلسة *</label>
-                            <input type="text" id="location" name="location" class="form-control" required placeholder="مثال: محكمة الرياض - قاعة 5">
-                        </div>
-                        <div class="form-group">
-                            <label for="judge_name" class="form-label">اسم القاضي</label>
-                            <input type="text" id="judge_name" name="judge_name" class="form-control" placeholder="اسم القاضي المسؤول">
-                        </div>
-                        <div class="form-group">
-                            <label for="status" class="form-label">حالة الجلسة</label>
-                            <select id="status" name="status" class="form-control">
-                                <option value="مجدول">مجدول</option>
-                                <option value="منعقد">منعقد</option>
-                                <option value="ملغي">ملغي</option>
-                                <option value="مؤجل">مؤجل</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="preparation_status" class="form-label">حالة التحضير</label>
-                            <select id="preparation_status" name="preparation_status" class="form-control">
-                                <option value="غير معد">غير معد</option>
-                                <option value="قيد الإعداد">قيد الإعداد</option>
-                                <option value="مكتمل">مكتمل</option>
-                            </select>
-                        </div>
-                        <div class="form-group full-width">
-                            <label for="session_notes" class="form-label">ملاحظات الجلسة</label>
-                            <textarea id="session_notes" name="session_notes" class="form-control" rows="3" placeholder="ملاحظات حول الجلسة..."></textarea>
-                        </div>
-                        <div class="form-group full-width">
-                            <label for="documents_required" class="form-label">المستندات المطلوبة</label>
-                            <textarea id="documents_required" name="documents_required" class="form-control" rows="2" placeholder="المستندات المطلوبة للجلسة..."></textarea>
-                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label class="form-label">المكان *</label>
+                        <input type="text" id="sessionLocation" class="form-control" required
+                            placeholder="مثال: المحكمة العامة">
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label class="form-label">القاضي</label>
+                        <input type="text" id="sessionJudge" class="form-control" placeholder="اسم القاضي">
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea id="sessionNotes" class="form-control" rows="3"></textarea>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="saveSession()">حفظ الجلسة</button>
+                <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
+                    onclick="SessionsManager.closeSessionModal()">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="SessionsManager.saveSession()">حفظ</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let currentEditingId = null;
-        let sessions = [];
+    <!-- External Libs -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales-all.min.js"></script>
 
-        // تحميل الجلسات عند فتح الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 صفحة الجلسات محملة بنجاح');
-            checkAuth();
-            loadSessions();
-            loadCasesForFilter();
-        });
-
-        // ==================== دوال التحميل ====================
-
-        // تحميل الجلسات من الخادم
-        async function loadSessions() {
-            try {
-                showLoading('جاري تحميل الجلسات...');
-                
-                const search = document.getElementById('searchInput').value;
-                const caseFilter = document.getElementById('caseFilter').value;
-                const status = document.getElementById('statusFilter').value;
-                const type = document.getElementById('typeFilter').value;
-
-                let url = '/api/sessions?';
-                if (search) url += `search=${encodeURIComponent(search)}&`;
-                if (caseFilter) url += `case_id=${encodeURIComponent(caseFilter)}&`;
-                if (status) url += `status=${encodeURIComponent(status)}&`;
-                if (type) url += `session_type=${encodeURIComponent(type)}&`;
-
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (data.success) {
-                    sessions = data.data;
-                    renderSessions();
-                } else {
-                    showError('فشل في تحميل الجلسات');
-                }
-            } catch (error) {
-                console.error('Error loading sessions:', error);
-                showError('خطأ في الاتصال بالخادم');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // تحميل القضايا للفلاتر
-        async function loadCasesForFilter() {
-            try {
-                const response = await fetch('/api/cases/all');
-                const data = await response.json();
-
-                if (data.success && data.data) {
-                    const select = document.getElementById('caseFilter');
-                    select.innerHTML = '<option value="">جميع القضايا</option>' +
-                        data.data.map(caseItem => 
-                            `<option value="${caseItem.id}">${caseItem.case_number} - ${caseItem.title}</option>`
-                        ).join('');
-                }
-            } catch (error) {
-                console.error('Error loading cases for filter:', error);
-            }
-        }
-
-        // ==================== دوال العرض ====================
-
-        // عرض الجلسات في الجدول
-        function renderSessions() {
-            const tbody = document.getElementById('sessionsTableBody');
-            
-            if (sessions.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 3rem;">
-                            <div style="color: #6c757d;">
-                                <i class="fas fa-calendar-alt" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                                <h4>لا توجد جلسات</h4>
-                                <p>لم يتم جدولة أي جلسات بعد</p>
-                                <button class="btn btn-primary" onclick="openAddModal()">
-                                    <i class="fas fa-plus"></i> جدولة أول جلسة
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = sessions.map(session => {
-                const isUpcoming = new Date(session.session_date) > new Date() && session.status === 'مجدول';
-                
-                return `
-                <tr>
-                    <td>
-                        <strong>${session.session_number}</strong>
-                        ${isUpcoming ? '<div class="upcoming-badge">قادمة</div>' : ''}
-                    </td>
-                    <td>
-                        <div><strong>${session.case_number}</strong></div>
-                        <small style="color: #666;">${session.case_title}</small>
-                    </td>
-                    <td>
-                        <div>${formatDateTime(session.session_date)}</div>
-                        <small style="color: #666;">${getTimeRemaining(session.session_date)}</small>
-                    </td>
-                    <td><span class="type-badge">${session.session_type}</span></td>
-                    <td>${session.location || '---'}</td>
-                    <td>
-                        <span class="status-badge status-${getStatusClass(session.status)}">
-                            ${session.status}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon btn-view" onclick="viewSession(${session.id})" title="عرض التفاصيل">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon btn-edit" onclick="editSession(${session.id})" title="تعديل">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon btn-delete" onclick="deleteSession(${session.id})" title="حذف">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                `;
-            }).join('');
-        }
-
-        // ==================== دوال Modal ====================
-
-        // فتح Modal مع التحقق من القضايا أولاً
-        async function openAddModal() {
-            try {
-                console.log('🎯 فتح Modal إضافة جلسة...');
-                
-                // التحقق من وجود قضايا أولاً
-                const checkResponse = await fetch('/api/cases/check');
-                const checkData = await checkResponse.json();
-                
-                if (!checkData.exists) {
-                    showNoCasesMessage();
-                    return;
-                }
-                
-                // إذا توجد قضايا، فتح Modal بشكل طبيعي
-                currentEditingId = null;
-                document.getElementById('modalTitle').textContent = 'جدولة جلسة جديدة';
-                document.getElementById('sessionForm').reset();
-                
-                // تعيين القيم الافتراضية
-                const now = new Date();
-                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-                document.getElementById('session_date').value = now.toISOString().slice(0, 16);
-                document.getElementById('status').value = 'مجدول';
-                document.getElementById('preparation_status').value = 'غير معد';
-                document.getElementById('session_type').value = 'استماع';
-                
-                // تحميل القضايا في القائمة المنسدلة
-                await loadActiveCases();
-                
-                document.getElementById('sessionModal').style.display = 'block';
-                
-            } catch (error) {
-                console.error('❌ خطأ في فتح Modal:', error);
-                showError('خطأ في فتح نموذج إضافة الجلسة');
-            }
-        }
-
-        // تحميل القضايا النشطة للقائمة المنسدلة
-        async function loadActiveCases() {
-            try {
-                console.log('🔄 بدء تحميل القضايا...');
-                showLoading('جاري تحميل القضايا...');
-                
-                // أولاً: جرب جلب القضايا النشطة
-                let response = await fetch('/api/cases/active');
-                let data = await response.json();
-                
-                const select = document.getElementById('case_id');
-                
-                if (data.success && data.data && data.data.length > 0) {
-                    // الحالة 1: توجد قضايا نشطة
-                    console.log(`✅ تم العثور على ${data.data.length} قضية نشطة`);
-                    
-                    select.innerHTML = '<option value="">اختر القضية</option>' +
-                        data.data.map(caseItem => 
-                            `<option value="${caseItem.id}">${caseItem.case_number} - ${caseItem.title}</option>`
-                        ).join('');
-                        
-                } else {
-                    // إذا لم توجد قضايا نشطة، جرب جلب جميع القضايا
-                    console.log('⚠️ لا توجد قضايا نشطة، جاري جلب جميع القضايا...');
-                    
-                    response = await fetch('/api/cases/all');
-                    data = await response.json();
-                    
-                    if (data.success && data.data && data.data.length > 0) {
-                        // الحالة 2: توجد قضايا ولكنها غير نشطة
-                        console.log(`✅ تم العثور على ${data.data.length} قضية (جميع الحالات)`);
-                        
-                        select.innerHTML = '<option value="">اختر القضية</option>' +
-                            data.data.map(caseItem => 
-                                `<option value="${caseItem.id}">${caseItem.case_number} - ${caseItem.title}</option>`
-                            ).join('');
-                            
-                        showWarning('يوجد قضايا ولكنها قد تكون غير نشطة. يمكنك اختيارها مع العلم بذلك.');
-                            
-                    } else {
-                        // الحالة 3: لا توجد قضايا إطلاقاً
-                        console.log('❌ لا توجد قضايا في النظام');
-                        handleNoCases(select);
-                    }
-                }
-                
-            } catch (error) {
-                console.error('❌ خطأ في تحميل القضايا:', error);
-                handleLoadError();
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // تعديل جلسة
-        async function editSession(id) {
-            try {
-                showLoading('جاري تحميل بيانات الجلسة...');
-                
-                const response = await fetch(`/api/sessions/${id}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    currentEditingId = id;
-                    document.getElementById('modalTitle').textContent = 'تعديل الجلسة';
-                    
-                    // تعبئة النموذج
-                    const sessionData = data.data;
-                    document.getElementById('case_id').value = sessionData.case_id;
-                    document.getElementById('session_number').value = sessionData.session_number;
-                    
-                    // تنسيق التاريخ للـ datetime-local
-                    const sessionDate = new Date(sessionData.session_date);
-                    sessionDate.setMinutes(sessionDate.getMinutes() - sessionDate.getTimezoneOffset());
-                    document.getElementById('session_date').value = sessionDate.toISOString().slice(0, 16);
-                    
-                    document.getElementById('session_type').value = sessionData.session_type;
-                    document.getElementById('location').value = sessionData.location || '';
-                    document.getElementById('judge_name').value = sessionData.judge_name || '';
-                    document.getElementById('status').value = sessionData.status;
-                    document.getElementById('preparation_status').value = sessionData.preparation_status;
-                    document.getElementById('session_notes').value = sessionData.session_notes || '';
-                    document.getElementById('documents_required').value = sessionData.documents_required || '';
-                    
-                    // تحميل القضايا للتأكد من ظهور القضية الحالية
-                    await loadActiveCases();
-                    
-                    document.getElementById('sessionModal').style.display = 'block';
-                } else {
-                    showError('فشل في تحميل بيانات الجلسة');
-                }
-            } catch (error) {
-                showError('خطأ في تحميل بيانات الجلسة');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // حفظ الجلسة (إضافة/تعديل)
-        async function saveSession() {
-            const formData = new FormData(document.getElementById('sessionForm'));
-            const sessionData = Object.fromEntries(formData);
-
-            // تنظيف البيانات
-            Object.keys(sessionData).forEach(key => {
-                if (sessionData[key] === '') delete sessionData[key];
-            });
-
-            if (!sessionData.case_id || !sessionData.session_date) {
-                showError('يرجى إدخال القضية وتاريخ الجلسة');
-                return;
-            }
-
-            try {
-                showLoading('جاري حفظ الجلسة...');
-                
-                const url = currentEditingId ? `/api/sessions/${currentEditingId}` : '/api/sessions';
-                const method = currentEditingId ? 'PUT' : 'POST';
-
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(sessionData)
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showSuccess(data.message);
-                    closeModal();
-                    loadSessions();
-                } else {
-                    showError(data.message);
-                }
-            } catch (error) {
-                showError('خطأ في حفظ الجلسة');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // ==================== دوال الإجراءات ====================
-
-        // حذف جلسة
-        async function deleteSession(id) {
-            if (!confirm('هل أنت متأكد من حذف هذه الجلسة؟')) {
-                return;
-            }
-
-            try {
-                showLoading('جاري حذف الجلسة...');
-                
-                const response = await fetch(`/api/sessions/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showSuccess(data.message);
-                    loadSessions();
-                } else {
-                    showError(data.message);
-                }
-            } catch (error) {
-                showError('خطأ في حذف الجلسة');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // عرض تفاصيل الجلسة
-        function viewSession(id) {
-            const session = sessions.find(s => s.id === id);
-            if (session) {
-                const details = `
-تفاصيل الجلسة:
-
-رقم الجلسة: ${session.session_number}
-القضية: ${session.case_number} - ${session.case_title}
-التاريخ: ${formatDateTime(session.session_date)}
-النوع: ${session.session_type}
-المكان: ${session.location || '---'}
-القاضي: ${session.judge_name || '---'}
-الحالة: ${session.status}
-حالة التحضير: ${session.preparation_status}
-${session.session_notes ? `ملاحظات: ${session.session_notes}` : ''}
-                `.trim();
-                
-                alert(details);
-            }
-        }
-
-        // إغلاق Modal
-        function closeModal() {
-            document.getElementById('sessionModal').style.display = 'none';
-        }
-
-        // عرض الجلسات القادمة فقط
-        function showUpcomingOnly() {
-            document.getElementById('statusFilter').value = 'مجدول';
-            loadSessions();
-        }
-
-        // ==================== دوال مساعدة ====================
-
-        // التعامل مع حالة عدم وجود قضايا
-        function handleNoCases(select) {
-            select.innerHTML = `
-                <option value="">لا توجد قضايا متاحة</option>
-            `;
-            
-            // إضافة رسالة توجيهية
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'alert alert-warning';
-            messageDiv.style.marginTop = '1rem';
-            messageDiv.innerHTML = `
-                <div style="text-align: center; padding: 1rem;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-                    <h4>لا توجد قضايا</h4>
-                    <p>لم يتم إضافة أي قضايا بعد. يرجى إضافة قضية أولاً من صفحة إدارة القضايا.</p>
-                    <button class="btn btn-primary" onclick="goToCasesPage()">
-                        <i class="fas fa-gavel"></i> الانتقال إلى إدارة القضايا
-                    </button>
-                </div>
-            `;
-            
-            // إضافة الرسالة بعد حقل القضية
-            const caseField = document.getElementById('case_id').parentNode;
-            caseField.parentNode.insertBefore(messageDiv, caseField.nextSibling);
-        }
-
-        // التعامل مع أخطاء التحميل
-        function handleLoadError() {
-            const select = document.getElementById('case_id');
-            select.innerHTML = `
-                <option value="">خطأ في تحميل القضايا</option>
-            `;
-            
-            showError('خطأ في تحميل القضايا. تأكد من اتصال الخادم.');
-        }
-
-        // عرض رسالة عندما لا توجد قضايا
-        function showNoCasesMessage() {
-            const message = `
-                <div style="text-align: center; padding: 2rem;">
-                    <i class="fas fa-gavel" style="font-size: 4rem; color: #6c757d; margin-bottom: 1rem;"></i>
-                    <h3 style="color: #6c757d;">لا توجد قضايا</h3>
-                    <p style="color: #6c757d; margin-bottom: 2rem;">يجب إضافة قضية أولاً قبل جدولة الجلسات</p>
-                    <div style="display: flex; gap: 1rem; justify-content: center;">
-                        <button class="btn btn-primary btn-lg" onclick="goToCasesPage()">
-                            <i class="fas fa-plus"></i> إضافة قضية جديدة
-                        </button>
-                        <button class="btn btn-secondary btn-lg" onclick="location.reload()">
-                            <i class="fas fa-redo"></i> إعادة تحميل
-                        </button>
-                    </div>
-                </div>
-            `;
-            
-            // عرض الرسالة في مكان جدول الجلسات
-            const tableContainer = document.querySelector('.sessions-table');
-            tableContainer.innerHTML = message;
-        }
-
-        // الانتقال إلى صفحة القضايا
-        function goToCasesPage() {
-            window.location.href = '/cases';
-        }
-
-        // إظهار تحذير
-        function showWarning(message) {
-            const warningDiv = document.createElement('div');
-            warningDiv.className = 'alert alert-warning';
-            warningDiv.style.marginTop = '0.5rem';
-            warningDiv.style.padding = '0.5rem';
-            warningDiv.innerHTML = `
-                <i class="fas fa-exclamation-circle"></i> ${message}
-            `;
-            
-            const caseField = document.getElementById('case_id').parentNode;
-            caseField.appendChild(warningDiv);
-        }
-
-        // دوال التنبيهات
-        function showLoading(message = 'جاري التحميل...') {
-            document.getElementById('loadingText').textContent = message;
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        }
-
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            alert('✅ ' + message);
-        }
-
-        function showError(message) {
-            alert('❌ ' + message);
-        }
-
-        // دوال التنسيق
-        function getStatusClass(status) {
-            const statusMap = {
-                'مجدول': 'scheduled',
-                'منعقد': 'held',
-                'ملغي': 'cancelled',
-                'مؤجل': 'postponed'
-            };
-            return statusMap[status] || 'scheduled';
-        }
-
-        function formatDateTime(dateString) {
-            if (!dateString) return '---';
-            return new Date(dateString).toLocaleString('ar-SA', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-
-        function getTimeRemaining(dateString) {
-            if (!dateString) return '';
-            
-            const now = new Date();
-            const sessionDate = new Date(dateString);
-            const diffTime = sessionDate - now;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (diffDays > 0) {
-                return `بعد ${diffDays} يوم`;
-            } else if (diffDays === 0) {
-                return 'اليوم';
-            } else {
-                return 'منتهية';
-            }
-        }
-
-        // ==================== دوال المصادقة ====================
-
-        async function logout() {
-            try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-
-        async function checkAuth() {
-            try {
-                const response = await fetch('/api/auth/status');
-                const data = await response.json();
-                
-                if (!data.authenticated) {
-                    window.location.href = '/login';
-                }
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-
-        // إغلاق Modal بالنقر خارج المحتوى
-        window.onclick = function(event) {
-            const modal = document.getElementById('sessionModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-    </script>
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/sessions.js"></script>
 </body>
+
 </html>

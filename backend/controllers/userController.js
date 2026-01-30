@@ -1,6 +1,5 @@
-const Database = require('../db/database');
+const db = require('../db/database');
 const bcrypt = require('bcryptjs');
-const db = new Database();
 
 class UserController {
     // ✅ جلب جميع المستخدمين

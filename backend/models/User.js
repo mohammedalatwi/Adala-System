@@ -1,10 +1,10 @@
 const bcrypt = require('bcryptjs');
-const Database = require('../db/database');
+const db = require('../db/database');
 const config = require('../config/config');
 
 class User {
     constructor() {
-        this.db = new Database();
+        this.db = db;
     }
 
     // ✅ إنشاء مستخدم جديد
@@ -66,7 +66,7 @@ class User {
             };
         } catch (error) {
             console.error('Error creating user:', error);
-            
+
             if (error.code === 'SQLITE_CONSTRAINT') {
                 if (error.message.includes('username')) {
                     return { success: false, message: 'اسم المستخدم موجود مسبقاً' };
@@ -75,7 +75,7 @@ class User {
                     return { success: false, message: 'البريد الإلكتروني موجود مسبقاً' };
                 }
             }
-            
+
             return { success: false, message: 'فشل في إنشاء المستخدم' };
         }
     }
@@ -194,32 +194,32 @@ class User {
     async update(userId, updateData) {
         try {
             const allowedFields = [
-                'full_name', 'phone', 'specialization', 'license_number', 
+                'full_name', 'phone', 'specialization', 'license_number',
                 'experience_years', 'bio', 'avatar_url'
             ];
-            
+
             const updates = [];
             const values = [];
-            
+
             Object.keys(updateData).forEach(key => {
                 if (allowedFields.includes(key) && updateData[key] !== undefined) {
                     updates.push(`${key} = ?`);
                     values.push(updateData[key]);
                 }
             });
-            
+
             if (updates.length === 0) {
                 return { success: false, message: 'لا توجد بيانات لتحديثها' };
             }
-            
+
             updates.push('updated_at = datetime("now")');
             values.push(userId);
-            
+
             await this.db.run(
                 `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
                 values
             );
-            
+
             return { success: true, message: 'تم تحديث البيانات بنجاح' };
         } catch (error) {
             console.error('Error updating user:', error);
@@ -247,7 +247,7 @@ class User {
 
             // تشفير كلمة المرور الجديدة
             const newPasswordHash = await bcrypt.hash(newPassword, config.encryption.saltRounds);
-            
+
             await this.db.run(
                 'UPDATE users SET password_hash = ?, updated_at = datetime("now") WHERE id = ?',
                 [newPasswordHash, userId]
@@ -267,7 +267,7 @@ class User {
                 `UPDATE users SET is_active = 0, updated_at = datetime('now') WHERE id = ?`,
                 [userId]
             );
-            
+
             return { success: true, message: 'تم تعطيل المستخدم بنجاح' };
         } catch (error) {
             console.error('Error deactivating user:', error);
@@ -287,7 +287,7 @@ class User {
                     (SELECT COUNT(*) FROM tasks WHERE assigned_to = ? AND status != 'مكتمل') as pending_tasks,
                     (SELECT COUNT(*) FROM documents WHERE uploaded_by = ?) as total_documents
             `, [userId, userId, userId, userId, userId, userId]);
-            
+
             return { success: true, data: stats };
         } catch (error) {
             console.error('Error getting user stats:', error);
@@ -304,7 +304,7 @@ class User {
                 WHERE role IN ('lawyer', 'admin') AND is_active = 1
                 ORDER BY full_name
             `);
-            
+
             return { success: true, data: lawyers };
         } catch (error) {
             console.error('Error getting lawyers:', error);

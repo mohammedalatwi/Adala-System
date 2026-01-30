@@ -1,715 +1,223 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة القضايا - نظام عدالة</title>
+    <title>إدارة القضايا - نظام عدالة V2</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
-    <style>
-        .cases-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 15px;
-            margin-bottom: 2rem;
-        }
 
-        .filters-section {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-        }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr auto;
-            gap: 1rem;
-            align-items: end;
-        }
-
-        .cases-table {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table th {
-            background: #f8f9fa;
-            padding: 1rem;
-            text-align: right;
-            font-weight: 600;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        .table td {
-            padding: 1rem;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-
-        .status-new { background: #d1ecf1; color: #0c5460; }
-        .status-in-progress { background: #fff3cd; color: #856404; }
-        .status-completed { background: #d4edda; color: #155724; }
-        .status-cancelled { background: #f8d7da; color: #721c24; }
-
-        .priority-badge {
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .priority-low { background: #d4edda; color: #155724; }
-        .priority-medium { background: #fff3cd; color: #856404; }
-        .priority-high { background: #f8d7da; color: #721c24; }
-        .priority-urgent { background: #dc3545; color: white; }
-
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-icon {
-            width: 2rem;
-            height: 2rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .btn-icon:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-view { background: #17a2b8; color: white; }
-        .btn-edit { background: #ffc107; color: white; }
-        .btn-delete { background: #dc3545; color: white; }
-        .btn-sessions { background: #6f42c1; color: white; }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 2% auto;
-            padding: 0;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 700px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #dee2e6;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-body {
-            padding: 1.5rem;
-        }
-
-        .modal-footer {
-            padding: 1.5rem;
-            border-top: 1px solid #dee2e6;
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        @media (max-width: 768px) {
-            .filter-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
 </head>
+
 <body>
-    <nav class="navbar">
-        <div class="navbar-container">
-            <div class="navbar-brand">
-                <i class="fas fa-gavel"></i>
-                نظام عدالة
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-container">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-name">نظام عدالة</span>
             </div>
-            
-            <ul class="navbar-nav">
-                <li><a href="/dashboard" class="nav-link"><i class="fas fa-tachometer-alt"></i> لوحة التحكم</a></li>
-                <li><a href="/cases" class="nav-link active"><i class="fas fa-gavel"></i> القضايا</a></li>
-                <li><a href="/sessions" class="nav-link"><i class="fas fa-calendar-alt"></i> الجلسات</a></li>
-                <li><a href="/clients" class="nav-link"><i class="fas fa-users"></i> العملاء</a></li>
-                <li>
-                    <button class="btn btn-danger btn-sm" onclick="logout()">
-                        <i class="fas fa-sign-out-alt"></i> خروج
-                    </button>
-                </li>
-            </ul>
-        </div>
-    </nav>
 
-    <div class="main-container">
-        <!-- رأس الصفحة -->
-        <div class="cases-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1><i class="fas fa-gavel"></i> إدارة القضايا</h1>
-                    <p>إدارة وعرض جميع القضايا في النظام</p>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i class="fas fa-home"></i> <span>الرئيسية</span>
+                </a>
+                <a href="/cases" class="nav-item active">
+                    <i class="fas fa-gavel"></i> <span>القضايا</span>
+                </a>
+                <a href="/sessions" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
+                <a href="/clients" class="nav-item">
+                    <i class="fas fa-users"></i> <span>العملاء</span>
+                </a>
+                <a href="/documents" class="nav-item">
+                    <i class="fas fa-file-contract"></i> <span>المستندات</span>
+                </a>
+                <a href="/financial" class="nav-item">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
+                </a>
+                <a href="/reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> <span>التقارير</span>
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <i class="fas fa-tasks"></i> <span>المهام</span>
+                </a>
+                <a href="/team" class="nav-item">
+                    <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
+                </a>
+                <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                        <i class="fas fa-adjust"></i> <span>المظهر</span>
+                    </a>
+                    <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
+                        <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
+                    </a>
                 </div>
-                <button class="btn btn-light btn-lg" onclick="openAddModal()">
-                    <i class="fas fa-plus"></i> إضافة قضية جديدة
-                </button>
-            </div>
-        </div>
+            </nav>
+        </aside>
 
-        <!-- الفلاتر والبحث -->
-        <div class="filters-section">
-            <div class="filter-grid">
-                <div>
-                    <label for="searchInput" class="form-label">بحث</label>
-                    <input type="text" id="searchInput" class="form-control" placeholder="ابحث في القضايا...">
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-search">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="بحث في القضايا...">
                 </div>
-                <div>
-                    <label for="statusFilter" class="form-label">حالة القضية</label>
-                    <select id="statusFilter" class="form-control">
-                        <option value="">جميع الحالات</option>
-                        <option value="جديد">جديد</option>
-                        <option value="قيد الدراسة">قيد الدراسة</option>
-                        <option value="قيد التنفيذ">قيد التنفيذ</option>
-                        <option value="منتهي">منتهي</option>
-                        <option value="ملغي">ملغي</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="typeFilter" class="form-label">نوع القضية</label>
-                    <select id="typeFilter" class="form-control">
-                        <option value="">جميع الأنواع</option>
-                        <option value="مدني">مدني</option>
-                        <option value="جنائي">جنائي</option>
-                        <option value="تجاري">تجاري</option>
-                        <option value="أسرة">أسرة</option>
-                        <option value="عمل">عمل</option>
-                        <option value="إداري">إداري</option>
-                    </select>
-                </div>
-                <div>
-                    <button class="btn btn-primary" onclick="loadCases()">
-                        <i class="fas fa-search"></i> بحث
-                    </button>
-                    <button class="btn btn-secondary" onclick="resetFilters()">
-                        <i class="fas fa-redo"></i> إعادة تعيين
-                    </button>
-                </div>
-            </div>
-        </div>
 
-        <!-- جدول القضايا -->
-        <div class="cases-table">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>رقم القضية</th>
-                        <th>عنوان القضية</th>
-                        <th>العميل</th>
-                        <th>النوع</th>
-                        <th>الحالة</th>
-                        <th>الأولوية</th>
-                        <th>تاريخ البدء</th>
-                        <th>الإجراءات</th>
-                    </tr>
-                </thead>
-                <tbody id="casesTableBody">
-                    <!-- سيتم ملؤها بالبيانات -->
-                </tbody>
-            </table>
+                <div class="header-actions">
+                    <button class="btn btn-outline" style="border:none;"><i class="fas fa-bell"></i></button>
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <div>
+                            <div style="font-weight:bold; font-size:0.9rem;" id="userName">...</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);" id="userRole">...</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                    <div>
+                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">إدارة القضايا</h1>
+                        <p style="color:var(--text-muted);">عرض وإدارة ملفات القضايا</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="CasesManager.openNewCaseModal()">
+                        <i class="fas fa-plus"></i> إضافة قضية
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="card" style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label">الحالة</label>
+                        <select id="statusFilter" class="form-control">
+                            <option value="">جميع الحالات</option>
+                            <option value="جديد">جديد</option>
+                            <option value="قيد الدراسة">قيد الدراسة</option>
+                            <option value="قيد التنفيذ">قيد التنفيذ</option>
+                            <option value="منتهي">منتهي</option>
+                            <option value="ملغي">ملغي</option>
+                        </select>
+                    </div>
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label">النوع</label>
+                        <select id="typeFilter" class="form-control">
+                            <option value="">جميع الأنواع</option>
+                            <option value="مدني">مدني</option>
+                            <option value="جنائي">جنائي</option>
+                            <option value="تجاري">تجاري</option>
+                            <option value="أحوال شخصية">أحوال شخصية</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" onclick="CasesManager.loadCases()">
+                            <i class="fas fa-filter"></i> تصفية
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cases Grid -->
+                <div id="casesContainer"
+                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1.5rem;">
+                    <!-- Loaded Dynamically -->
+                </div>
+            </main>
         </div>
     </div>
 
-    <!-- Modal إضافة/تعديل قضية -->
-    <div id="caseModal" class="modal">
-        <div class="modal-content">
+    <!-- Modal for New Case -->
+    <div id="caseModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h3 id="modalTitle">إضافة قضية جديدة</h3>
-                <span style="cursor: pointer; font-size: 1.5rem;" onclick="closeModal()">&times;</span>
+                <button class="modal-close" onclick="CasesManager.closeCaseModal()">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="caseForm">
-                    <div class="form-grid">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
                         <div class="form-group">
-                            <label for="case_number" class="form-label">رقم القضية</label>
-                            <input type="text" id="case_number" name="case_number" class="form-control" placeholder="سيتم توليده تلقائياً">
+                            <label class="form-label">رقم القضية *</label>
+                            <input type="text" id="caseNumber" class="form-control" required placeholder="تلقائي"
+                                readonly>
                         </div>
                         <div class="form-group">
-                            <label for="title" class="form-label">عنوان القضية *</label>
-                            <input type="text" id="title" name="title" class="form-control" required placeholder="أدخل عنوان القضية">
+                            <label class="form-label">العنوان *</label>
+                            <input type="text" id="caseTitle" class="form-control" required placeholder="عنوان القضية">
                         </div>
                         <div class="form-group">
-                            <label for="case_type" class="form-label">نوع القضية *</label>
-                            <select id="case_type" name="case_type" class="form-control" required>
+                            <label class="form-label">النوع</label>
+                            <select id="caseType" class="form-control">
                                 <option value="">اختر النوع</option>
                                 <option value="مدني">مدني</option>
                                 <option value="جنائي">جنائي</option>
                                 <option value="تجاري">تجاري</option>
-                                <option value="أسرة">أسرة</option>
-                                <option value="عمل">عمل</option>
-                                <option value="إداري">إداري</option>
+                                <option value="أحوال شخصية">أحوال شخصية</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="client_id" class="form-label">العميل</label>
-                            <select id="client_id" name="client_id" class="form-control">
-                                <option value="">اختر العميل</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="status" class="form-label">الحالة</label>
-                            <select id="status" name="status" class="form-control">
+                            <label class="form-label">الحالة</label>
+                            <select id="caseStatus" class="form-control">
                                 <option value="جديد">جديد</option>
                                 <option value="قيد الدراسة">قيد الدراسة</option>
                                 <option value="قيد التنفيذ">قيد التنفيذ</option>
                                 <option value="منتهي">منتهي</option>
-                                <option value="ملغي">ملغي</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="priority" class="form-label">الأولوية</label>
-                            <select id="priority" name="priority" class="form-control">
+                            <label class="form-label">العميل *</label>
+                            <select id="clientSelect" class="form-control" required>
+                                <option value="">اختر العميل</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">المحكمة</label>
+                            <input type="text" id="courtName" class="form-control" placeholder="اسم المحكمة">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label class="form-label">الوصف</label>
+                        <textarea id="caseDescription" class="form-control" rows="3"
+                            placeholder="تفاصيل القضية..."></textarea>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1rem;">
+                        <div class="form-group">
+                            <label class="form-label">تاريخ البدء</label>
+                            <input type="date" id="startDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">الأولوية</label>
+                            <select id="casePriority" class="form-control">
                                 <option value="منخفض">منخفض</option>
-                                <option value="متوسط">متوسط</option>
+                                <option value="متوسط" selected>متوسط</option>
                                 <option value="عالي">عالي</option>
-                                <option value="عاجل">عاجل</option>
                             </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="court_name" class="form-label">المحكمة</label>
-                            <input type="text" id="court_name" name="court_name" class="form-control" placeholder="اسم المحكمة">
-                        </div>
-                        <div class="form-group">
-                            <label for="start_date" class="form-label">تاريخ البدء</label>
-                            <input type="date" id="start_date" name="start_date" class="form-control">
-                        </div>
-                        <div class="form-group full-width">
-                            <label for="description" class="form-label">وصف القضية</label>
-                            <textarea id="description" name="description" class="form-control" rows="3" placeholder="وصف مفصل للقضية..."></textarea>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="saveCase()">حفظ القضية</button>
+                <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
+                    onclick="CasesManager.closeCaseModal()">إلغاء</button>
+                <button type="button" class="btn btn-primary" onclick="CasesManager.saveCase()">حفظ</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let currentEditingId = null;
-        let cases = [];
-
-        // تحميل القضايا عند فتح الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            loadCases();
-            loadClients();
-        });
-
-        // تحميل القضايا من الخادم
-        async function loadCases() {
-            try {
-                showLoading('جاري تحميل القضايا...');
-                
-                const search = document.getElementById('searchInput').value;
-                const status = document.getElementById('statusFilter').value;
-                const type = document.getElementById('typeFilter').value;
-
-                let url = '/api/cases?';
-                if (search) url += `search=${encodeURIComponent(search)}&`;
-                if (status) url += `status=${encodeURIComponent(status)}&`;
-                if (type) url += `type=${encodeURIComponent(type)}&`;
-
-                const response = await fetch(url);
-                const data = await response.json();
-
-                if (data.success) {
-                    cases = data.data;
-                    renderCases();
-                } else {
-                    showError('فشل في تحميل القضايا');
-                }
-            } catch (error) {
-                console.error('Error loading cases:', error);
-                showError('خطأ في الاتصال بالخادم');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // عرض القضايا في الجدول
-        function renderCases() {
-            const tbody = document.getElementById('casesTableBody');
-            
-            if (cases.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 3rem;">
-                            <div style="color: #6c757d;">
-                                <i class="fas fa-gavel" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                                <h4>لا توجد قضايا</h4>
-                                <p>لم يتم إضافة أي قضايا بعد</p>
-                                <button class="btn btn-primary" onclick="openAddModal()">
-                                    <i class="fas fa-plus"></i> إضافة أول قضية
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = cases.map(caseItem => `
-                <tr>
-                    <td><strong>${caseItem.case_number}</strong></td>
-                    <td>
-                        <div style="font-weight: 600;">${caseItem.title}</div>
-                        ${caseItem.description ? `<small style="color: #666;">${caseItem.description.substring(0, 50)}...</small>` : ''}
-                    </td>
-                    <td>${caseItem.client_name || '---'}</td>
-                    <td>${caseItem.case_type}</td>
-                    <td>
-                        <span class="status-badge status-${getStatusClass(caseItem.status)}">
-                            ${caseItem.status}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="priority-badge priority-${getPriorityClass(caseItem.priority)}">
-                            ${caseItem.priority}
-                        </span>
-                    </td>
-                    <td>${caseItem.start_date ? formatDate(caseItem.start_date) : '---'}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon btn-view" onclick="viewCase(${caseItem.id})" title="عرض التفاصيل">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-icon btn-edit" onclick="editCase(${caseItem.id})" title="تعديل">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon btn-sessions" onclick="goToSessions(${caseItem.id})" title="جلسات القضية">
-                                <i class="fas fa-calendar-alt"></i>
-                            </button>
-                            <button class="btn-icon btn-delete" onclick="deleteCase(${caseItem.id})" title="حذف">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // فتح Modal الإضافة
-        function openAddModal() {
-            currentEditingId = null;
-            document.getElementById('modalTitle').textContent = 'إضافة قضية جديدة';
-            document.getElementById('caseForm').reset();
-            
-            // تعيين القيم الافتراضية
-            document.getElementById('status').value = 'جديد';
-            document.getElementById('priority').value = 'متوسط';
-            document.getElementById('case_type').value = 'مدني';
-            
-            document.getElementById('caseModal').style.display = 'block';
-        }
-
-        // تعديل قضية
-        async function editCase(id) {
-            try {
-                showLoading('جاري تحميل بيانات القضية...');
-                
-                const response = await fetch(`/api/cases/${id}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    currentEditingId = id;
-                    document.getElementById('modalTitle').textContent = 'تعديل القضية';
-                    
-                    // تعبئة النموذج
-                    const caseData = data.data;
-                    document.getElementById('case_number').value = caseData.case_number;
-                    document.getElementById('title').value = caseData.title;
-                    document.getElementById('case_type').value = caseData.case_type;
-                    document.getElementById('client_id').value = caseData.client_id || '';
-                    document.getElementById('status').value = caseData.status;
-                    document.getElementById('priority').value = caseData.priority;
-                    document.getElementById('description').value = caseData.description || '';
-                    document.getElementById('court_name').value = caseData.court_name || '';
-                    document.getElementById('start_date').value = caseData.start_date || '';
-                    
-                    document.getElementById('caseModal').style.display = 'block';
-                } else {
-                    showError('فشل في تحميل بيانات القضية');
-                }
-            } catch (error) {
-                showError('خطأ في تحميل بيانات القضية');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // حفظ القضية (إضافة/تعديل)
-        async function saveCase() {
-            const formData = new FormData(document.getElementById('caseForm'));
-            const caseData = Object.fromEntries(formData);
-
-            // تنظيف البيانات
-            Object.keys(caseData).forEach(key => {
-                if (caseData[key] === '') delete caseData[key];
-            });
-
-            if (!caseData.title) {
-                showError('يرجى إدخال عنوان القضية');
-                return;
-            }
-
-            try {
-                showLoading('جاري حفظ القضية...');
-                
-                const url = currentEditingId ? `/api/cases/${currentEditingId}` : '/api/cases';
-                const method = currentEditingId ? 'PUT' : 'POST';
-
-                const response = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(caseData)
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showSuccess(data.message);
-                    closeModal();
-                    loadCases();
-                } else {
-                    showError(data.message);
-                }
-            } catch (error) {
-                showError('خطأ في حفظ القضية');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // حذف قضية
-        async function deleteCase(id) {
-            if (!confirm('هل أنت متأكد من حذف هذه القضية؟ سيتم حذف جميع الجلسات المرتبطة بها أيضاً.')) {
-                return;
-            }
-
-            try {
-                showLoading('جاري حذف القضية...');
-                
-                const response = await fetch(`/api/cases/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showSuccess(data.message);
-                    loadCases();
-                } else {
-                    showError(data.message);
-                }
-            } catch (error) {
-                showError('خطأ في حذف القضية');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        // عرض تفاصيل القضية
-        function viewCase(id) {
-            const caseItem = cases.find(c => c.id === id);
-            if (caseItem) {
-                const details = `
-تفاصيل القضية:
-
-رقم القضية: ${caseItem.case_number}
-العنوان: ${caseItem.title}
-النوع: ${caseItem.case_type}
-الحالة: ${caseItem.status}
-الأولوية: ${caseItem.priority}
-العميل: ${caseItem.client_name || '---'}
-المحكمة: ${caseItem.court_name || '---'}
-تاريخ البدء: ${caseItem.start_date ? formatDate(caseItem.start_date) : '---'}
-${caseItem.description ? `الوصف: ${caseItem.description}` : ''}
-                `.trim();
-                
-                alert(details);
-            }
-        }
-
-        // الانتقال إلى صفحة الجلسات مع فلترة حسب القضية
-        function goToSessions(caseId) {
-            window.location.href = `/sessions?case_id=${caseId}`;
-        }
-
-        // إغلاق Modal
-        function closeModal() {
-            document.getElementById('caseModal').style.display = 'none';
-        }
-
-        // تحميل العملاء للقائمة المنسدلة
-        async function loadClients() {
-            try {
-                const response = await fetch('/api/clients');
-                const data = await response.json();
-
-                if (data.success) {
-                    const select = document.getElementById('client_id');
-                    select.innerHTML = '<option value="">اختر العميل</option>' +
-                        data.data.map(client => 
-                            `<option value="${client.id}">${client.full_name} - ${client.phone}</option>`
-                        ).join('');
-                }
-            } catch (error) {
-                console.error('Error loading clients:', error);
-            }
-        }
-
-        // إعادة تعيين الفلاتر
-        function resetFilters() {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('statusFilter').value = '';
-            document.getElementById('typeFilter').value = '';
-            loadCases();
-        }
-
-        // دوال مساعدة
-        function getStatusClass(status) {
-            const statusMap = {
-                'جديد': 'new',
-                'قيد الدراسة': 'in-progress',
-                'قيد التنفيذ': 'in-progress',
-                'منتهي': 'completed',
-                'ملغي': 'cancelled'
-            };
-            return statusMap[status] || 'new';
-        }
-
-        function getPriorityClass(priority) {
-            const priorityMap = {
-                'منخفض': 'low',
-                'متوسط': 'medium',
-                'عالي': 'high',
-                'عاجل': 'urgent'
-            };
-            return priorityMap[priority] || 'medium';
-        }
-
-        function formatDate(dateString) {
-            if (!dateString) return '---';
-            return new Date(dateString).toLocaleDateString('ar-SA');
-        }
-
-        // دوال التنبيهات
-        function showLoading(message = 'جاري التحميل...') {
-            // يمكنك إضافة مؤشر تحميل هنا
-            console.log(message);
-        }
-
-        function hideLoading() {
-            // إخفاء مؤشر التحميل
-        }
-
-        function showSuccess(message) {
-            alert('✅ ' + message);
-        }
-
-        function showError(message) {
-            alert('❌ ' + message);
-        }
-
-        async function logout() {
-            try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = '/login';
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-
-        async function checkAuth() {
-            try {
-                const response = await fetch('/api/auth/status');
-                const data = await response.json();
-                
-                if (!data.authenticated) {
-                    window.location.href = '/login';
-                }
-            } catch (error) {
-                window.location.href = '/login';
-            }
-        }
-
-        // إغلاق Modal بالنقر خارج المحتوى
-        window.onclick = function(event) {
-            const modal = document.getElementById('caseModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-    </script>
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/cases.js"></script>
 </body>
+
 </html>

@@ -3,12 +3,15 @@ const router = express.Router();
 const documentController = require('../controllers/documentController');
 const authMiddleware = require('../middleware/auth');
 const validationMiddleware = require('../middleware/validation');
+const { upload, handleUploadErrors } = require('../middleware/upload');
 
 // جميع routes تتطلب مصادقة
 router.use(authMiddleware.requireAuth);
 
 // Routes المستندات
 router.post('/',
+    upload.single('file'),
+    handleUploadErrors,
     validationMiddleware.sanitizeBody,
     documentController.createDocument
 );

@@ -8,6 +8,7 @@ router.use(authMiddleware.requireAuth);
 
 // Routes لوحة التحكم
 router.get('/data', dashboardController.getDashboardData);
+router.get('/charts', dashboardController.getChartData);
 router.get('/notifications', dashboardController.getNotifications);
 router.get('/activities', dashboardController.getRecentActivities);
 router.put('/notifications/:id/read', dashboardController.markNotificationAsRead);

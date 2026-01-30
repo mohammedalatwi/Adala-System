@@ -1,5 +1,4 @@
-const Database = require('../db/database');
-const db = new Database();
+const db = require('../db/database');
 
 class ClientController {
     // ✅ إنشاء عميل جديد
@@ -21,11 +20,13 @@ class ClientController {
                 emergency_contact_phone
             } = req.body;
 
+            const officeId = req.session.officeId;
+
             // التحقق من الرقم الوطني إذا تم تقديمه
             if (national_id) {
                 const existingClient = await db.get(
-                    'SELECT id FROM clients WHERE national_id = ?',
-                    [national_id]
+                    'SELECT id FROM clients WHERE national_id = ? AND office_id = ?',
+                    [national_id, officeId]
                 );
 
                 if (existingClient) {
@@ -40,12 +41,12 @@ class ClientController {
                 `INSERT INTO clients (
                     full_name, email, phone, alternate_phone, address, national_id,
                     date_of_birth, gender, occupation, company, notes,
-                    emergency_contact_name, emergency_contact_phone, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    emergency_contact_name, emergency_contact_phone, created_by, office_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     full_name, email, phone, alternate_phone, address, national_id,
                     date_of_birth, gender, occupation, company, notes,
-                    emergency_contact_name, emergency_contact_phone, req.session.userId
+                    emergency_contact_name, emergency_contact_phone, req.session.userId, officeId
                 ]
             );
 
@@ -65,7 +66,9 @@ class ClientController {
             console.error('Create client error:', error);
             res.status(500).json({
                 success: false,
-                message: 'حدث خطأ أثناء إنشاء العميل'
+                message: 'حدث خطأ أثناء إنشاء العميل',
+                error: error.message,
+                stack: error.stack
             });
         }
     };
@@ -79,9 +82,10 @@ class ClientController {
                 search
             } = req.query;
 
+            const officeId = req.session.officeId;
             const offset = (page - 1) * limit;
-            let whereConditions = ['c.is_active = 1'];
-            let params = [];
+            let whereConditions = ['c.is_active = 1', 'c.office_id = ?'];
+            let params = [officeId];
 
             if (search) {
                 whereConditions.push('(c.full_name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.national_id LIKE ?)');
@@ -122,10 +126,12 @@ class ClientController {
             });
 
         } catch (error) {
-            console.error('Get clients error:', error);
+            console.error('Get clients error STACK:', error.stack);
             res.status(500).json({
                 success: false,
-                message: 'حدث خطأ أثناء جلب العملاء'
+                message: 'حدث خطأ أثناء جلب العملاء',
+                error: error.message,
+                stack: error.stack
             });
         }
     };
@@ -141,8 +147,8 @@ class ClientController {
                     u.full_name as created_by_name
                 FROM clients c
                 LEFT JOIN users u ON c.created_by = u.id
-                WHERE c.id = ? AND c.is_active = 1
-            `, [id]);
+                WHERE c.id = ? AND c.office_id = ? AND c.is_active = 1
+            `, [id, req.session.officeId]);
 
             if (!client) {
                 return res.status(404).json({
@@ -154,9 +160,9 @@ class ClientController {
             // جلب قضايا العميل
             const cases = await db.all(`
                 SELECT * FROM cases 
-                WHERE client_id = ? 
+                WHERE client_id = ? AND office_id = ?
                 ORDER BY created_at DESC
-            `, [id]);
+            `, [id, req.session.officeId]);
 
             res.json({
                 success: true,
@@ -183,8 +189,8 @@ class ClientController {
 
             // التحقق من وجود العميل
             const existingClient = await db.get(
-                'SELECT id, full_name FROM clients WHERE id = ? AND is_active = 1',
-                [id]
+                'SELECT id, full_name FROM clients WHERE id = ? AND office_id = ? AND is_active = 1',
+                [id, req.session.officeId]
             );
 
             if (!existingClient) {
@@ -221,8 +227,8 @@ class ClientController {
             values.push(id);
 
             await db.run(
-                `UPDATE clients SET ${updates.join(', ')} WHERE id = ?`,
-                values
+                `UPDATE clients SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`,
+                [...values, req.session.officeId]
             );
 
             // تسجيل النشاط
@@ -252,8 +258,8 @@ class ClientController {
 
             // التحقق من وجود العميل
             const existingClient = await db.get(
-                'SELECT id, full_name FROM clients WHERE id = ? AND is_active = 1',
-                [id]
+                'SELECT id, full_name FROM clients WHERE id = ? AND office_id = ? AND is_active = 1',
+                [id, req.session.officeId]
             );
 
             if (!existingClient) {
@@ -265,8 +271,8 @@ class ClientController {
 
             // التحقق من عدم وجود قضايا مرتبطة
             const casesCount = await db.get(
-                'SELECT COUNT(*) as count FROM cases WHERE client_id = ?',
-                [id]
+                'SELECT COUNT(*) as count FROM cases WHERE client_id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             if (casesCount.count > 0) {
@@ -277,8 +283,8 @@ class ClientController {
             }
 
             await db.run(
-                'UPDATE clients SET is_active = 0, updated_at = datetime("now") WHERE id = ?',
-                [id]
+                'UPDATE clients SET is_active = 0, updated_at = datetime("now") WHERE id = ? AND office_id = ?',
+                [id, req.session.officeId]
             );
 
             // تسجيل النشاط
@@ -308,20 +314,20 @@ class ClientController {
                 SELECT 
                     COUNT(*) as total_clients,
                     COUNT(CASE WHEN date('now') - date(created_at) <= 30 THEN 1 END) as new_this_month,
-                    (SELECT COUNT(*) FROM cases) as total_cases,
-                    (SELECT COUNT(DISTINCT client_id) FROM cases) as clients_with_cases
+                    (SELECT COUNT(*) FROM cases WHERE office_id = ?) as total_cases,
+                    (SELECT COUNT(DISTINCT client_id) FROM cases WHERE office_id = ?) as clients_with_cases
                 FROM clients 
-                WHERE is_active = 1
-            `);
+                WHERE is_active = 1 AND office_id = ?
+            `, [req.session.officeId, req.session.officeId, req.session.officeId]);
 
             const occupationStats = await db.all(`
                 SELECT occupation, COUNT(*) as count
                 FROM clients 
-                WHERE is_active = 1 AND occupation IS NOT NULL
+                WHERE is_active = 1 AND occupation IS NOT NULL AND office_id = ?
                 GROUP BY occupation
                 ORDER BY count DESC
                 LIMIT 10
-            `);
+            `, [req.session.officeId]);
 
             res.json({
                 success: true,

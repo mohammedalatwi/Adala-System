@@ -6,7 +6,6 @@ const fs = require('fs');
 class Database {
     constructor() {
         this.db = null;
-        this.init();
     }
 
     init() {
@@ -24,16 +23,17 @@ class Database {
                     return;
                 }
 
-                console.log('✅ تم الاتصال بقاعدة البيانات بنجاح');
-                
+                console.log('✅ تم الاتصال بقاعدة البيانات:', config.database.path);
+                console.log('📂 Absolute Path:', path.resolve(config.database.path));
+
                 // تفعيل المفاتيح الخارجية
                 this.db.run('PRAGMA foreign_keys = ON');
-                
+
                 // تحسين الأداء
                 this.db.run('PRAGMA journal_mode = WAL');
                 this.db.run('PRAGMA synchronous = NORMAL');
                 this.db.run('PRAGMA cache_size = -64000');
-                
+
                 resolve(this.db);
             });
         });
@@ -42,7 +42,7 @@ class Database {
     // ✅ تنفيذ استعلام
     run(sql, params = []) {
         return new Promise((resolve, reject) => {
-            this.db.run(sql, params, function(err) {
+            this.db.run(sql, params, function (err) {
                 if (err) {
                     reject(err);
                     return;
@@ -254,4 +254,6 @@ class Database {
     }
 }
 
-module.exports = Database;
+// Create and export a singleton instance
+const db = new Database();
+module.exports = db;

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة العميل - نظام عدالة</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/portal.css">
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Main Wrapper -->
+        <div class="main-wrapper" style="margin-right: 0; width: 100%;">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-search">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div class="brand-logo-container" style="width: 40px; height: 40px;">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <span class="brand-name" style="font-size: 1.3rem; font-weight: 800;">نظام عدالة</span>
+                        <span
+                            style="color: var(--text-muted); font-size: 1rem; border-right: 1px solid var(--border-color); padding-right: 15px; margin-right: 5px;">بوابة
+                            العملاء</span>
+                    </div>
+                </div>
+
+                <div class="header-actions">
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">C</div>
+                        <div>
+                            <div style="font-weight:bold; font-size:0.9rem;" id="clientName">...</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);">عميل معتمد</div>
+                        </div>
+                        <button class="btn btn-sm btn-icon" id="logoutBtn"
+                            style="margin-right: 15px; color: var(--danger);">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="portal-container">
+
+                    <!-- Welcome & Quick Stats -->
+                    <div class="welcome-section">
+                        <div>
+                            <h1>مرحباً بك مجدداً 👋</h1>
+                            <p>إليك ملخص سريع لحالة قضاياك وإجراءات المكتب الأخيرة</p>
+                        </div>
+                        <div class="payment-summary" style="padding: 1rem 2rem; margin-bottom: 0;">
+                            <div>
+                                <div style="font-size: 0.9rem; opacity: 0.8;">إجمالي المستحقات</div>
+                                <div class="amount-display" id="totalDue" style="font-size: 1.8rem;">0.00 ر.س</div>
+                            </div>
+                            <button class="pay-btn-premium" style="margin-right: 2rem;">سداد سريع</button>
+                        </div>
+                    </div>
+
+                    <div class="portal-grid">
+                        <!-- Active Cases Dashboard -->
+                        <div class="portal-premium-card">
+                            <i class="fas fa-gavel card-icon-bg"></i>
+                            <div class="card-header" style="background: none; padding: 0; margin-bottom: 1.5rem;">
+                                <h3 style="font-size: 1.2rem;"><i class="fas fa-briefcase"
+                                        style="color: var(--portal-primary); margin-left: 10px;"></i> القضايا النشطة
+                                </h3>
+                            </div>
+                            <div id="casesList">
+                                <div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin"></i>
+                                    جاري التحميل...</div>
+                            </div>
+                        </div>
+
+                        <!-- Next Sessions Dashboard -->
+                        <div class="portal-premium-card">
+                            <i class="fas fa-calendar-alt card-icon-bg"></i>
+                            <div class="card-header" style="background: none; padding: 0; margin-bottom: 1.5rem;">
+                                <h3 style="font-size: 1.2rem;"><i class="fas fa-clock"
+                                        style="color: #f59e0b; margin-left: 10px;"></i> المواعيد القادمة</h3>
+                            </div>
+                            <div id="sessionsList">
+                                <div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin"></i>
+                                    جاري التحميل...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Timeline Section -->
+                    <div class="timeline-wrapper">
+                        <div class="timeline-header">
+                            <h3><i class="fas fa-stream" style="color: var(--portal-primary); margin-left: 10px;"></i>
+                                المخطط الزمني للقضايا</h3>
+                            <div style="font-size: 0.9rem; color: var(--text-muted);">آخر التحديثات والإجراءات المتخذة
+                            </div>
+                        </div>
+                        <div class="executive-timeline" id="timelineList">
+                            <!-- Populated via JS -->
+                            <div class="timeline-event">
+                                <div class="timeline-dot"></div>
+                                <div class="event-content">
+                                    <div class="event-date">بانتظار التحديثات</div>
+                                    <div class="event-title">لا توجد إجراءات حديثة لعرضها حالياً</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Documents Section -->
+                    <div style="margin-top: 3rem;">
+                        <h2
+                            style="font-size: 1.4rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-folder-open" style="color: #6366f1;"></i>
+                            مركز المستندات والوثائق
+                        </h2>
+                        <div class="doc-grid-portal" id="documentsList">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/portal.js"></script>
+</body>
+
+</html>
