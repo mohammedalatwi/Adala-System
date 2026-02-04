@@ -20,6 +20,9 @@ class DashboardManager {
                 }
             }
 
+            // تحميل وقت الترحيب الديناميكي
+            this.updateGreeting();
+
             // تحميل الرسوم البيانية
             this.loadCharts();
 
@@ -200,19 +203,20 @@ class DashboardManager {
         }
 
         container.innerHTML = sessions.map(session => `
-            <div class="list-item" onclick="window.location.href='/sessions?id=${session.id}'">
-                <div class="list-item-header">
-                    <div class="list-item-title">${session.case_title || 'جلسة بدون عنوان'}</div>
+            <div class="list-item" onclick="window.location.href='/sessions?id=${session.id}'" style="
+                display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; border-radius: var(--radius-md); 
+                background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer; transition: var(--transition-base);
+                margin-bottom: 0.75rem;">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <div style="font-weight:700; color:var(--text-main);">${session.case_title || 'جلسة بدون عنوان'}</div>
                     <span class="badge badge-${this.getSessionBadgeType(session)}">
                         ${this.formatSessionDate(session.session_date)}
                     </span>
                 </div>
-                <div class="list-item-meta">
-                    <span><i class="fas fa-hashtag"></i> ${session.case_number || 'بدون رقم'}</span>
+                <div style="display:flex; gap:1rem; font-size:0.85rem; color:var(--text-muted);">
                     <span><i class="fas fa-clock"></i> ${this.formatTime(session.session_date)}</span>
                     <span><i class="fas fa-map-marker-alt"></i> ${session.location || 'غير محدد'}</span>
                 </div>
-                ${session.client_name ? `<div class="list-item-client"><i class="fas fa-user"></i> ${session.client_name}</div>` : ''}
             </div>
         `).join('');
     }
@@ -354,12 +358,8 @@ class DashboardManager {
     // ✅ تعليم إشعار كمقروء
     static async markNotificationAsRead(notificationId, element) {
         try {
-            const response = await fetch(`/api/dashboard/notifications/${notificationId}/read`, {
-                method: 'PUT',
-                credentials: 'include'
-            });
-
-            if (response.ok) {
+            const result = await API.put(`/dashboard/notifications/${notificationId}/read`);
+            if (result.success) {
                 if (element) {
                     element.classList.remove('unread');
                     const dot = element.querySelector('.notification-dot');
@@ -463,6 +463,21 @@ class DashboardManager {
         if (diffDays < 7) return `منذ ${diffDays} أيام`;
 
         return date.toLocaleDateString('ar-SA');
+    }
+
+    // ✅ تحديث رسالة الترحيب بناءً على الوقت
+    static updateGreeting() {
+        const hour = new Date().getHours();
+        let greeting = 'مرحباً بك';
+        if (hour < 12) greeting = 'صباح الخير';
+        else if (hour < 18) greeting = 'مساء الخير';
+        else greeting = 'طاب مساؤك';
+
+        const welcomeEl = document.getElementById('welcomeMessage');
+        if (welcomeEl) {
+            const userName = document.getElementById('userName')?.textContent || 'أستاذ';
+            welcomeEl.innerHTML = `${greeting}، ${userName.split(' ')[0]} 👋`;
+        }
     }
 
     // ✅ عرض الأخطاء

@@ -116,39 +116,53 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
                     <div>
-                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">إدارة المهام</h1>
-                        <p style="color:var(--text-muted);">تتبع المهام اليومية والمواعيد النهائية</p>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">إدارة المهام</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">تتبع المهام اليومية، المواعيد النهائية،
+                            وتوزيع العمل بكفاءة.</p>
                     </div>
                     <button class="btn btn-primary" onclick="TasksManager.openTaskModal()">
-                        <i class="fas fa-plus"></i> مهمة جديدة
+                        <i class="fas fa-plus-circle"></i> إضافة مهمة جديدة
                     </button>
                 </div>
 
                 <!-- Filters -->
                 <div class="card"
-                    style="margin-bottom:2rem; padding:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <label style="font-size:0.9rem; color:var(--text-muted);">الحالة:</label>
-                        <select id="statusFilter" class="form-control" style="width:150px;"
+                    style="margin-bottom:2.5rem; padding:1.25rem; display:flex; gap:1.5rem; align-items:flex-end; flex-wrap:wrap; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border);">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label"
+                            style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">تصفية حسب
+                            الحالة</label>
+                        <select id="statusFilter" class="form-control"
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;"
                             onchange="TasksManager.loadTasks()">
-                            <option value="">الكل</option>
+                            <option value="">جميع الحالات</option>
                             <option value="قيد الانتظار">قيد الانتظار</option>
                             <option value="قيد التنفيذ">قيد التنفيذ</option>
                             <option value="مكتمل">مكتمل</option>
                         </select>
                     </div>
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <label style="font-size:0.9rem; color:var(--text-muted);">الأولوية:</label>
-                        <select id="priorityFilter" class="form-control" style="width:150px;"
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label"
+                            style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">تصفية حسب
+                            الأولوية</label>
+                        <select id="priorityFilter" class="form-control"
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;"
                             onchange="TasksManager.loadTasks()">
-                            <option value="">الكل</option>
+                            <option value="">جميع الأولويات</option>
                             <option value="عاجل">عاجل</option>
                             <option value="عالي">عالي</option>
                             <option value="متوسط">متوسط</option>
                             <option value="منخفض">منخفض</option>
                         </select>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline"
+                            style="padding: 0.6rem 2rem; border-color: var(--brand-primary); color: var(--brand-primary);"
+                            onclick="TasksManager.loadTasks()">
+                            <i class="fas fa-sync-alt"></i> تحديث القائمة
+                        </button>
                     </div>
                 </div>
 

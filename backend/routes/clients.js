@@ -9,7 +9,7 @@ router.use(authMiddleware.requireAuth);
 
 // Routes العملاء
 router.post('/',
-    validationMiddleware.sanitizeBody,
+    validationMiddleware.validateClient,
     clientController.createClient
 );
 
@@ -17,7 +17,6 @@ router.get('/', clientController.getAllClients);
 router.get('/stats', clientController.getClientStats);
 router.get('/:id', clientController.getClientById);
 router.put('/:id',
-    validationMiddleware.sanitizeBody,
     clientController.updateClient
 );
 router.delete('/:id', clientController.deleteClient);

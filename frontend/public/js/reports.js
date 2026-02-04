@@ -60,20 +60,20 @@ class ReportsManager {
     static renderSystemOverview(stats) {
         const overview = document.getElementById('statsOverview');
         const cards = [
-            { title: 'إجمالي المحامين', value: stats.users?.lawyer || 0, icon: 'fa-user-tie', color: 'var(--brand-primary)' },
-            { title: 'إجمالي العملاء', value: stats.clients?.active || 0, icon: 'fa-users', color: '#10b981' },
-            { title: 'إجمالي القضايا', value: Object.values(stats.cases || {}).reduce((a, b) => a + b, 0), icon: 'fa-gavel', color: '#3b82f6' },
-            { title: 'المستندات الرقمية', value: stats.documents?.total || 0, icon: 'fa-file-alt', color: '#f59e0b' }
+            { title: 'إجمالي المحامين', value: stats.users?.lawyer || 0, icon: 'fa-user-tie', color: 'var(--brand-primary)', bg: 'rgba(37, 99, 235, 0.1)' },
+            { title: 'إجمالي العملاء', value: stats.clients?.active || 0, icon: 'fa-users', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' },
+            { title: 'إجمالي القضايا', value: Object.values(stats.cases || {}).reduce((a, b) => a + b, 0), icon: 'fa-gavel', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)' },
+            { title: 'المستندات الرقمية', value: stats.documents?.total || 0, icon: 'fa-file-alt', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)' }
         ];
 
         overview.innerHTML = cards.map(c => `
-            <div class="card">
+            <div class="card stat-card" style="padding:1.5rem; transition: var(--transition-base);">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <div style="color:var(--text-muted); font-size:0.9rem; margin-bottom:0.5rem;">${c.title}</div>
-                        <div style="font-size:1.8rem; font-weight:bold;">${c.value}</div>
+                        <div style="color:var(--text-muted); font-size:0.9rem; font-weight:700; margin-bottom:0.5rem;">${c.title}</div>
+                        <div style="font-size:2rem; font-weight:800; color:var(--text-main);">${c.value}</div>
                     </div>
-                    <div style="background:var(--bg-body); padding:1rem; border-radius:12px; color:${c.color}; font-size:1.5rem;">
+                    <div style="width:55px; height:55px; background:${c.bg}; border-radius:14px; color:${c.color}; display:flex; align-items:center; justify-content:center; font-size:1.5rem; box-shadow: 0 4px 10px ${c.color}22;">
                         <i class="fas ${c.icon}"></i>
                     </div>
                 </div>

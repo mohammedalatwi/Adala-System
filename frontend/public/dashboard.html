@@ -28,25 +28,25 @@
 
             <nav class="sidebar-nav">
                 <a href="/dashboard" class="nav-item active">
-                    <i class="fas fa-home"></i> <span>الرئيسية</span>
+                    <i class="fas fa-th-large"></i> <span>لوحة التحكم</span>
                 </a>
                 <a href="/cases" class="nav-item">
                     <i class="fas fa-gavel"></i> <span>القضايا</span>
                 </a>
-                <a href="/sessions" class="nav-item">
-                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
-                </a>
                 <a href="/clients" class="nav-item">
                     <i class="fas fa-users"></i> <span>العملاء</span>
                 </a>
+                <a href="/sessions" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
                 <a href="/documents" class="nav-item">
-                    <i class="fas fa-file-contract"></i> <span>المستندات</span>
+                    <i class="fas fa-folder-open"></i> <span>المستندات</span>
                 </a>
                 <a href="/financial" class="nav-item">
                     <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
                 </a>
                 <a href="/reports" class="nav-item">
-                    <i class="fas fa-chart-bar"></i> <span>التقارير</span>
+                    <i class="fas fa-chart-pie"></i> <span>التقارير</span>
                 </a>
                 <a href="/tasks" class="nav-item">
                     <i class="fas fa-tasks"></i> <span>المهام</span>
@@ -61,8 +61,8 @@
                     <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
-                    <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
-                        <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
+                    <a href="#" id="logoutBtn" class="nav-item logout-link" style="color: #ff4757;">
+                        <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
                     </a>
                 </div>
             </nav>
@@ -91,168 +91,116 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="margin-bottom: 2rem;">
-                    <h1 style="font-size:1.8rem; margin-bottom:0.5rem;">مرحباً بك 👋</h1>
-                    <p style="color:var(--text-muted);">نظرة عامة على مكتبك اليوم</p>
+                <div
+                    style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-end;">
+                    <div>
+                        <h1 style="font-size:2.2rem; font-weight:800; margin-bottom:0.5rem;" id="welcomeMessage">مرحباً
+                            بك 👋</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">إليك نظرة سريعة على ما يحدث في مكتبك
+                            اليوم.</p>
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-outline" onclick="location.reload()">
+                            <i class="fas fa-sync-alt"></i> تحديث
+                        </button>
+                        <button class="btn btn-primary" onclick="window.location.href='/cases?action=new'">
+                            <i class="fas fa-plus"></i> قضية جديدة
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Stats Grid -->
                 <div
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
-                    <!-- ... existing stats ... -->
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1.75rem; margin-bottom:2.5rem;">
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div class="stat-label">القضايا النشطة</div>
+                                <div class="stat-label">إجمالي القضايا</div>
                                 <div class="stat-number" id="totalCases">0</div>
                             </div>
-                            <div
-                                style="background:rgba(59, 130, 246, 0.1); color:var(--brand-primary); padding:0.5rem; border-radius:8px;">
-                                <i class="fas fa-gavel"></i>
+                            <div class="stat-icon-wrapper"
+                                style="background:rgba(37, 99, 235, 0.1); color:var(--brand-primary);">
+                                <i class="fas fa-balance-scale"></i>
                             </div>
                         </div>
                     </div>
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <div class="stat-label">جلسات اليوم</div>
                                 <div class="stat-number" id="statsSessions">0</div>
                             </div>
-                            <div
-                                style="background:rgba(234, 179, 8, 0.1); color:#eab308; padding:0.5rem; border-radius:8px;">
+                            <div class="stat-icon-wrapper" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">
                                 <i class="fas fa-calendar-day"></i>
                             </div>
                         </div>
                     </div>
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div class="stat-label">العملاء</div>
+                                <div class="stat-label">إجمالي العملاء</div>
                                 <div class="stat-number" id="totalClients">0</div>
                             </div>
-                            <div
-                                style="background:rgba(16, 185, 129, 0.1); color:#10b981; padding:0.5rem; border-radius:8px;">
-                                <i class="fas fa-users"></i>
+                            <div class="stat-icon-wrapper" style="background:rgba(16, 185, 129, 0.1); color:#10b981;">
+                                <i class="fas fa-user-friends"></i>
                             </div>
                         </div>
                     </div>
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
                                 <div class="stat-label">المستندات</div>
                                 <div class="stat-number" id="totalDocuments">0</div>
                             </div>
-                            <div
-                                style="background:rgba(99, 102, 241, 0.1); color:#6366f1; padding:0.5rem; border-radius:8px;">
-                                <i class="fas fa-file-contract"></i>
+                            <div class="stat-icon-wrapper" style="background:rgba(139, 92, 246, 0.1); color:#8b5cf6;">
+                                <i class="fas fa-file-invoice"></i>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Charts Grid -->
-                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:2rem;">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-chart-line"></i> نمو القضايا (آخر 6 أشهر)</h3>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="casesTrendChart" height="250"></canvas>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-chart-pie"></i> توزيع القضايا</h3>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="casesStatusChart" height="250"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Content Grid -->
-                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem;">
-
-                    <!-- Recent Cases & Sessions -->
-                    <div style="display:flex; flex-direction:column; gap:1.5rem;">
-                        <!-- Next Sessions -->
+                <!-- Charts & Activity Grid -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:2rem; margin-bottom:2.5rem;">
+                    <div style="display: flex; flex-direction: column; gap: 2rem;">
                         <div class="card">
-                            <div class="card-header"
-                                style="display:flex; justify-content:space-between; align-items:center;">
-                                <h3><i class="fas fa-calendar-alt"></i> جلسات قادمة</h3>
-                                <a href="/sessions" class="btn btn-sm btn-outline">عرض الكل</a>
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-line"></i> مؤشر أداء المكتب</h3>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="casesTrendChart" height="300"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-calendar-check"></i> الجلسات القادمة</h3>
+                                <a href="/sessions" class="btn btn-sm btn-outline">الجدول الكامل</a>
                             </div>
                             <div class="card-body" id="upcomingSessionsList">
                                 <!-- Loaded via JS -->
-                                <p class="text-muted text-center">لا توجد جلسات قريبة</p>
-                            </div>
-                        </div>
-
-                        <!-- Recent Cases -->
-                        <div class="card">
-                            <div class="card-header"
-                                style="display:flex; justify-content:space-between; align-items:center;">
-                                <h3><i class="fas fa-gavel"></i> قضايا حديثة</h3>
-                                <a href="/cases" class="btn btn-sm btn-outline">عرض الكل</a>
-                            </div>
-                            <div class="card-body" id="recentCasesList">
-                                <!-- Loaded via JS -->
-                                <p class="text-muted text-center">لا توجد قضايا حديثة</p>
-                            </div>
-                        </div>
-
-                        <!-- Recent Tasks -->
-                        <div class="card">
-                            <div class="card-header"
-                                style="display:flex; justify-content:space-between; align-items:center;">
-                                <h3><i class="fas fa-tasks"></i> مهام قيد التنفيذ</h3>
-                                <a href="/tasks" class="btn btn-sm btn-outline">عرض الكل</a>
-                            </div>
-                            <div class="card-body" id="recentTasksList">
-                                <!-- Loaded via JS -->
-                                <p class="text-muted text-center">لا توجد مهام حالية</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Notifications & Quick Actions -->
-                    <div style="display:flex; flex-direction:column; gap:1.5rem;">
-
-                        <!-- Quick Actions -->
+                    <div style="display: flex; flex-direction: column; gap: 2rem;">
                         <div class="card">
                             <div class="card-header">
-                                <h3><i class="fas fa-bolt"></i> وصول سريع</h3>
+                                <h3><i class="fas fa-chart-pie"></i> توزيع القضايا</h3>
                             </div>
-                            <div class="card-body" style="display:grid; gap:0.5rem;">
-                                <a href="/cases" class="btn btn-outline" style="justify-content:start;">
-                                    <i class="fas fa-plus-circle"></i> إضافة قضية
-                                </a>
-                                <a href="/sessions" class="btn btn-outline" style="justify-content:start;">
-                                    <i class="fas fa-calendar-plus"></i> جدولة جلسة
-                                </a>
-                                <a href="/clients" class="btn btn-outline" style="justify-content:start;">
-                                    <i class="fas fa-user-plus"></i> إضافة عميل
-                                </a>
-                                <a href="/documents" class="btn btn-outline" style="justify-content:start;">
-                                    <i class="fas fa-file-upload"></i> رفع مستند
-                                </a>
-                            </div>
-                        </div>
-
-                        <!-- System Status (Mock) -->
-                        <div class="card" style="background:var(--brand-primary); color:white;">
                             <div class="card-body">
-                                <h4 style="margin:0 0 0.5rem 0;">حالة النظام</h4>
-                                <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:1rem;">
-                                    <div style="width:10px; height:10px; background:#4ade80; border-radius:50%;"></div>
-                                    <span>متصل وقيد التشغيل</span>
-                                </div>
-                                <div style="font-size:0.85rem; opacity:0.8;">
-                                    آخر تحديث: <span id="lastUpdate">الآن</span>
-                                </div>
+                                <canvas id="casesStatusChart" height="250"></canvas>
                             </div>
                         </div>
 
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-tasks"></i> مهام نشطة</h3>
+                                <a href="/tasks" class="btn btn-sm btn-outline">المهام</a>
+                            </div>
+                            <div class="card-body" id="recentTasksList">
+                                <!-- Loaded via JS -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>

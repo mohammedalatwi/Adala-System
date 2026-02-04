@@ -12,7 +12,6 @@ router.use(authMiddleware.requireAuth);
 router.post('/',
     upload.single('file'),
     handleUploadErrors,
-    validationMiddleware.sanitizeBody,
     documentController.createDocument
 );
 
@@ -20,7 +19,6 @@ router.get('/', documentController.getAllDocuments);
 router.get('/stats', documentController.getDocumentStats);
 router.get('/:id', documentController.getDocumentById);
 router.put('/:id',
-    validationMiddleware.sanitizeBody,
     documentController.updateDocument
 );
 router.delete('/:id', documentController.deleteDocument);

@@ -240,38 +240,55 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <header class="content-header">
-                <div class="header-title">
-                    <h1 style="font-weight: 800;">فريق العمل والمتدربين</h1>
-                    <p>إدارة وتكليف المتدربين ومتابعة صلاحيات الوصول</p>
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
+                <div>
+                    <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">فريق العمل والمتدربين</h1>
+                    <p style="color:var(--text-muted); font-size:1.1rem;">إدارة الكوادر، تكليف المهمات للمتدربين،
+                        ومتابعة صلاحيات الوصول.</p>
                 </div>
-                <div class="header-actions">
-                    <button class="btn btn-primary btn-lg" id="btnAddMember"
-                        style="border-radius: 12px; padding: 0.75rem 1.5rem;">
-                        <i class="fas fa-user-plus"></i> إضافة متدرب جديد
-                    </button>
-                </div>
-            </header>
+                <button class="btn btn-primary" id="btnAddMember">
+                    <i class="fas fa-user-plus"></i> دعوة متدرب جديد
+                </button>
+            </div>
 
-            <!-- Stats Bar -->
-            <div class="dashboard-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 2rem;">
-                <div class="card stat-card" style="border-radius: 20px;">
-                    <div class="stat-info">
-                        <span class="stat-label">أعضاء الفريق</span>
-                        <h2 id="totalMembers">0</h2>
+            <!-- Stats Grid -->
+            <div
+                style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1.75rem; margin-bottom:2.5rem;">
+                <div class="card stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div class="stat-label">أعضاء الفريق</div>
+                            <div class="stat-number" id="totalMembers">0</div>
+                        </div>
+                        <div class="stat-icon-wrapper"
+                            style="background:rgba(37, 99, 235, 0.1); color:var(--brand-primary);">
+                            <i class="fas fa-users"></i>
+                        </div>
                     </div>
                 </div>
-                <div class="card stat-card" style="border-radius: 20px;">
-                    <div class="stat-info">
-                        <span class="stat-label">متدربين نشطين</span>
-                        <h2 id="activeTrainees" style="color: var(--success);">0</h2>
+                <div class="card stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div class="stat-label">متدربين نشطين</div>
+                            <div class="stat-number" id="activeTrainees" style="color:var(--success);">0</div>
+                        </div>
+                        <div class="stat-icon-wrapper"
+                            style="background:rgba(16, 185, 129, 0.1); color:var(--success);">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
                     </div>
                 </div>
-                <div class="card stat-card" style="border-radius: 20px;">
-                    <div class="stat-info">
-                        <span class="stat-label">حالة النظام</span>
-                        <h2 style="font-size: 1.2rem; color: var(--brand-primary);">متصل ومحمي <i
-                                class="fas fa-shield-alt"></i></h2>
+                <div class="card stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div class="stat-label">حالة النظام</div>
+                            <div class="stat-number" style="font-size:1.15rem; color:var(--brand-primary);">آمن ومحمي
+                            </div>
+                        </div>
+                        <div class="stat-icon-wrapper"
+                            style="background:rgba(99, 102, 241, 0.1); color:var(--brand-primary);">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
                     </div>
                 </div>
             </div>

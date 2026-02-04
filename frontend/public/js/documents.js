@@ -81,7 +81,8 @@ class DocumentsManager {
         try {
             const result = await API.get('/cases?limit=100');
             if (result.success) {
-                const options = result.data.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                const cases = result.data.cases || result.data;
+                const options = cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
                 document.getElementById('caseFilter').insertAdjacentHTML('beforeend', options);
                 document.getElementById('docCase').insertAdjacentHTML('beforeend', options);
             }
@@ -106,7 +107,8 @@ class DocumentsManager {
         try {
             const result = await API.get('/documents', params);
             if (result.success) {
-                this.renderDocuments(result.data);
+                // Backend now returns { documents, pagination } in data
+                this.renderDocuments(result.data.documents);
             }
         } catch (error) {
             grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${error.message}</div>`;
@@ -118,37 +120,62 @@ class DocumentsManager {
 
         if (!docs || docs.length === 0) {
             grid.innerHTML = `
-                <div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--text-muted);">
-                    <i class="fas fa-file-contract" style="font-size:3rem; margin-bottom:1rem; opacity:0.5;"></i>
-                    <h3>المجلد فارغ</h3>
-                    <p>قم برفع المستندات لتظهر هنا</p>
+                <div class="card" style="grid-column: 1/-1; text-align:center; padding:5rem; background: var(--glass-bg);">
+                    <div style="width:100px; height:100px; background:rgba(37, 99, 235, 0.05); color:var(--brand-primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:3.5rem; margin:0 auto 1.5rem; opacity:0.3;">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <h3 style="font-weight:800; font-size:1.5rem;">الأرشيف فارغ حالياً</h3>
+                    <p style="color:var(--text-muted);">ابدأ برفع مستندات القضايا أو المذكرات لتنظيم عملك بشكل رقمي محترف.</p>
                 </div>
             `;
             return;
         }
 
-        grid.innerHTML = docs.map(doc => `
-            <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; padding:0;">
-                <div style="height:120px; background:var(--bg-body); display:flex; align-items:center; justify-content:center; font-size:3rem; color:var(--brand-primary-light);">
-                    <i class="${this.getFileIcon(doc.file_type)}"></i>
-                </div>
-                <div style="padding:1rem;">
-                    <h4 style="margin:0 0 0.5rem 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.title}">${doc.title}</h4>
-                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
-                        <div><i class="fas fa-folder"></i> ${doc.case_title || 'عام'}</div>
-                        <div><i class="fas fa-clock"></i> ${new Date(doc.uploaded_at).toLocaleDateString()}</div>
+        grid.innerHTML = docs.map(doc => {
+            const iconClass = this.getFileIcon(doc.file_type);
+            const iconColor = this.getFileColor(doc.file_type);
+
+            return `
+            <div class="card" style="padding:0; overflow:hidden; display:flex; flex-direction:column; transition: var(--transition-base);">
+                <div style="height:140px; background: linear-gradient(135deg, ${iconColor}08, ${iconColor}15); display:flex; align-items:center; justify-content:center; position:relative; border-bottom:1px solid var(--border-color);">
+                    <i class="${iconClass}" style="font-size:3.5rem; color:${iconColor}; filter: drop-shadow(0 4px 6px ${iconColor}33);"></i>
+                    <div style="position:absolute; bottom:0.75rem; right:0.75rem; background:rgba(255,255,255,0.9); padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800; color:${iconColor}; border:1px solid ${iconColor}22;">
+                        ${doc.file_type ? doc.file_type.split('/')[1].toUpperCase() : 'DOC'}
                     </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <button class="btn btn-sm btn-outline" style="color:var(--brand-primary);" onclick="DocumentsManager.downloadDoc(${doc.id})">
+                </div>
+                <div style="padding:1.25rem;">
+                    <h4 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.title}">
+                        ${doc.title}
+                    </h4>
+                    <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.5rem;">
+                        <div style="font-size:0.85rem; color:var(--brand-primary); font-weight:700;">
+                            <i class="fas fa-briefcase" style="width:16px;"></i> ${doc.case_title || 'مستند عام'}
+                        </div>
+                        <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">
+                            <i class="far fa-clock" style="width:16px;"></i> ${new Date(doc.uploaded_at).toLocaleDateString('ar-SA')}
+                        </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:1.25rem;">
+                        <button class="btn btn-outline" style="border-radius:10px; font-weight:700; font-size:0.85rem; border-color:var(--brand-primary)44; color:var(--brand-primary);" onclick="DocumentsManager.downloadDoc(${doc.id})">
                             <i class="fas fa-download"></i> تحميل
                         </button>
-                        <button class="btn btn-sm btn-outline" style="color:var(--danger);" onclick="DocumentsManager.deleteDoc(${doc.id})">
-                            <i class="fas fa-trash"></i> حذف
+                        <button class="btn btn-outline" style="border-radius:10px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;" onclick="DocumentsManager.deleteDoc(${doc.id})">
+                            <i class="fas fa-trash-alt"></i> حذف
                         </button>
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
+    }
+
+    static getFileColor(mime) {
+        if (!mime) return '#94a3b8';
+        if (mime.includes('pdf')) return '#ef4444';
+        if (mime.includes('image')) return '#10b981';
+        if (mime.includes('word') || mime.includes('document')) return '#3b82f6';
+        if (mime.includes('excel') || mime.includes('sheet')) return '#22c55e';
+        return '#64748b';
     }
 
     static getFileIcon(mime) {

@@ -39,51 +39,56 @@ class TeamManager {
         emptyState.style.display = 'none';
 
         members.forEach((member, index) => {
-            const date = Utils.formatDate(member.created_at);
             const initials = member.full_name.charAt(0).toUpperCase();
 
             const card = document.createElement('div');
-            card.className = 'trainee-card';
-            card.style.animationDelay = `${index * 0.1}s`;
+            card.className = 'card';
+            card.style = `
+                display:flex; 
+                flex-direction:column; 
+                gap:1.25rem; 
+                padding:1.75rem; 
+                animation: slideUp 0.3s ease-out forwards; 
+                animation-delay: ${index * 0.05}s;
+                position:relative;
+                overflow:hidden;
+            `;
 
             card.innerHTML = `
-                <div class="card-bg-decoration"></div>
-                <div class="card-header-v2">
-                    <div class="trainee-avatar-big">${initials}</div>
-                    <div class="status-dot" title="نشط"></div>
-                </div>
-
-                <div class="trainee-info-main">
-                    <div class="trainee-name">${member.full_name}</div>
-                    <div class="trainee-username">@${member.username}</div>
-                </div>
-
-                <div class="role-chip">
-                    <i class="fas fa-user-graduate"></i>
-                    <span>متدرب قانوني</span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <div class="info-row">
-                        <i class="fas fa-envelope"></i>
-                        <span>${member.email}</span>
+                <div style="display:flex; align-items:center; gap:1.25rem;">
+                    <div class="user-avatar" style="width:65px; height:65px; font-size:1.5rem; border: 3px solid var(--bg-surface-hover); box-shadow: var(--shadow-sm); background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark)); color:white;">
+                        ${initials}
                     </div>
-                    <div class="info-row">
-                        <i class="fas fa-briefcase"></i>
-                        <span>${member.specialization || 'تدريب عام'}</span>
+                    <div style="flex:1;">
+                        <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--text-main);">${member.full_name}</h3>
+                        <div style="font-size:0.9rem; color:var(--brand-primary); font-weight:700; margin-top:0.2rem;">
+                            @${member.username}
+                        </div>
                     </div>
-                    <div class="info-row">
-                        <i class="fas fa-calendar-check"></i>
-                        <span>انضم في: ${date}</span>
+                    <div class="status-dot" style="position:absolute; top:1.5rem; left:1.5rem;" title="نشط"></div>
+                </div>
+
+                <div style="display:inline-flex; align-items:center; gap:0.5rem; background:rgba(37, 99, 235, 0.08); color:var(--brand-primary); padding:6px 14px; border-radius:10px; font-size:0.85rem; font-weight:800; width:fit-content; border: 1px solid rgba(37, 99, 235, 0.15);">
+                    <i class="fas fa-user-graduate"></i> متدرب قانوني
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:0.75rem; background: var(--bg-body); padding:1rem; border-radius:14px; border:1px solid var(--border-color);">
+                    <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.9rem; color:var(--text-muted);">
+                        <i class="fas fa-envelope" style="width:16px; color:var(--brand-primary);"></i>
+                        <span style="font-weight:600;">${member.email}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.9rem; color:var(--text-muted);">
+                        <i class="fas fa-briefcase" style="width:16px; color:var(--brand-primary);"></i>
+                        <span style="font-weight:600;">${member.specialization || 'تدريب عام'}</span>
                     </div>
                 </div>
 
-                <div class="card-actions-v2">
-                    <button class="btn btn-credential" onclick="TeamManager.copyMemberInfo('${member.username}', '${member.full_name}')" title="نسخ بيانات الدخول للمتدرب">
-                        <i class="fas fa-share-square"></i> نسخ البيانات
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.5rem;">
+                    <button class="btn btn-outline" style="border-radius:12px; font-weight:700; font-size:0.85rem; border-style:dashed;" onclick="TeamManager.copyMemberInfo('${member.username}', '${member.full_name}')">
+                        <i class="fas fa-copy"></i> نسخ البيانات
                     </button>
-                    <button class="btn btn-outline text-danger" onclick="TeamManager.deleteMember(${member.id})" style="border-radius: 10px;">
-                        <i class="fas fa-user-minus"></i> تعطيل
+                    <button class="btn btn-outline" style="border-radius:12px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;" onclick="TeamManager.deleteMember(${member.id})">
+                        <i class="fas fa-user-slash"></i> تعطيل
                     </button>
                 </div>
             `;

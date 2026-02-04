@@ -17,7 +17,6 @@ router.post('/',
     userController.createUser
 );
 router.put('/:id',
-    validationMiddleware.sanitizeBody,
     userController.updateUser
 );
 router.delete('/:id',

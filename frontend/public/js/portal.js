@@ -42,13 +42,19 @@ class PortalManager {
                 API.get('/documents?limit=8')
             ]);
 
-            this.renderCases(casesResult.data || []);
-            this.renderSessions(sessionsResult.data || []);
-            this.renderFinance(financeResult.data || []);
-            this.renderDocuments(docsResult.data || []);
+            const cases = casesResult.data.cases || casesResult.data;
+            const sessions = sessionsResult.data.sessions || sessionsResult.data;
+            // Finance is usually just the list for now
+            const invoices = financeResult.data.invoices || financeResult.data;
+            const documents = docsResult.data.documents || docsResult.data;
+
+            this.renderCases(cases);
+            this.renderSessions(sessions);
+            this.renderFinance(invoices);
+            this.renderDocuments(documents);
 
             // Build a synthetic timeline based on cases and recent sessions
-            this.renderTimeline(casesResult.data || [], sessionsResult.data || []);
+            this.renderTimeline(cases, sessions);
 
         } catch (error) {
             console.error('Portal load error:', error);

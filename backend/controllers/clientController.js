@@ -1,350 +1,107 @@
+const ClientService = require('../services/ClientService');
+const BaseController = require('../utils/BaseController');
 const db = require('../db/database');
 
-class ClientController {
+class ClientController extends BaseController {
     // ✅ إنشاء عميل جديد
-    createClient = async (req, res) => {
-        try {
-            const {
-                full_name,
-                email,
-                phone,
-                alternate_phone,
-                address,
-                national_id,
-                date_of_birth,
-                gender,
-                occupation,
-                company,
-                notes,
-                emergency_contact_name,
-                emergency_contact_phone
-            } = req.body;
-
-            const officeId = req.session.officeId;
-
-            // التحقق من الرقم الوطني إذا تم تقديمه
-            if (national_id) {
-                const existingClient = await db.get(
-                    'SELECT id FROM clients WHERE national_id = ? AND office_id = ?',
-                    [national_id, officeId]
-                );
-
-                if (existingClient) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'الرقم الوطني موجود مسبقاً'
-                    });
-                }
-            }
-
-            const result = await db.run(
-                `INSERT INTO clients (
-                    full_name, email, phone, alternate_phone, address, national_id,
-                    date_of_birth, gender, occupation, company, notes,
-                    emergency_contact_name, emergency_contact_phone, created_by, office_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    full_name, email, phone, alternate_phone, address, national_id,
-                    date_of_birth, gender, occupation, company, notes,
-                    emergency_contact_name, emergency_contact_phone, req.session.userId, officeId
-                ]
-            );
-
-            // تسجيل النشاط
-            await db.run(
-                'INSERT INTO activities (user_id, action_type, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)',
-                [req.session.userId, 'create', 'client', result.id, `إنشاء عميل جديد: ${full_name}`]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: 'تم إنشاء العميل بنجاح',
-                data: { id: result.id, full_name, phone }
-            });
-
-        } catch (error) {
-            console.error('Create client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء إنشاء العميل',
-                error: error.message,
-                stack: error.stack
-            });
-        }
-    };
+    createClient = this.asyncWrapper(async (req, res) => {
+        const result = await ClientService.createClient(req.body, req.session.userId, req.session.officeId);
+        this.sendCreated(res, result, 'تم إنشاء العميل بنجاح');
+    });
 
     // ✅ جلب جميع العملاء
-    getAllClients = async (req, res) => {
-        try {
-            const {
-                page = 1,
-                limit = 10,
-                search
-            } = req.query;
+    getAllClients = this.asyncWrapper(async (req, res) => {
+        const { page = 1, limit = 10, search } = req.query;
+        const officeId = req.session.officeId;
+        const offset = (page - 1) * limit;
 
-            const officeId = req.session.officeId;
-            const offset = (page - 1) * limit;
-            let whereConditions = ['c.is_active = 1', 'c.office_id = ?'];
-            let params = [officeId];
+        let whereConditions = ['c.is_active = 1', 'c.office_id = ?'];
+        let params = [officeId];
 
-            if (search) {
-                whereConditions.push('(c.full_name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.national_id LIKE ?)');
-                params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
-            }
-
-            const whereClause = whereConditions.join(' AND ');
-
-            // جلب العملاء
-            const clients = await db.all(`
-                SELECT 
-                    c.*,
-                    u.full_name as created_by_name,
-                    (SELECT COUNT(*) FROM cases WHERE client_id = c.id) as cases_count
-                FROM clients c
-                LEFT JOIN users u ON c.created_by = u.id
-                WHERE ${whereClause}
-                ORDER BY c.created_at DESC
-                LIMIT ? OFFSET ?
-            `, [...params, limit, offset]);
-
-            // جلب العدد الإجمالي
-            const totalResult = await db.get(`
-                SELECT COUNT(*) as total 
-                FROM clients c
-                WHERE ${whereClause}
-            `, params);
-
-            res.json({
-                success: true,
-                data: clients,
-                pagination: {
-                    total: totalResult.total,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    pages: Math.ceil(totalResult.total / limit)
-                }
-            });
-
-        } catch (error) {
-            console.error('Get clients error STACK:', error.stack);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء جلب العملاء',
-                error: error.message,
-                stack: error.stack
-            });
+        if (search) {
+            whereConditions.push('(c.full_name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.national_id LIKE ?)');
+            params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
         }
-    };
+
+        const whereClause = whereConditions.join(' AND ');
+
+        const clients = await db.all(`
+            SELECT c.*, u.full_name as created_by_name, (SELECT COUNT(*) FROM cases WHERE client_id = c.id) as cases_count
+            FROM clients c
+            LEFT JOIN users u ON c.created_by = u.id
+            WHERE ${whereClause}
+            ORDER BY c.created_at DESC
+            LIMIT ? OFFSET ?
+        `, [...params, parseInt(limit), parseInt(offset)]);
+
+        const totalResult = await db.get(`SELECT COUNT(*) as total FROM clients c WHERE ${whereClause}`, params);
+
+        this.sendSuccess(res, {
+            clients,
+            pagination: {
+                total: totalResult.total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(totalResult.total / limit)
+            }
+        });
+    });
 
     // ✅ جلب عميل محدد
-    getClientById = async (req, res) => {
-        try {
-            const { id } = req.params;
+    getClientById = this.asyncWrapper(async (req, res) => {
+        const { id } = req.params;
+        const officeId = req.session.officeId;
 
-            const client = await db.get(`
-                SELECT 
-                    c.*,
-                    u.full_name as created_by_name
-                FROM clients c
-                LEFT JOIN users u ON c.created_by = u.id
-                WHERE c.id = ? AND c.office_id = ? AND c.is_active = 1
-            `, [id, req.session.officeId]);
+        const client = await db.get(`
+            SELECT c.*, u.full_name as created_by_name
+            FROM clients c
+            LEFT JOIN users u ON c.created_by = u.id
+            WHERE c.id = ? AND c.office_id = ? AND c.is_active = 1
+        `, [id, officeId]);
 
-            if (!client) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'العميل غير موجود'
-                });
-            }
+        if (!client) throw new Error('العميل غير موجود');
 
-            // جلب قضايا العميل
-            const cases = await db.all(`
-                SELECT * FROM cases 
-                WHERE client_id = ? AND office_id = ?
-                ORDER BY created_at DESC
-            `, [id, req.session.officeId]);
+        const cases = await db.all('SELECT * FROM cases WHERE client_id = ? AND office_id = ? ORDER BY created_at DESC', [id, officeId]);
 
-            res.json({
-                success: true,
-                data: {
-                    ...client,
-                    cases
-                }
-            });
-
-        } catch (error) {
-            console.error('Get client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء جلب العميل'
-            });
-        }
-    };
+        this.sendSuccess(res, { ...client, cases });
+    });
 
     // ✅ تحديث عميل
-    updateClient = async (req, res) => {
-        try {
-            const { id } = req.params;
-            const updateData = req.body;
-
-            // التحقق من وجود العميل
-            const existingClient = await db.get(
-                'SELECT id, full_name FROM clients WHERE id = ? AND office_id = ? AND is_active = 1',
-                [id, req.session.officeId]
-            );
-
-            if (!existingClient) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'العميل غير موجود'
-                });
-            }
-
-            const allowedFields = [
-                'full_name', 'email', 'phone', 'alternate_phone', 'address',
-                'national_id', 'date_of_birth', 'gender', 'occupation',
-                'company', 'notes', 'emergency_contact_name', 'emergency_contact_phone'
-            ];
-
-            const updates = [];
-            const values = [];
-
-            Object.keys(updateData).forEach(key => {
-                if (allowedFields.includes(key) && updateData[key] !== undefined) {
-                    updates.push(`${key} = ?`);
-                    values.push(updateData[key]);
-                }
-            });
-
-            if (updates.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'لا توجد بيانات لتحديثها'
-                });
-            }
-
-            updates.push('updated_at = datetime("now")');
-            values.push(id);
-
-            await db.run(
-                `UPDATE clients SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`,
-                [...values, req.session.officeId]
-            );
-
-            // تسجيل النشاط
-            await db.run(
-                'INSERT INTO activities (user_id, action_type, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)',
-                [req.session.userId, 'update', 'client', id, `تحديث بيانات العميل: ${existingClient.full_name}`]
-            );
-
-            res.json({
-                success: true,
-                message: 'تم تحديث العميل بنجاح'
-            });
-
-        } catch (error) {
-            console.error('Update client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء تحديث العميل'
-            });
-        }
-    };
+    updateClient = this.asyncWrapper(async (req, res) => {
+        await ClientService.updateClient(req.params.id, req.body, req.session.userId, req.session.officeId);
+        this.sendSuccess(res, null, 'تم تحديث العميل بنجاح');
+    });
 
     // ✅ حذف عميل
-    deleteClient = async (req, res) => {
-        try {
-            const { id } = req.params;
-
-            // التحقق من وجود العميل
-            const existingClient = await db.get(
-                'SELECT id, full_name FROM clients WHERE id = ? AND office_id = ? AND is_active = 1',
-                [id, req.session.officeId]
-            );
-
-            if (!existingClient) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'العميل غير موجود'
-                });
-            }
-
-            // التحقق من عدم وجود قضايا مرتبطة
-            const casesCount = await db.get(
-                'SELECT COUNT(*) as count FROM cases WHERE client_id = ? AND office_id = ?',
-                [id, req.session.officeId]
-            );
-
-            if (casesCount.count > 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'لا يمكن حذف العميل لأنه مرتبط بقضايا'
-                });
-            }
-
-            await db.run(
-                'UPDATE clients SET is_active = 0, updated_at = datetime("now") WHERE id = ? AND office_id = ?',
-                [id, req.session.officeId]
-            );
-
-            // تسجيل النشاط
-            await db.run(
-                'INSERT INTO activities (user_id, action_type, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)',
-                [req.session.userId, 'delete', 'client', id, `حذف العميل: ${existingClient.full_name}`]
-            );
-
-            res.json({
-                success: true,
-                message: 'تم حذف العميل بنجاح'
-            });
-
-        } catch (error) {
-            console.error('Delete client error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء حذف العميل'
-            });
-        }
-    };
+    deleteClient = this.asyncWrapper(async (req, res) => {
+        await ClientService.deleteClient(req.params.id, req.session.userId, req.session.officeId);
+        this.sendSuccess(res, null, 'تم حذف العميل بنجاح');
+    });
 
     // ✅ إحصائيات العملاء
-    getClientStats = async (req, res) => {
-        try {
-            const stats = await db.all(`
-                SELECT 
-                    COUNT(*) as total_clients,
-                    COUNT(CASE WHEN date('now') - date(created_at) <= 30 THEN 1 END) as new_this_month,
-                    (SELECT COUNT(*) FROM cases WHERE office_id = ?) as total_cases,
-                    (SELECT COUNT(DISTINCT client_id) FROM cases WHERE office_id = ?) as clients_with_cases
-                FROM clients 
-                WHERE is_active = 1 AND office_id = ?
-            `, [req.session.officeId, req.session.officeId, req.session.officeId]);
+    getClientStats = this.asyncWrapper(async (req, res) => {
+        const officeId = req.session.officeId;
+        const overview = await db.get(`
+            SELECT 
+                COUNT(*) as total_clients,
+                COUNT(CASE WHEN date('now') - date(created_at) <= 30 THEN 1 END) as new_this_month,
+                (SELECT COUNT(*) FROM cases WHERE office_id = ?) as total_cases,
+                (SELECT COUNT(DISTINCT client_id) FROM cases WHERE office_id = ?) as clients_with_cases
+            FROM clients 
+            WHERE is_active = 1 AND office_id = ?
+        `, [officeId, officeId, officeId]);
 
-            const occupationStats = await db.all(`
-                SELECT occupation, COUNT(*) as count
-                FROM clients 
-                WHERE is_active = 1 AND occupation IS NOT NULL AND office_id = ?
-                GROUP BY occupation
-                ORDER BY count DESC
-                LIMIT 10
-            `, [req.session.officeId]);
+        const byOccupation = await db.all(`
+            SELECT occupation, COUNT(*) as count
+            FROM clients 
+            WHERE is_active = 1 AND occupation IS NOT NULL AND office_id = ?
+            GROUP BY occupation
+            ORDER BY count DESC
+            LIMIT 10
+        `, [officeId]);
 
-            res.json({
-                success: true,
-                data: {
-                    overview: stats[0],
-                    byOccupation: occupationStats
-                }
-            });
-
-        } catch (error) {
-            console.error('Client stats error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء جلب إحصائيات العملاء'
-            });
-        }
-    };
+        this.sendSuccess(res, { overview, byOccupation });
+    });
 }
 
 module.exports = new ClientController();

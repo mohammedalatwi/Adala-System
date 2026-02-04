@@ -1,244 +1,87 @@
+const AuthService = require('../services/AuthService');
+const BaseController = require('../utils/BaseController');
 const db = require('../db/database');
-const bcrypt = require('bcryptjs');
 
-class AuthController {
+class AuthController extends BaseController {
     // ✅ تسجيل مستخدم جديد
-    register = async (req, res) => {
-        try {
-            const { full_name, username, email, password, phone, role, specialization } = req.body;
-
-            // التحقق من عدم وجود مستخدم بنفس البريد أو اسم المستخدم
-            const existingUser = await db.get(
-                'SELECT id FROM users WHERE email = ? OR username = ?',
-                [email, username]
-            );
-
-            if (existingUser) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'البريد الإلكتروني أو اسم المستخدم موجود مسبقاً'
-                });
-            }
-
-            // تشفير كلمة المرور
-            const saltRounds = 10;
-            const passwordHash = await bcrypt.hash(password, saltRounds);
-
-            // الحصول على Office ID جديد
-            const maxOffice = await db.get('SELECT MAX(office_id) as maxId FROM users');
-            const officeId = (maxOffice.maxId || 0) + 1;
-
-            // إضافة المستخدم
-            const result = await db.run(
-                `INSERT INTO users (full_name, username, email, password_hash, phone, role, specialization, office_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [full_name, username, email, passwordHash, phone, role || 'lawyer', specialization, officeId]
-            );
-
-            res.status(201).json({
-                success: true,
-                message: 'تم إنشاء الحساب بنجاح',
-                data: { id: result.id }
-            });
-
-        } catch (error) {
-            console.error('Register error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء إنشاء الحساب'
-            });
-        }
-    };
+    register = this.asyncWrapper(async (req, res) => {
+        const result = await AuthService.register(req.body);
+        this.sendCreated(res, result, 'تم إنشاء الحساب والمكتب بنجاح');
+    });
 
     // ✅ تسجيل الدخول
-    login = async (req, res) => {
-        try {
-            const { email, password } = req.body; // email field can now contain username too
-            console.log('Login attempt for:', email);
+    login = this.asyncWrapper(async (req, res) => {
+        const { email, password } = req.body;
+        const user = await AuthService.login(email, password);
 
-            // البحث عن المستخدم بالبريد الإلكتروني أو اسم المستخدم
-            const user = await db.get(
-                'SELECT * FROM users WHERE (email = ? OR username = ?) AND is_active = 1',
-                [email, email]
-            );
+        // إنشاء الجلسة
+        req.session.userId = user.id;
+        req.session.userRole = user.role;
+        req.session.officeId = user.office_id;
 
-            if (!user) {
-                console.log('User not found or inactive');
-                return res.status(401).json({
-                    success: false,
-                    message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
-                });
+        this.sendSuccess(res, {
+            user: {
+                id: user.id,
+                full_name: user.full_name,
+                username: user.username,
+                email: user.email,
+                role: user.role,
+                specialization: user.specialization,
+                client_id: user.client_id,
+                office_id: user.office_id
             }
-
-            console.log('User found:', user.username);
-            console.log('Stored hash:', user.password_hash);
-
-            // التحقق من كلمة المرور
-            const isValidPassword = await bcrypt.compare(password, user.password_hash);
-            console.log('Password valid:', isValidPassword);
-
-            if (!isValidPassword) {
-                return res.status(401).json({
-                    success: false,
-                    message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
-                });
-            }
-
-            // إنشاء الجلسة
-            req.session.userId = user.id;
-            req.session.userRole = user.role;
-            req.session.officeId = user.office_id;
-
-            // تحديث آخر دخول
-            await db.run(
-                'UPDATE users SET last_login = datetime("now") WHERE id = ?',
-                [user.id]
-            );
-
-            // تسجيل النشاط
-            await db.run(
-                'INSERT INTO activities (user_id, action_type, description, entity_type) VALUES (?, ?, ?, ?)',
-                [user.id, 'login', 'تسجيل الدخول إلى النظام', 'system']
-            );
-
-            res.json({
-                success: true,
-                message: 'تم تسجيل الدخول بنجاح',
-                user: {
-                    id: user.id,
-                    full_name: user.full_name,
-                    username: user.username,
-                    email: user.email,
-                    role: user.role,
-                    specialization: user.specialization,
-                    client_id: user.client_id,
-                    office_id: user.office_id
-                }
-            });
-
-        } catch (error) {
-            console.error('Login error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'حدث خطأ أثناء تسجيل الدخول'
-            });
-        }
-    };
+        }, 'تم تسجيل الدخول بنجاح');
+    });
 
     // ✅ تسجيل الخروج
-    logout = async (req, res) => {
-        try {
-            // تسجيل النشاط قبل تدمير الجلسة
-            if (req.session.userId) {
-                await db.run(
-                    'INSERT INTO activities (user_id, action_type, description) VALUES (?, ?, ?)',
-                    [req.session.userId, 'logout', 'تسجيل الخروج من النظام']
-                );
-            }
-
-            req.session.destroy((err) => {
-                if (err) {
-                    throw new Error('فشل في تدمير الجلسة');
-                }
-                res.json({ success: true, message: 'تم تسجيل الخروج' });
-            });
-
-        } catch (error) {
-            console.error('Logout error:', error);
-            res.status(500).json({
-                success: false,
-                message: 'فشل في تسجيل الخروج'
-            });
-        }
-    };
+    logout = this.asyncWrapper(async (req, res) => {
+        req.session.destroy((err) => {
+            if (err) throw new Error('فشل في تسجيل الخروج');
+            res.json({ success: true, message: 'تم تسجيل الخروج' });
+        });
+    });
 
     // ✅ الحصول على حالة المصادقة
-    getAuthStatus = async (req, res) => {
-        try {
-            if (!req.session.userId) {
-                return res.json({
-                    authenticated: false,
-                    user: null
-                });
-            }
-
-            const user = await db.get(
-                `SELECT id, full_name, username, email, role, specialization, client_id, office_id,
-                        avatar_url, created_at 
-                 FROM users 
-                 WHERE id = ? AND is_active = 1`,
-                [req.session.userId]
-            );
-
-            if (!user) {
-                req.session.destroy();
-                return res.json({
-                    authenticated: false,
-                    user: null
-                });
-            }
-
-            res.json({
-                authenticated: true,
-                user: user
-            });
-
-        } catch (error) {
-            console.error('Auth status error:', error);
-            res.json({
-                authenticated: false,
-                user: null
-            });
+    getAuthStatus = this.asyncWrapper(async (req, res) => {
+        if (!req.session.userId) {
+            return res.json({ authenticated: false, user: null });
         }
-    };
+
+        const user = await db.get(
+            `SELECT id, full_name, username, email, role, specialization, client_id, office_id,
+                    avatar_url, created_at 
+             FROM users 
+             WHERE id = ? AND is_active = 1`,
+            [req.session.userId]
+        );
+
+        if (!user) {
+            req.session.destroy();
+            return res.json({ authenticated: false, user: null });
+        }
+
+        res.json({ authenticated: true, user: user });
+    });
 
     // ✅ التحقق من اسم المستخدم
-    checkUsername = async (req, res) => {
-        try {
-            const { username } = req.params;
-
-            const existingUser = await db.get(
-                'SELECT id FROM users WHERE username = ?',
-                [username]
-            );
-
-            res.json({
-                available: !existingUser,
-                message: existingUser ? 'اسم المستخدم موجود مسبقاً' : 'اسم المستخدم متاح'
-            });
-
-        } catch (error) {
-            console.error('Username check error:', error);
-            res.status(500).json({
-                available: false,
-                message: 'فشل في التحقق من اسم المستخدم'
-            });
-        }
-    };
+    checkUsername = this.asyncWrapper(async (req, res) => {
+        const { username } = req.params;
+        const existingUser = await db.get('SELECT id FROM users WHERE username = ?', [username]);
+        res.json({
+            available: !existingUser,
+            message: existingUser ? 'اسم المستخدم موجود مسبقاً' : 'اسم المستخدم متاح'
+        });
+    });
 
     // ✅ التحقق من البريد الإلكتروني
-    checkEmail = async (req, res) => {
-        try {
-            const { email } = req.params;
-
-            const existingUser = await db.get(
-                'SELECT id FROM users WHERE email = ?',
-                [email]
-            );
-
-            res.json({
-                available: !existingUser,
-                message: existingUser ? 'البريد الإلكتروني موجود مسبقاً' : 'البريد الإلكتروني متاح'
-            });
-
-        } catch (error) {
-            console.error('Email check error:', error);
-            res.status(500).json({
-                available: false,
-                message: 'فشل في التحقق من البريد الإلكتروني'
-            });
-        }
-    };
+    checkEmail = this.asyncWrapper(async (req, res) => {
+        const { email } = req.params;
+        const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
+        res.json({
+            available: !existingUser,
+            message: existingUser ? 'البريد الإلكتروني موجود مسبقاً' : 'البريد الإلكتروني متاح'
+        });
+    });
 }
 
 module.exports = new AuthController();

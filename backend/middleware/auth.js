@@ -1,4 +1,6 @@
 const db = require('../db/database');
+const ActivityService = require('../services/ActivityService');
+const NotificationService = require('../services/NotificationService');
 
 class AuthMiddleware {
     constructor() {
@@ -68,20 +70,18 @@ class AuthMiddleware {
         const ip = req.ip || req.connection.remoteAddress;
         const userAgent = req.get('User-Agent') || 'Unknown';
 
-        console.log(`[${timestamp}] ${method} ${url} - IP: ${ip} - UserAgent: ${userAgent}`);
+        console.log(`[${timestamp}] ${method} ${url} - IP: ${ip}`);
 
         // تسجيل النشاط إذا كان المستخدم مسجل الدخول
         if (req.session.userId) {
-            this.logActivity(
-                req.session.userId,
-                `${method} ${url}`,
-                'api_request',
-                null,
-                null,
-                ip,
-                userAgent,
-                req.session.officeId
-            );
+            ActivityService.logActivity({
+                userId: req.session.userId,
+                description: `${method} ${url}`,
+                actionType: 'api_request',
+                ipAddress: ip,
+                userAgent: userAgent,
+                officeId: req.session.officeId
+            });
         }
 
         next();
@@ -117,32 +117,6 @@ class AuthMiddleware {
 
         next();
     };
-
-    // ✅ تسجيل النشاط
-    async logActivity(userId, description, actionType, entityType = null, entityId = null, ipAddress = null, userAgent = null, officeId = null) {
-        try {
-            await this.db.run(
-                `INSERT INTO activities (user_id, action_type, entity_type, entity_id, description, ip_address, user_agent, office_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [userId, actionType, entityType, entityId, description, ipAddress, userAgent, officeId]
-            );
-        } catch (error) {
-            console.error('Error logging activity:', error);
-        }
-    }
-
-    // ✅ إنشاء إشعار
-    async createNotification(userId, title, message, type = 'info', relatedEntityType = null, relatedEntityId = null, actionUrl = null, officeId = null) {
-        try {
-            await this.db.run(
-                `INSERT INTO notifications (user_id, title, message, type, related_entity_type, related_entity_id, action_url, office_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                [userId, title, message, type, relatedEntityType, relatedEntityId, actionUrl, officeId]
-            );
-        } catch (error) {
-            console.error('Error creating notification:', error);
-        }
-    }
 
     // ✅ التحقق من ملكية المورد
     checkOwnership = (entityType) => {
@@ -218,6 +192,20 @@ class AuthMiddleware {
             }
         };
     };
+
+    /**
+     * @deprecated Use ActivityService.logActivity instead
+     */
+    async logActivity(...args) {
+        return ActivityService.logActivity(...args);
+    }
+
+    /**
+     * @deprecated Use NotificationService.createNotification instead
+     */
+    async createNotification(...args) {
+        return NotificationService.createNotification(...args);
+    }
 }
 
 module.exports = new AuthMiddleware();

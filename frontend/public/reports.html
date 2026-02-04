@@ -106,29 +106,37 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
                     <div>
-                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">التقارير والإحصائيات</h1>
-                        <p style="color:var(--text-muted);">تحليل البيانات ومراقبة الأداء العام للمكتب</p>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">التقارير والإحصائيات</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">تحليل الأداء المؤسسي، مراقبة الإنتاجية،
+                            واستخراج التقارير التحليلية.</p>
                     </div>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button class="btn btn-outline" onclick="Reports.refresh()">
+                    <div style="display:flex; gap:0.75rem;">
+                        <button class="btn btn-outline" style="border-radius:12px; font-weight:700;"
+                            onclick="Reports.refresh()">
                             <i class="fas fa-sync-alt"></i> تحديث
                         </button>
-                        <button class="btn btn-outline" onclick="window.open('/api/exports/finance/pdf', '_blank')">
-                            <i class="fas fa-file-pdf" style="color:#ef4444;"></i> تصدير PDF
+                        <button class="btn btn-outline"
+                            style="border-radius:12px; font-weight:700; color:#ef4444; border-color:#ef444444;"
+                            onclick="window.open('/api/exports/finance/pdf', '_blank')">
+                            <i class="fas fa-file-pdf"></i> PDF
                         </button>
-                        <button class="btn btn-outline" onclick="window.open('/api/exports/reports/excel', '_blank')">
-                            <i class="fas fa-file-excel" style="color:#10b981;"></i> تصدير Excel
+                        <button class="btn btn-outline"
+                            style="border-radius:12px; font-weight:700; color:#10b981; border-color:#10b98144;"
+                            onclick="window.open('/api/exports/reports/excel', '_blank')">
+                            <i class="fas fa-file-excel"></i> Excel
                         </button>
-                        <button class="btn btn-primary" onclick="window.print()">
-                            <i class="fas fa-print"></i> طباعة
+                        <button class="btn btn-primary" style="border-radius:12px; padding:0.6rem 1.8rem;"
+                            onclick="window.print()">
+                            <i class="fas fa-print"></i> طباعة الفوري
                         </button>
                     </div>
                 </div>
 
                 <!-- Stats Overview -->
-                <div class="report-grid" id="statsOverview">
+                <div class="report-grid" id="statsOverview"
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1.75rem; margin-bottom:2.5rem;">
                     <!-- Loaded via JS -->
                 </div>
 

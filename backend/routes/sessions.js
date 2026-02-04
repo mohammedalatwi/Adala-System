@@ -9,7 +9,6 @@ router.use(authMiddleware.requireAuth);
 
 // Routes الجلسات
 router.post('/',
-    validationMiddleware.sanitizeBody,
     validationMiddleware.validateSession,
     sessionController.createSession
 );
@@ -19,7 +18,6 @@ router.get('/upcoming', sessionController.getUpcomingSessions);
 router.get('/stats', sessionController.getSessionStats);
 router.get('/:id', sessionController.getSessionById);
 router.put('/:id',
-    validationMiddleware.sanitizeBody,
     sessionController.updateSession
 );
 router.delete('/:id', sessionController.deleteSession);

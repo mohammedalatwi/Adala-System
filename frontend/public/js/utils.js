@@ -229,6 +229,7 @@ class Utils {
     static initGlobal() {
         this.loadBranding();
         this.applyRoleRestrictions();
+        this.initCommandPalette();
         console.log('✨ Utils Initialized');
     }
 
@@ -527,8 +528,128 @@ class Utils {
     }
 
     // ✅ التحقق من حجم الملف
-    static isValidFileSize(file, maxSizeMB = 5) {
-        return file.size <= maxSizeMB * 1024 * 1024;
+    // ✅ تهيئة شريط الأوامر السريع (Ctrl+K)
+    static initCommandPalette() {
+        if (document.getElementById('commandPaletteOverlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'commandPaletteOverlay';
+        overlay.className = 'command-palette-overlay';
+        overlay.innerHTML = `
+            <div class="command-palette">
+                <div class="command-palette-header">
+                    <i class="fas fa-bolt"></i>
+                    <input type="text" class="command-palette-input" placeholder="ماذا تريد أن تفعل؟ (مثلاً: إضافة قضية)" id="commandPaletteInput" autocomplete="off">
+                </div>
+                <div class="command-palette-results" id="commandPaletteResults">
+                    <!-- النتائج هنا -->
+                </div>
+                <div class="command-palette-footer">
+                    <span><kbd>↑↓</kbd> للتنقل</span>
+                    <span><kbd>Enter</kbd> للاختيار</span>
+                    <span><kbd>Esc</kbd> للإغلاق</span>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        const input = document.getElementById('commandPaletteInput');
+        const resultsContainer = document.getElementById('commandPaletteResults');
+
+        // قائمة الأوامر الثابتة
+        const commands = [
+            { id: 'add-case', title: 'إضافة قضية جديدة', desc: 'فتح نافذة إنشاء قضية', icon: 'fa-plus-circle', url: '/cases?action=new' },
+            { id: 'go-clients', title: 'إدارة العملاء', desc: 'الانتقال لصفحة العملاء', icon: 'fa-users', url: '/clients' },
+            { id: 'go-sessions', title: 'جدول الجلسات', desc: 'عرض جلسات المرافعة', icon: 'fa-calendar-alt', url: '/sessions' },
+            { id: 'go-financial', title: 'الإدارة المالية', desc: 'الوصول للفواتير والمصروفات', icon: 'fa-file-invoice-dollar', url: '/financial' },
+            { id: 'go-settings', title: 'إعدادات المكتب', desc: 'تخصيص الهوية والبيانات', icon: 'fa-cog', url: '/settings' },
+            { id: 'logout', title: 'تسجيل الخروج', desc: 'إنهاء الجلسة الحالية', icon: 'fa-sign-out-alt', action: () => document.getElementById('logoutBtn')?.click() }
+        ];
+
+        let selectedIndex = 0;
+
+        const renderResults = (filter = '') => {
+            const filtered = commands.filter(c =>
+                c.title.includes(filter) || c.desc.includes(filter)
+            );
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-muted text-center" style="padding: 1rem;">لا توجد نتائج</div>';
+                return;
+            }
+
+            resultsContainer.innerHTML = filtered.map((c, i) => `
+                <div class="command-result-item ${i === selectedIndex ? 'selected' : ''}" data-index="${i}">
+                    <i class="fas ${c.icon}"></i>
+                    <div class="command-result-info">
+                        <span class="command-result-title">${c.title}</span>
+                        <span class="command-result-desc">${c.desc}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // إضافة أحداث النقر للنتائج
+            resultsContainer.querySelectorAll('.command-result-item').forEach(el => {
+                el.onclick = () => {
+                    const idx = parseInt(el.dataset.index);
+                    executeCommand(filtered[idx]);
+                };
+            });
+        };
+
+        const executeCommand = (cmd) => {
+            if (cmd.url) window.location.href = cmd.url;
+            if (cmd.action) cmd.action();
+            closePalette();
+        };
+
+        const closePalette = () => {
+            overlay.style.display = 'none';
+            input.value = '';
+        };
+
+        const openPalette = () => {
+            overlay.style.display = 'flex';
+            input.focus();
+            renderResults();
+        };
+
+        // أحداث المفاتيح
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                openPalette();
+            }
+            if (e.key === 'Escape') closePalette();
+        });
+
+        input.oninput = (e) => {
+            selectedIndex = 0;
+            renderResults(e.target.value);
+        };
+
+        input.onkeydown = (e) => {
+            const items = resultsContainer.querySelectorAll('.command-result-item');
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex + 1) % items.length;
+                renderResults(input.value);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedIndex = (selectedIndex - 1 + items.length) % items.length;
+                renderResults(input.value);
+            } else if (e.key === 'Enter') {
+                const filtered = commands.filter(c =>
+                    c.title.includes(input.value) || c.desc.includes(filter)
+                );
+                if (filtered[selectedIndex]) executeCommand(filtered[selectedIndex]);
+            }
+        };
+
+        overlay.onclick = (e) => {
+            if (e.target === overlay) closePalette();
+        };
     }
 }
 

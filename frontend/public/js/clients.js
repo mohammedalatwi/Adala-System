@@ -67,7 +67,8 @@ class ClientsManager {
         try {
             const result = await API.get('/clients', params);
             if (result.success) {
-                this.renderClients(result.data);
+                // Backend now returns { clients, pagination } in data
+                this.renderClients(result.data.clients);
             }
         } catch (error) {
             container.innerHTML = '<div style="text-align:center; color:red;">فشل تحميل البيانات</div>';
@@ -79,40 +80,56 @@ class ClientsManager {
 
         if (!clients || clients.length === 0) {
             container.innerHTML = `
-                <div style="text-align:center; padding:3rem; color:var(--text-muted); background:var(--bg-card); border-radius:var(--radius); border:1px solid var(--border-color);">
-                    <i class="fas fa-users" style="font-size:3rem; margin-bottom:1rem; opacity:0.5;"></i>
-                    <h3>لا يوجد عملاء</h3>
-                    <p>أضف علاء جدد لإدارتهم هنا</p>
+                <div class="card" style="grid-column: 1/-1; text-align:center; padding:4rem; background: var(--glass-bg);">
+                    <i class="fas fa-users-slash" style="font-size:4rem; margin-bottom:1.5rem; color:var(--brand-primary); opacity:0.3;"></i>
+                    <h3 style="font-weight:800; font-size:1.5rem;">لا يوجد عملاء مضافين</h3>
+                    <p style="color:var(--text-muted);">ابدأ بإضافة أول عميل لمكتبك اليوم ليظهر هنا.</p>
                 </div>
             `;
             return;
         }
 
         container.innerHTML = clients.map(client => `
-            <div class="card" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center; padding:1.5rem;">
-                <div style="display:flex; align-items:center; gap:1.5rem;">
-                    <div class="user-avatar" style="width:50px; height:50px; font-size:1.2rem;">
+            <div class="card" style="display:flex; flex-direction:column; gap:1.25rem; position:relative;">
+                <div style="display:flex; align-items:center; gap:1.25rem;">
+                    <div class="user-avatar" style="width:55px; height:55px; font-size:1.3rem; border: 3px solid var(--bg-surface-hover); box-shadow: var(--shadow-sm);">
                         ${client.full_name.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                        <div style="font-weight:600; font-size:1.1rem; margin-bottom:0.25rem;">${client.full_name}</div>
-                        <div style="color:var(--text-muted); font-size:0.9rem;">
-                            <i class="fas fa-phone"></i> ${client.phone || 'غير متوفر'} &bull; 
-                            <i class="fas fa-envelope"></i> ${client.email || 'غير متوفر'}
+                    <div style="flex:1;">
+                        <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-main);">${client.full_name}</h3>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
+                             <span class="badge" style="background:${client.is_active ? 'var(--success)' : 'var(--danger)'}22; color:${client.is_active ? 'var(--success)' : 'var(--danger)'}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
+                                ${client.is_active ? 'نشط' : 'غير نشط'}
+                             </span>
+                             <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">#${client.id}</span>
                         </div>
                     </div>
                 </div>
-                <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <div style="text-align:center; margin-left:1rem;">
-                        <span style="display:block; font-weight:bold; color:var(--brand-primary);">${client.cases_count || 0}</span>
-                        <span style="font-size:0.8rem; color:var(--text-muted);">قضايا</span>
+
+                <div style="display:flex; flex-direction:column; gap:0.6rem; background:rgba(0,0,0,0.02); padding:0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                    <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
+                        <i class="fas fa-phone-alt" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${client.phone || '—'}
                     </div>
-                    <button class="btn btn-outline" style="padding:0.4rem 0.8rem;" onclick="ClientsManager.editClient(${client.id})">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline" style="padding:0.4rem 0.8rem; color:var(--danger);" onclick="ClientsManager.deleteClient(${client.id})">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
+                        <i class="fas fa-envelope" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${client.email || '—'}
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                        <div style="background:var(--brand-primary); color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800;">
+                            ${client.cases_count || 0}
+                        </div>
+                        <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted);">قضية مرتبطة</span>
+                    </div>
+                    <div style="display:flex; gap:0.6rem;">
+                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" onclick="ClientsManager.editClient(${client.id})" title="تعديل">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" onclick="ClientsManager.deleteClient(${client.id})" title="حذف">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `).join('');

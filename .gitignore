@@ -1,15 +1,15 @@
+# Database
+*.db
+*.db-shm
+*.db-wal
+backend/db/database.sqlite
+database/backups/
+
+# System
 node_modules/
 .DS_Store
 .env
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 dist/
 build/
-.coverage
-.nyc_output
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+uploads/

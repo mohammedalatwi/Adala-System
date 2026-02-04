@@ -110,35 +110,48 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
                     <div>
-                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">إدارة المستندات</h1>
-                        <p style="color:var(--text-muted);">الأرشيف الإلكتروني ومستندات القضايا</p>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">إدارة المستندات</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">الأرشيف الرقمي، مذكرات القضايا، والمستندات
+                            القانونية المؤرشفة.</p>
                     </div>
                     <button class="btn btn-primary" onclick="DocumentsManager.openUploadModal()">
-                        <i class="fas fa-cloud-upload-alt"></i> رفع مستند
+                        <i class="fas fa-cloud-upload-alt"></i> رفع مستند جديد
                     </button>
                 </div>
 
                 <!-- Drag & Drop Zone -->
-                <div class="drop-zone" id="dropZone">
-                    <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                    <h3>اسحب وأفلت الملفات هنا</h3>
-                    <p>أو اضغط لاختيار ملف من جهازك</p>
+                <div class="drop-zone" id="dropZone"
+                    style="background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 2px dashed var(--brand-primary)44; border-radius: var(--radius-lg); padding: 4rem 2rem; transition: var(--transition-base); margin-bottom: 2.5rem; display:flex; flex-direction:column; align-items:center; gap:1rem;">
+                    <div
+                        style="width:80px; height:80px; background:rgba(37, 99, 235, 0.1); color:var(--brand-primary); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2.5rem; margin-bottom:0.5rem;">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <h3 style="font-weight:800; margin:0; color:var(--text-main);">اسحب وأفلت الملفات هنا</h3>
+                    <p style="color:var(--text-muted); margin:0;">أو اضغط لاختيار ملف من جهازك الالتزام بخصوصية
+                        البيانات.</p>
                     <input type="file" id="fileInput" hidden>
                 </div>
 
                 <!-- Filters -->
-                <div class="card" style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+                <div class="card"
+                    style="margin-bottom:2.5rem; padding:1.25rem; display:flex; gap:1.5rem; align-items:flex-end; flex-wrap:wrap; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border);">
                     <div style="flex:1; min-width:200px;">
-                        <label class="form-label">القضية</label>
-                        <select id="caseFilter" class="form-control">
+                        <label class="form-label"
+                            style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">تصفية حسب
+                            القضية</label>
+                        <select id="caseFilter" class="form-control"
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;">
                             <option value="">جميع القضايا</option>
                         </select>
                     </div>
                     <div style="flex:1; min-width:200px;">
-                        <label class="form-label">النوع</label>
-                        <select id="typeFilter" class="form-control">
+                        <label class="form-label"
+                            style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">نوع
+                            المستند</label>
+                        <select id="typeFilter" class="form-control"
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;">
                             <option value="">جميع الأنواع</option>
                             <option value="مذكرة">مذكرة</option>
                             <option value="صك وحكم">صك وحكم</option>
@@ -148,8 +161,9 @@
                         </select>
                     </div>
                     <div>
-                        <button class="btn btn-primary" onclick="DocumentsManager.loadDocuments()">
-                            <i class="fas fa-filter"></i> تصفية
+                        <button class="btn btn-primary" style="padding: 0.6rem 2rem;"
+                            onclick="DocumentsManager.loadDocuments()">
+                            <i class="fas fa-filter"></i> تطبيق التصفية
                         </button>
                     </div>
                 </div>

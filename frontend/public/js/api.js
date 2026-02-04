@@ -12,6 +12,7 @@ class API {
 
         const config = {
             ...options,
+            credentials: 'include',
             headers: { ...defaultHeaders, ...options.headers }
         };
 

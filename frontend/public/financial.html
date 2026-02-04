@@ -90,53 +90,77 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
                     <div>
-                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">الإدارة المالية</h1>
-                        <p style="color:var(--text-muted);">الفواتير والمصروفات والمدفوعات</p>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">الإدارة المالية</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">إدارة الفواتير، المصروفات، وتحصيل
+                            المستحقات بدقة وشفافية.</p>
                     </div>
                     <button class="btn btn-primary" onclick="FinanceManager.openInvoiceModal()">
-                        <i class="fas fa-plus"></i> فاتورة جديدة
+                        <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة جديدة
                     </button>
                 </div>
 
                 <!-- Stats Grid -->
                 <div
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:1.75rem; margin-bottom:2.5rem;">
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div class="stat-label">إجمالي الفواتير</div>
+                                <div class="stat-label">إجمالي المستحقات</div>
                                 <div class="stat-number" id="statsTotal">0.00 ر.س</div>
                             </div>
-                            <div
-                                style="background:rgba(59, 130, 246, 0.1); color:var(--brand-primary); padding:0.5rem; border-radius:8px;">
+                            <div class="stat-icon-wrapper"
+                                style="background:rgba(37, 99, 235, 0.1); color:var(--brand-primary);">
                                 <i class="fas fa-file-invoice"></i>
                             </div>
                         </div>
                     </div>
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div class="stat-label">المدفوع</div>
-                                <div class="stat-number text-success" id="statsPaid" style="color:#10b981;">0.00 ر.س
-                                </div>
+                                <div class="stat-label">المحصل</div>
+                                <div class="stat-number" id="statsPaid" style="color:var(--success);">0.00 ر.س</div>
                             </div>
-                            <div
-                                style="background:rgba(16, 185, 129, 0.1); color:#10b981; padding:0.5rem; border-radius:8px;">
-                                <i class="fas fa-check-circle"></i>
+                            <div class="stat-icon-wrapper"
+                                style="background:rgba(16, 185, 129, 0.1); color:var(--success);">
+                                <i class="fas fa-check-double"></i>
                             </div>
                         </div>
                     </div>
                     <div class="card stat-card">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div>
-                                <div class="stat-label">المستحق</div>
-                                <div class="stat-number text-danger" id="statsDue" style="color:#ef4444;">0.00 ر.س</div>
+                                <div class="stat-label">المصروفات</div>
+                                <div class="stat-number" id="statsExpenses" style="color:var(--warning);">0.00 ر.س</div>
                             </div>
-                            <div
-                                style="background:rgba(239, 68, 68, 0.1); color:#ef4444; padding:0.5rem; border-radius:8px;">
-                                <i class="fas fa-exclamation-circle"></i>
+                            <div class="stat-icon-wrapper"
+                                style="background:rgba(245, 158, 11, 0.1); color:var(--warning);">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stat-card"
+                        style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.05), rgba(139, 92, 246, 0.1)); border-color: rgba(139, 92, 246, 0.2);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div class="stat-label" style="color:#8b5cf6;">صافي الربح</div>
+                                <div class="stat-number" id="statsProfit" style="color:#8b5cf6;">0.00 ر.س</div>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background:rgba(139, 92, 246, 0.1); color:#8b5cf6;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card stat-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div class="stat-label">المتبقي للتحصيل</div>
+                                <div class="stat-number" id="statsDue" style="color:var(--danger);">0.00 ر.س</div>
+                            </div>
+                            <div class="stat-icon-wrapper"
+                                style="background:rgba(239, 68, 68, 0.1); color:var(--danger);">
+                                <i class="fas fa-hourglass-half"></i>
                             </div>
                         </div>
                     </div>
@@ -144,12 +168,15 @@
 
                 <!-- Tabs -->
                 <div
-                    style="margin-bottom:1.5rem; border-bottom:1px solid var(--border-color); display:flex; gap:1.5rem;">
-                    <button class="btn btn-outline active" id="tabInvoices"
-                        onclick="FinanceManager.switchTab('invoices')"
-                        style="border:none; border-bottom:2px solid var(--brand-primary); border-radius:0; color:var(--brand-primary);">الفواتير</button>
-                    <button class="btn btn-outline" id="tabExpenses" onclick="FinanceManager.switchTab('expenses')"
-                        style="border:none; border-radius:0; color:var(--text-muted);">المصروفات</button>
+                    style="margin-bottom:2rem; background:var(--bg-surface-hover); padding:5px; border-radius:14px; display:inline-flex; gap:6px; box-shadow: var(--shadow-sm); border: 1.5px solid var(--border-color);">
+                    <button class="btn btn-sm active" id="tabInvoices" onclick="FinanceManager.switchTab('invoices')"
+                        style="border-radius:10px; background:var(--brand-primary); color:white; font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
+                        <i class="fas fa-file-invoice"></i> الفواتير
+                    </button>
+                    <button class="btn btn-sm" id="tabExpenses" onclick="FinanceManager.switchTab('expenses')"
+                        style="border-radius:10px; background:transparent; color:var(--text-muted); font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
+                        <i class="fas fa-wallet"></i> المصروفات
+                    </button>
                 </div>
 
                 <!-- Invoices List -->

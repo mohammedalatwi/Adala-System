@@ -3,6 +3,8 @@ const session = require('express-session');
 const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const config = require('./backend/config/config');
 
 
@@ -11,6 +13,20 @@ const app = express();
 const PORT = config.app.port;
 
 // ==================== Middleware الأساسية ====================
+app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP for now as it might block external CDNs like FullCalendar
+}));
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: {
+        success: false,
+        message: 'تم تجاوز عدد المحاولات المسموح بها، يرجى المحاولة لاحقاً'
+    }
+});
+app.use('/api/', limiter);
+
 app.use(cors({
     origin: true,
     credentials: true

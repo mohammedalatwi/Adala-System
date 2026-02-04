@@ -157,6 +157,10 @@ db.serialize(() => {
                 status TEXT DEFAULT 'مجدول' CHECK(status IN ('مجدول', 'منعقد', 'ملغي', 'مؤجل', 'منتهي')),
                 preparation_status TEXT DEFAULT 'غير معد' CHECK(preparation_status IN ('غير معد', 'قيد الإعداد', 'مكتمل')),
                 documents_required TEXT,
+                adjournment_reason TEXT,
+                attendees TEXT,
+                city TEXT,
+                judgment_content TEXT,
                 sent_reminders TEXT DEFAULT '[]', -- JSON array of sent intervals (e.g., ["7d", "3d"])
                 is_active BOOLEAN DEFAULT 1,
                 created_by INTEGER,

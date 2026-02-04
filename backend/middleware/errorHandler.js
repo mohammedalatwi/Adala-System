@@ -4,10 +4,18 @@ const errorHandler = (err, req, res, next) => {
     // تسجيل الخطأ مع التوقيت والمسار
     const timestamp = new Date().toISOString();
     console.error(`❌ [${timestamp}] Error in ${req.method} ${req.url}:`);
-    console.error(err.stack || err.message);
+
+    // In production, we don't want to leak full stack traces
+    const isDev = config.app.env === 'development';
+
+    if (isDev) {
+        console.error(err.stack || err.message);
+    } else {
+        console.error(err.message);
+    }
 
     // تحديد كود الحالة
-    const statusCode = err.statusCode || 500;
+    const statusCode = err.statusCode || (err.message.includes('غير مصرح') ? 403 : 500);
 
     // تجهيز رسالة الخطأ
     const response = {
@@ -16,11 +24,10 @@ const errorHandler = (err, req, res, next) => {
     };
 
     // إضافة تفاصيل الخطأ في بيئة التطوير فقط
-    // إضافة تفاصيل الخطأ في بيئة التطوير فقط
-    // if (config.app.env === 'development') {
-    response.stack = err.stack;
-    response.error = err;
-    // }
+    if (isDev) {
+        response.stack = err.stack;
+        response.details = err.details || null;
+    }
 
     // إرسال الرد
     res.status(statusCode).json(response);

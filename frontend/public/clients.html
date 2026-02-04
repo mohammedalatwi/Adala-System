@@ -86,35 +86,59 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
                     <div>
-                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">إدارة العملاء</h1>
-                        <p style="color:var(--text-muted);">سجل العملاء وإدارة الملفات الشخصية</p>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">إدارة العملاء</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">سجل العملاء وإدارة الملفات الشخصية بخصوصية
+                            واحترافية.</p>
                     </div>
                     <button class="btn btn-primary" onclick="ClientsManager.openNewClientModal()">
-                        <i class="fas fa-user-plus"></i> إضافة عميل
+                        <i class="fas fa-user-plus"></i> إضافة عميل جديد
                     </button>
                 </div>
 
                 <!-- Stats Grid -->
                 <div
-                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1.5rem; margin-bottom:2rem;">
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:1.75rem; margin-bottom:2.5rem;">
                     <div class="card stat-card">
-                        <div class="stat-number" id="totalClients">0</div>
-                        <div class="stat-label">إجمالي العملاء</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div class="stat-label">إجمالي العملاء</div>
+                                <div class="stat-number" id="totalClients">0</div>
+                            </div>
+                            <div class="stat-icon-wrapper"
+                                style="background:rgba(37, 99, 235, 0.1); color:var(--brand-primary);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
                     </div>
                     <div class="card stat-card">
-                        <div class="stat-number" id="activeClients">0</div>
-                        <div class="stat-label">عملاء نشطين</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div class="stat-label">عملاء نشطين</div>
+                                <div class="stat-number" id="activeClients">0</div>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background:rgba(16, 185, 129, 0.1); color:#10b981;">
+                                <i class="fas fa-user-check"></i>
+                            </div>
+                        </div>
                     </div>
                     <div class="card stat-card">
-                        <div class="stat-number" id="totalCases">0</div>
-                        <div class="stat-label">قضايا مرتبطة</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <div class="stat-label">قضايا جارية</div>
+                                <div class="stat-number" id="totalCases">0</div>
+                            </div>
+                            <div class="stat-icon-wrapper" style="background:rgba(234, 179, 8, 0.1); color:#eab308;">
+                                <i class="fas fa-gavel"></i>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Clients List -->
-                <div id="clientsContainer" style="display:grid; gap:1rem;">
+                <div id="clientsContainer"
+                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:1.75rem;">
                     <!-- Loaded Dynamically -->
                 </div>
             </main>

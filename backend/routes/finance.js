@@ -8,6 +8,7 @@ router.use(authMiddleware.requireAuth);
 // Invoices
 router.post('/invoices', financeController.createInvoice);
 router.get('/invoices', financeController.getAllInvoices);
+router.get('/invoices/:id/download', financeController.downloadInvoicePDF);
 router.post('/payments', financeController.recordPayment);
 
 // Expenses

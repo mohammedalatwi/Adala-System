@@ -53,20 +53,34 @@ class FinanceManager {
     }
 
     static switchTab(tab) {
+        const tabInv = document.getElementById('tabInvoices');
+        const tabExp = document.getElementById('tabExpenses');
+        const viewInv = document.getElementById('invoicesView');
+        const viewExp = document.getElementById('expensesView');
+
         if (tab === 'invoices') {
-            document.getElementById('invoicesView').style.display = 'block';
-            document.getElementById('expensesView').style.display = 'none';
-            document.getElementById('tabInvoices').style.color = 'var(--brand-primary)';
-            document.getElementById('tabInvoices').style.borderBottom = '2px solid var(--brand-primary)';
-            document.getElementById('tabExpenses').style.color = 'var(--text-muted)';
-            document.getElementById('tabExpenses').style.borderBottom = 'none';
+            viewInv.style.display = 'block';
+            viewExp.style.display = 'none';
+
+            tabInv.className = 'btn btn-sm active';
+            tabInv.style.background = 'var(--brand-primary)';
+            tabInv.style.color = 'white';
+
+            tabExp.className = 'btn btn-sm';
+            tabExp.style.background = 'transparent';
+            tabExp.style.color = 'var(--text-muted)';
         } else {
-            document.getElementById('invoicesView').style.display = 'none';
-            document.getElementById('expensesView').style.display = 'block';
-            document.getElementById('tabExpenses').style.color = 'var(--brand-primary)';
-            document.getElementById('tabExpenses').style.borderBottom = '2px solid var(--brand-primary)';
-            document.getElementById('tabInvoices').style.color = 'var(--text-muted)';
-            document.getElementById('tabInvoices').style.borderBottom = 'none';
+            viewInv.style.display = 'none';
+            viewExp.style.display = 'block';
+
+            tabExp.className = 'btn btn-sm active';
+            tabExp.style.background = 'var(--brand-primary)';
+            tabExp.style.color = 'white';
+
+            tabInv.className = 'btn btn-sm';
+            tabInv.style.background = 'transparent';
+            tabInv.style.color = 'var(--text-muted)';
+
             this.loadExpenses();
         }
     }
@@ -78,7 +92,9 @@ class FinanceManager {
         try {
             const result = await API.get('/finance/expenses');
             if (result.success) {
-                this.renderExpenses(result.data);
+                // Backend returns { expenses, pagination }
+                const expenses = result.data.expenses || result.data;
+                this.renderExpenses(expenses);
             }
         } catch (error) {
             tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:red;">فشل تحميل المصروفات</td></tr>';
@@ -156,28 +172,36 @@ class FinanceManager {
         tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> تحميل...</td></tr>';
 
         try {
+            // جلب الفواتير
             const result = await API.get('/finance/invoices');
             if (result.success) {
-                this.renderInvoices(result.data);
-                this.calculateStats(result.data);
+                // Backend returns { invoices, pagination }
+                const invoices = result.data.invoices || result.data;
+                this.renderInvoices(invoices);
             }
+
+            // جلب الخلاصة المالية المتقدمة
+            this.loadFinancialSummary();
+
         } catch (error) {
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:red;">فشل تحميل البيانات</td></tr>';
         }
     }
 
-    static calculateStats(invoices) {
-        let total = 0;
-        let paid = 0;
-
-        invoices.forEach(inv => {
-            total += parseFloat(inv.amount || 0);
-            paid += parseFloat(inv.paid_amount || 0);
-        });
-
-        document.getElementById('statsTotal').textContent = total.toFixed(2) + ' ر.س';
-        document.getElementById('statsPaid').textContent = paid.toFixed(2) + ' ر.س';
-        document.getElementById('statsDue').textContent = (total - paid).toFixed(2) + ' ر.س';
+    static async loadFinancialSummary() {
+        try {
+            const result = await API.get('/api/reports/financial');
+            if (result.success && result.data) {
+                const s = result.data.summary;
+                document.getElementById('statsTotal').textContent = Number(s.totalInvoiced).toFixed(2) + ' ر.س';
+                document.getElementById('statsPaid').textContent = Number(s.totalCollected).toFixed(2) + ' ر.س';
+                document.getElementById('statsExpenses').textContent = Number(s.totalExpenses).toFixed(2) + ' ر.س';
+                document.getElementById('statsProfit').textContent = Number(s.netProfit).toFixed(2) + ' ر.س';
+                document.getElementById('statsDue').textContent = Number(s.outstanding).toFixed(2) + ' ر.س';
+            }
+        } catch (error) {
+            console.error('Error loading financial summary:', error);
+        }
     }
 
     static renderInvoices(invoices) {
@@ -200,39 +224,56 @@ class FinanceManager {
                     <td class="text-danger" style="font-weight:bold;">${due.toFixed(2)}</td>
                     <td>${this.getStatusBadge(inv.status)}</td>
                     <td>
-                        <button class="btn btn-sm btn-outline-primary" style="padding:2px 8px;" onclick="FinanceManager.openPaymentModal(${inv.id}, ${due})">
-                            <i class="fas fa-dollar-sign"></i> دفع
-                        </button>
+                        <div style="display:flex; gap:0.3rem;">
+                            <button class="btn btn-sm btn-outline-primary" style="padding:2px 8px;" onclick="FinanceManager.openPaymentModal(${inv.id}, ${due})">
+                                <i class="fas fa-dollar-sign"></i> دفع
+                            </button>
+                            <button class="btn btn-sm btn-outline" style="padding:2px 8px; color:var(--brand-primary);" onclick="FinanceManager.downloadInvoice(${inv.id})">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
         }).join('');
     }
 
+    static async downloadInvoice(invId) {
+        try {
+            Utils.showMessage('جاري تجهيز الفاتورة...', 'info');
+            // استخدام الرابط المباشر للتحميل
+            window.location.href = `/api/finance/invoices/${invId}/download`;
+        } catch (error) {
+            Utils.showMessage('فشل تحميل الفاتورة', 'error');
+        }
+    }
+
     static getStatusBadge(status) {
         const map = {
-            'unpaid': { text: 'غير مدفوع', color: '#ef4444', bg: '#fee2e2' },
-            'paid': { text: 'مدفوع', color: '#10b981', bg: '#d1fae5' },
-            'partially_paid': { text: 'جزئي', color: '#f59e0b', bg: '#fef3c7' },
-            'overdue': { text: 'متأخر', color: '#7f1d1d', bg: '#fca5a5' }
+            'unpaid': { text: 'غير مدفوع', color: 'var(--danger)', bg: 'rgba(239, 68, 68, 0.1)' },
+            'paid': { text: 'مدفوع بالكامل', color: 'var(--success)', bg: 'rgba(16, 185, 129, 0.1)' },
+            'partially_paid': { text: 'مدفوع جزئياً', color: 'var(--warning)', bg: 'rgba(245, 158, 11, 0.1)' },
+            'overdue': { text: 'متأخر جداً', color: '#7f1d1d', bg: 'rgba(127, 29, 29, 0.1)' }
         };
         const s = map[status] || { text: status, color: '#666', bg: '#eee' };
-        return `<span style="background:${s.bg}; color:${s.color}; padding:2px 8px; border-radius:12px; font-size:0.8rem;">${s.text}</span>`;
+        return `<span style="background:${s.bg}; color:${s.color}; padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:800; border:1px solid ${s.color}22;">${s.text}</span>`;
     }
 
     static async loadClients() {
         const res = await API.get('/clients');
         if (res.success) {
+            const clients = res.data.clients || res.data;
             document.getElementById('invClient').innerHTML = '<option value="">اختر العميل</option>' +
-                res.data.map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
+                clients.map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
         }
     }
 
     static async loadCases() {
         const res = await API.get('/cases?limit=100');
         if (res.success) {
+            const cases = res.data.cases || res.data;
             document.getElementById('invCase').innerHTML = '<option value="">(اختياري)</option>' +
-                res.data.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
         }
     }
 

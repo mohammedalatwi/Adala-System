@@ -86,21 +86,26 @@
 
             <!-- Main Content -->
             <main class="main-content">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
                     <div>
-                        <h1 style="font-size:1.5rem; margin-bottom:0.5rem;">إدارة القضايا</h1>
-                        <p style="color:var(--text-muted);">عرض وإدارة ملفات القضايا</p>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">إدارة القضايا</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">تتبع وقم بإدارة كافة ملفات القضايا
+                            والطلبات القانونية في مكان واحد.</p>
                     </div>
                     <button class="btn btn-primary" onclick="CasesManager.openNewCaseModal()">
-                        <i class="fas fa-plus"></i> إضافة قضية
+                        <i class="fas fa-plus"></i> إضافة قضية جديدة
                     </button>
                 </div>
 
-                <!-- Filters -->
-                <div class="card" style="display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
-                    <div style="flex:1; min-width:200px;">
-                        <label class="form-label">الحالة</label>
-                        <select id="statusFilter" class="form-control">
+                <!-- Filters Bar -->
+                <div class="card"
+                    style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-end; margin-bottom: 2.5rem; background: var(--glass-bg); backdrop-filter: var(--glass-blur); border: 1px solid var(--glass-border);">
+                    <div style="flex:1; min-width:220px;">
+                        <label class="form-label"
+                            style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">حالة
+                            القضية</label>
+                        <select id="statusFilter" class="form-control"
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;">
                             <option value="">جميع الحالات</option>
                             <option value="جديد">جديد</option>
                             <option value="قيد الدراسة">قيد الدراسة</option>
@@ -109,9 +114,12 @@
                             <option value="ملغي">ملغي</option>
                         </select>
                     </div>
-                    <div style="flex:1; min-width:200px;">
-                        <label class="form-label">النوع</label>
-                        <select id="typeFilter" class="form-control">
+                    <div style="flex:1; min-width:220px;">
+                        <label class="form-label"
+                            style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">نوع
+                            التقاضي</label>
+                        <select id="typeFilter" class="form-control"
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;">
                             <option value="">جميع الأنواع</option>
                             <option value="مدني">مدني</option>
                             <option value="جنائي">جنائي</option>
@@ -120,15 +128,17 @@
                         </select>
                     </div>
                     <div>
-                        <button class="btn btn-primary" onclick="CasesManager.loadCases()">
-                            <i class="fas fa-filter"></i> تصفية
+                        <button class="btn btn-outline"
+                            style="padding: 0.6rem 2rem; border-color: var(--brand-primary); color: var(--brand-primary);"
+                            onclick="CasesManager.loadCases()">
+                            <i class="fas fa-filter"></i> تطبيق التصفية
                         </button>
                     </div>
                 </div>
 
                 <!-- Cases Grid -->
                 <div id="casesContainer"
-                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:1.5rem;">
+                    style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:2rem;">
                     <!-- Loaded Dynamically -->
                 </div>
             </main>
@@ -147,8 +157,7 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
                         <div class="form-group">
                             <label class="form-label">رقم القضية *</label>
-                            <input type="text" id="caseNumber" class="form-control" required placeholder="تلقائي"
-                                readonly>
+                            <input type="text" id="caseNumber" class="form-control" required placeholder="رقم القضية">
                         </div>
                         <div class="form-group">
                             <label class="form-label">العنوان *</label>
@@ -176,33 +185,30 @@
                         <div class="form-group">
                             <label class="form-label">العميل *</label>
                             <select id="clientSelect" class="form-control" required>
-                                <option value="">اختر العميل</option>
-                            </select>
+                                <div class="form-group">
+                                    <label class="form-label">المحكمة</label>
+                                    <input type="text" id="courtName" class="form-control" placeholder="اسم المحكمة">
+                                </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">المحكمة</label>
-                            <input type="text" id="courtName" class="form-control" placeholder="اسم المحكمة">
+                        <div class="form-group" style="margin-top:1rem;">
+                            <label class="form-label">الوصف</label>
+                            <textarea id="caseDescription" class="form-control" rows="3"
+                                placeholder="تفاصيل القضية..."></textarea>
                         </div>
-                    </div>
-                    <div class="form-group" style="margin-top:1rem;">
-                        <label class="form-label">الوصف</label>
-                        <textarea id="caseDescription" class="form-control" rows="3"
-                            placeholder="تفاصيل القضية..."></textarea>
-                    </div>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1rem;">
-                        <div class="form-group">
-                            <label class="form-label">تاريخ البدء</label>
-                            <input type="date" id="startDate" class="form-control">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-top:1rem;">
+                            <div class="form-group">
+                                <label class="form-label">تاريخ البدء</label>
+                                <input type="date" id="startDate" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">الأولوية</label>
+                                <select id="casePriority" class="form-control">
+                                    <option value="منخفض">منخفض</option>
+                                    <option value="متوسط" selected>متوسط</option>
+                                    <option value="عالي">عالي</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">الأولوية</label>
-                            <select id="casePriority" class="form-control">
-                                <option value="منخفض">منخفض</option>
-                                <option value="متوسط" selected>متوسط</option>
-                                <option value="عالي">عالي</option>
-                            </select>
-                        </div>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
