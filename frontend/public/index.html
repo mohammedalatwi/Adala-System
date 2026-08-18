@@ -1,99 +1,198 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام عدالة - إدارة مكاتب المحاماة</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
     <style>
         .hero-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            background: linear-gradient(135deg, var(--brand-secondary), var(--brand-primary-dark));
             color: white;
-            padding: 4rem 2rem;
+            padding: 8rem 2rem;
             text-align: center;
-            min-height: 80vh;
+            min-height: 70vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('https://www.transparenttextures.com/patterns/cubes.png');
+            opacity: 0.05;
+            pointer-events: none;
         }
 
         .hero-content {
-            max-width: 800px;
+            max-width: 900px;
+            z-index: 2;
         }
 
         .hero-title {
-            font-size: 3.5rem;
-            margin-bottom: 1rem;
-            font-weight: 700;
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+            font-weight: 800;
+            text-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            line-height: 1.2;
         }
 
         .hero-subtitle {
-            font-size: 1.5rem;
-            margin-bottom: 2rem;
+            font-size: 1.4rem;
+            margin-bottom: 3rem;
             opacity: 0.9;
+            font-weight: 400;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
         }
 
         .features-section {
-            padding: 4rem 2rem;
-            background: var(--gray-50);
+            padding: 6rem 2rem;
+            background: var(--bg-body);
         }
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2.5rem;
             max-width: 1200px;
             margin: 0 auto;
         }
 
         .feature-card {
-            background: white;
-            padding: 2rem;
-            border-radius: var(--border-radius-lg);
+            background: var(--bg-surface);
+            padding: 3rem 2rem;
+            border-radius: var(--radius-lg);
             text-align: center;
-            box-shadow: var(--shadow-sm);
-            transition: all 0.3s ease;
+            box-shadow: var(--shadow-md);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid var(--border-color);
         }
 
         .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-lg);
+            transform: translateY(-12px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--brand-primary-light);
         }
 
-        .feature-icon {
-            font-size: 3rem;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
+        .feature-icon-box {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-body);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+            color: var(--brand-primary);
+            margin: 0 auto 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .feature-icon-box {
+            background: var(--brand-primary);
+            color: white;
+            transform: rotate(-5deg);
         }
 
         .cta-section {
-            background: var(--primary-color);
+            background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
             color: white;
-            padding: 4rem 2rem;
+            padding: 6rem 2rem;
             text-align: center;
+            position: relative;
+        }
+
+        .navbar {
+            height: 80px;
+            background: var(--glass-bg);
+            backdrop-filter: var(--glass-blur);
+            border-bottom: 1px solid var(--border-color);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--brand-secondary);
+        }
+
+        .navbar-nav {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            font-weight: 700;
+            color: var(--text-main);
+            transition: color 0.3s ease;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: var(--brand-primary);
         }
 
         @media (max-width: 768px) {
             .hero-title {
-                font-size: 2.5rem;
+                font-size: 2.8rem;
             }
-            
-            .hero-subtitle {
-                font-size: 1.2rem;
+
+            .hero-buttons {
+                flex-direction: column;
+                padding: 0 2rem;
             }
         }
     </style>
 </head>
+
 <body>
     <!-- شريط التنقل -->
     <nav class="navbar">
         <div class="navbar-container">
             <div class="navbar-brand">
-                <i class="fas fa-gavel"></i>
-                نظام عدالة
+                <div class="brand-logo-container" style="width: 42px; height: 42px;">
+                    <i class="fas fa-balance-scale" style="font-size: 1.1rem; color: white;"></i>
+                </div>
+                <span>نظام عدالة</span>
             </div>
-            
+
             <ul class="navbar-nav">
                 <li><a href="/" class="nav-link active">الرئيسية</a></li>
                 <li><a href="/login" class="nav-link">تسجيل الدخول</a></li>
@@ -104,22 +203,22 @@
 
     <!-- قسم البطل -->
     <section class="hero-section">
-        <div class="hero-content">
+        <div class="hero-content fade-in">
             <h1 class="hero-title">
-                <i class="fas fa-gavel"></i><br>
-                نظام عدالة
+                عدالة في التنظيم..<br>قوة في الدفاع
             </h1>
             <p class="hero-subtitle">
-                نظام متكامل لإدارة مكاتب المحاماة والقضايا القانونية
+                المساعد الرقمي الأول للمحامين السعوديين لإدارة القضايا والطلبات القانونية بكل سلاسة واحترافية.
             </p>
             <div class="hero-buttons">
-                <a href="/login" class="btn btn-light btn-lg">
+                <a href="/login" class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem;">
                     <i class="fas fa-sign-in-alt"></i>
-                    تسجيل الدخول
+                    دخول المنصة
                 </a>
-                <a href="/register" class="btn btn-outline-light btn-lg">
+                <a href="/register" class="btn btn-outline"
+                    style="padding: 1rem 2.5rem; font-size: 1.1rem; background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.3);">
                     <i class="fas fa-user-plus"></i>
-                    إنشاء حساب
+                    ابدأ مجاناً
                 </a>
             </div>
         </div>
@@ -129,54 +228,66 @@
     <section class="features-section">
         <div class="features-grid">
             <div class="feature-card">
-                <div class="feature-icon">
+                <div class="feature-icon-box">
                     <i class="fas fa-gavel"></i>
                 </div>
-                <h3>إدارة القضايا</h3>
-                <p>إدارة كاملة للقضايا والمحاكمات مع متابعة حالة كل قضية</p>
+                <h3 style="font-weight: 800; margin-bottom: 1rem;">إدارة القضايا</h3>
+                <p style="color: var(--text-muted);">أرشفة ذكية لملفات القضايا مع تتبع حي لحالة الجلسات والمواعيد.</p>
             </div>
-            
+
             <div class="feature-card">
-                <div class="feature-icon">
+                <div class="feature-icon-box">
                     <i class="fas fa-users"></i>
                 </div>
-                <h3>إدارة العملاء</h3>
-                <p>تنظيم بيانات العملاء وتاريخ التعامل معهم</p>
+                <h3 style="font-weight: 800; margin-bottom: 1rem;">إدارة العملاء</h3>
+                <p style="color: var(--text-muted);">تنظيم دقيق لبيانات الموكلين مع سجل كامل للتواصل والمستندات الخاصة
+                    بهم.</p>
             </div>
-            
+
             <div class="feature-card">
-                <div class="feature-icon">
+                <div class="feature-icon-box">
                     <i class="fas fa-calendar-alt"></i>
                 </div>
-                <h3>جدولة الجلسات</h3>
-                <p>ترتيب مواعيد الجلسات وإرسال التذكيرات</p>
+                <h3 style="font-weight: 800; margin-bottom: 1rem;">جدولة ذكية</h3>
+                <p style="color: var(--text-muted);">تقويم تفاعلي للجلسات مع تنبيهات ذكية لضمان عدم تفويت أي موعد قضائي.
+                </p>
             </div>
-            
+
             <div class="feature-card">
-                <div class="feature-icon">
+                <div class="feature-icon-box">
                     <i class="fas fa-file-contract"></i>
                 </div>
-                <h3>المستندات</h3>
-                <p>أرشيف آمن للمستندات القانونية والمرافعات</p>
+                <h3 style="font-weight: 800; margin-bottom: 1rem;">أرشفة المستندات</h3>
+                <p style="color: var(--text-muted);">رفع وإدارة المذكرات والمستندات القانونية بشكل منظم وآمن لكل قضية.
+                </p>
             </div>
         </div>
     </section>
 
     <!-- قسم الدعوة للإجراء -->
     <section class="cta-section">
-        <div class="hero-content">
-            <h2>ابدأ في إدارة مكتبك الآن</h2>
-            <p>انضم إلى نظام عدالة وتمتع بميزات متكاملة لإدارة مكاتب المحاماة</p>
-            <a href="/register" class="btn btn-light btn-lg">
+        <div class="hero-content" style="margin: 0 auto;">
+            <h2 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1.5rem;">جاهز للارتقاء بعملك القانوني؟</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 2.5rem; opacity: 0.9;">انضم إلى مئات المحامين الذين يديرون
+                مكاتبهم بذكاء عبر نظام عدالة.</p>
+            <a href="/register" class="btn btn-primary"
+                style="background: white; color: var(--brand-primary); padding: 1rem 3rem;">
                 <i class="fas fa-rocket"></i>
-                ابدأ مجاناً
+                ابدأ رحلتك الآن
             </a>
         </div>
     </section>
 
     <!-- التذييل -->
-    <footer style="background: var(--gray-900); color: white; padding: 2rem; text-align: center;">
-        <p>© 2024 نظام عدالة - جميع الحقوق محفوظة</p>
+    <footer
+        style="background: var(--brand-secondary); color: rgba(255,255,255,0.6); padding: 3rem 2rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+        <div class="navbar-brand" style="justify-content: center; margin-bottom: 1.5rem; color: white;">
+            <div class="brand-logo-container" style="width: 38px; height: 38px;">
+                <i class="fas fa-balance-scale" style="font-size: 1rem; color: white;"></i>
+            </div>
+            <span>نظام عدالة</span>
+        </div>
+        <p>© 2026 نظام عدالة V2.0 - جميع الحقوق محفوظة</p>
     </footer>
 
     <script>
@@ -187,7 +298,7 @@
                     credentials: 'include'
                 });
                 const data = await response.json();
-                
+
                 if (data.authenticated) {
                     window.location.href = '/dashboard';
                 }
@@ -200,4 +311,5 @@
         document.addEventListener('DOMContentLoaded', checkAuth);
     </script>
 </body>
+
 </html>

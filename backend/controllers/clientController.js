@@ -47,7 +47,7 @@ class ClientController extends BaseController {
         });
     });
 
-    // ✅ جلب عميل محدد
+    // ✅ جلب عميل محدد مع تفاصيله الكاملة
     getClientById = this.asyncWrapper(async (req, res) => {
         const { id } = req.params;
         const officeId = req.session.officeId;
@@ -61,9 +61,54 @@ class ClientController extends BaseController {
 
         if (!client) throw new Error('العميل غير موجود');
 
+        // جلب القضايا
         const cases = await db.all('SELECT * FROM cases WHERE client_id = ? AND office_id = ? ORDER BY created_at DESC', [id, officeId]);
+        const caseIds = cases.map(c => c.id);
 
-        this.sendSuccess(res, { ...client, cases });
+        let sessions = [];
+        let documents = [];
+        let transactions = [];
+
+        if (caseIds.length > 0) {
+            const placeholders = caseIds.map(() => '?').join(',');
+
+            // جلب الجلسات المرتبطة بقضايا العميل
+            sessions = await db.all(`
+                SELECT s.*, c.title as case_title, c.case_number 
+                FROM sessions s
+                JOIN cases c ON s.case_id = c.id
+                WHERE s.case_id IN (${placeholders}) AND s.office_id = ?
+                ORDER BY s.session_date DESC
+            `, [...caseIds, officeId]);
+
+            // جلب المستندات المرتبطة بقضايا العميل
+            documents = await db.all(`
+                SELECT d.*, c.title as case_title
+                FROM documents d
+                LEFT JOIN cases c ON d.case_id = c.id
+                WHERE d.case_id IN (${placeholders}) AND d.office_id = ?
+                ORDER BY d.uploaded_at DESC
+            `, [...caseIds, officeId]);
+        }
+
+        // جلب المعاملات المالية المرتبطة بالعميل مباشرة (المدفوعات)
+        transactions = await db.all(`
+            SELECT p.id, p.amount, p.payment_date as transaction_date, p.payment_method, 
+                   p.reference_number as receipt_number, 'income' as type, c.title as case_title
+            FROM payments p
+            JOIN invoices i ON p.invoice_id = i.id
+            LEFT JOIN cases c ON i.case_id = c.id
+            WHERE i.client_id = ? AND p.office_id = ?
+            ORDER BY p.payment_date DESC
+        `, [id, officeId]);
+
+        this.sendSuccess(res, {
+            client,
+            cases,
+            sessions,
+            documents,
+            transactions
+        });
     });
 
     // ✅ تحديث عميل

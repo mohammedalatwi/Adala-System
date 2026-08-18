@@ -12,6 +12,7 @@
     <!-- Styles -->
     <!-- Styles -->
     <link rel="stylesheet" href="css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -96,9 +97,50 @@
                         <p style="color:var(--text-muted); font-size:1.1rem;">إدارة الفواتير، المصروفات، وتحصيل
                             المستحقات بدقة وشفافية.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="FinanceManager.openInvoiceModal()">
-                        <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة جديدة
-                    </button>
+                    <div style="display:flex; gap:0.75rem;">
+                        <button class="btn btn-outline"
+                            style="border-radius:12px; font-weight:700; color:#ef4444; border-color:#ef444444;"
+                            onclick="window.open('/api/exports/finance/summary', '_blank')">
+                            <i class="fas fa-file-pdf"></i> ملخص PDF
+                        </button>
+                        <button class="btn btn-outline"
+                            style="border-radius:12px; font-weight:700; color:#10b981; border-color:#10b98144;"
+                            onclick="window.open('/api/exports/finance/excel', '_blank')">
+                            <i class="fas fa-file-excel"></i> تصدير Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="FinanceManager.openInvoiceModal()">
+                            <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة جديدة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visual Intelligence Row [New] -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.75rem; margin-bottom:2.5rem;">
+                    <div class="card" style="padding:1.5rem; border-top: 4px solid var(--success);">
+                        <h3
+                            style="margin-bottom:1.5rem; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
+                            <span><i class="fas fa-chart-line" style="color:var(--success); margin-left:0.5rem;"></i>
+                                التوقعات المالية (دخل vs مصروفات)</span>
+                            <span style="font-size:0.8rem; color:var(--text-muted); font-weight:400;">آخر 6 أشهر</span>
+                        </h3>
+                        <div style="height: 250px;">
+                            <canvas id="financeOutlookChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card"
+                        style="padding:1.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+                        <h3 style="margin-bottom:1.5rem; font-weight:800; align-self:flex-start;"><i
+                                class="fas fa-percentage" style="color:var(--brand-primary); margin-left:0.5rem;"></i>
+                            كفاءة التحصيل</h3>
+                        <div style="position:relative; width:160px; height:160px; margin:0.5rem 0;">
+                            <canvas id="collectionRateChart"></canvas>
+                            <div id="collectionRateLabel"
+                                style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); font-size:1.8rem; font-weight:900; color:var(--text-main);">
+                                0%</div>
+                        </div>
+                        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:1rem;">نسبة المبالغ المحصلة
+                            فعلياً من إجمالي الفواتير الصادرة</p>
+                    </div>
                 </div>
 
                 <!-- Stats Grid -->

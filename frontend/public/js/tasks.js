@@ -6,7 +6,11 @@ class TasksManager {
         await this.checkAuth();
         this.setupEventListeners();
         await this.loadCases();
+        await this.loadTeam();
         await this.loadTasks();
+
+        // Start auto-refresh every 60 seconds
+        this.startAutoRefresh();
 
         console.log('✅ Tasks Manager Ready');
     }
@@ -25,11 +29,7 @@ class TasksManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         document.getElementById('searchInput').addEventListener('input', Utils.debounce(() => this.loadTasks(), 500));
 
@@ -54,9 +54,25 @@ class TasksManager {
         }
     }
 
+    static async loadTeam() {
+        try {
+            const res = await API.get('/team');
+            if (res.success) {
+                const members = res.data;
+                const options = members.map(m => `<option value="${m.id}">${m.full_name} (${m.role})</option>`).join('');
+                document.getElementById('taskAssignedTo').insertAdjacentHTML('beforeend', options);
+            }
+        } catch (e) {
+            console.error('Load team error:', e);
+        }
+    }
+
     static async loadTasks() {
         const grid = document.getElementById('tasksGrid');
-        grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+        // Only show loading if grid is empty (first load)
+        if (grid.children.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;"><i class="fas fa-spinner fa-spin"></i> جاري التحميل...</div>';
+        }
 
         const params = {
             status: document.getElementById('statusFilter').value,
@@ -70,12 +86,29 @@ class TasksManager {
         try {
             const result = await API.get('/tasks', params);
             if (result.success) {
-                // Backend now returns { tasks, pagination } in data
-                this.renderTasks(result.data.tasks);
+                const tasks = result.data.tasks || result.data;
+                this.renderTasks(tasks);
+                this.updateStats(tasks);
             }
         } catch (error) {
-            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${error.message}</div>`;
+            if (grid.children.length === 0) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${error.message}</div>`;
+            }
         }
+    }
+
+    static updateStats(tasks) {
+        const total = tasks.length;
+        const pending = tasks.filter(t => t.status !== 'مكتمل' && t.status !== 'ملغي').length;
+        const completed = tasks.filter(t => t.status === 'مكتمل').length;
+
+        document.getElementById('totalTasksCount').textContent = total;
+        document.getElementById('pendingTasksCount').textContent = pending;
+        document.getElementById('completedTasksCount').textContent = completed;
+    }
+
+    static startAutoRefresh() {
+        setInterval(() => this.loadTasks(), 60000);
     }
 
     static renderTasks(tasks) {
@@ -93,25 +126,30 @@ class TasksManager {
         }
 
         grid.innerHTML = tasks.map(task => {
-            const priorityKey = this.getPriorityKey(task.priority);
             const isCompleted = task.status === 'مكتمل';
+            const priorityColor = this.getPriorityColor(task.priority);
 
             return `
-            <div class="card task-card" style="display:flex; flex-direction:column; gap:1.25rem; opacity: ${isCompleted ? '0.75' : '1'}; border-right: 5px solid ${this.getPriorityColor(task.priority)};">
+            <div class="card task-card" style="display:flex; flex-direction:column; gap:1.25rem; opacity: ${isCompleted ? '0.75' : '1'}; border-right: 5px solid ${priorityColor};">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
                     <div style="flex:1;">
-                        <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-main); ${isCompleted ? 'text-decoration:line-through;' : ''}">${task.title}</h3>
-                        <div style="margin-top:0.4rem; font-size:0.85rem; color:var(--brand-primary); font-weight:700;">
-                             <i class="fas fa-gavel"></i> ${task.case_title || 'مهمة عامة'}
+                        <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:var(--text-main); ${isCompleted ? 'text-decoration:line-through;' : ''}">${task.title}</h3>
+                        <div style="display:flex; flex-wrap:wrap; gap:0.8rem; margin-top:0.5rem; font-size:0.8rem;">
+                             <span style="color:var(--brand-primary); font-weight:700;">
+                                <i class="fas fa-gavel"></i> ${task.case_title || 'مهمة عامة'}
+                             </span>
+                             <span style="color:var(--text-muted); font-weight:600;">
+                                <i class="fas fa-user"></i> ${task.assigned_to_name || 'غير مسندة'}
+                             </span>
                         </div>
                     </div>
-                    <div class="badge" style="background:${this.getPriorityColor(task.priority)}22; color:${this.getPriorityColor(task.priority)}; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800; border: 1px solid ${this.getPriorityColor(task.priority)}33;">
+                    <div class="badge" style="background:${priorityColor}22; color:${priorityColor}; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800; border: 1px solid ${priorityColor}33;">
                         ${task.priority}
                     </div>
                 </div>
 
-                <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.6; min-height:48px;">
-                    ${task.description || 'لا يوجد وصف معمق لهذه المهمة...'}
+                <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.6; min-height:40px;">
+                    ${task.description || 'لا يوجد وصف لهذه المهمة...'}
                 </p>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">
@@ -152,23 +190,6 @@ class TasksManager {
         return colors[p] || '#94a3b8';
     }
 
-    static getPriorityKey(p) {
-        if (p === 'عاجل' || p === 'عالي') return 'high';
-        if (p === 'متوسط') return 'medium';
-        return 'low';
-    }
-
-    static getPriorityBadge(p) {
-        const colors = {
-            'عاجل': '#ef4444',
-            'عالي': '#f87171',
-            'متوسط': '#f59e0b',
-            'منخفض': '#3b82f6'
-        };
-        const color = colors[p] || '#666';
-        return `<span style="background:${color}22; color:${color}; padding:2px 8px; border-radius:12px; font-weight:600;">${p}</span>`;
-    }
-
     static openTaskModal() {
         document.getElementById('taskForm').reset();
         document.getElementById('taskId').value = '';
@@ -183,11 +204,15 @@ class TasksManager {
 
     static async saveTask() {
         const id = document.getElementById('taskId').value;
+        const case_id = document.getElementById('taskCase').value;
+        const assigned_to = document.getElementById('taskAssignedTo').value;
+
         const data = {
             title: document.getElementById('taskTitle').value,
-            case_id: document.getElementById('taskCase').value,
+            case_id: case_id || null, // Fix: Use null instead of empty string
+            assigned_to: assigned_to || null,
             priority: document.getElementById('taskPriority').value,
-            due_date: document.getElementById('taskDueDate').value,
+            due_date: document.getElementById('taskDueDate').value || null,
             description: document.getElementById('taskDescription').value
         };
 
@@ -197,6 +222,7 @@ class TasksManager {
         }
 
         try {
+            Utils.showLoading('جاري الحفظ...');
             let res;
             if (id) {
                 res = await API.put(`/tasks/${id}`, data);
@@ -204,13 +230,19 @@ class TasksManager {
                 res = await API.post('/tasks', data);
             }
 
+            Utils.hideLoading();
+
             if (res.success) {
                 Utils.showMessage('تم حفظ المهمة بنجاح', 'success');
                 this.closeTaskModal();
                 this.loadTasks();
+            } else {
+                Utils.showMessage(res.message || 'خطأ في حفظ المهمة', 'error');
             }
         } catch (e) {
+            Utils.hideLoading();
             console.error('Save task error:', e);
+            Utils.showMessage('حدث خطأ أثناء الاتصال بالخادم', 'error');
         }
     }
 
@@ -233,8 +265,9 @@ class TasksManager {
                 document.getElementById('taskId').value = task.id;
                 document.getElementById('taskTitle').value = task.title;
                 document.getElementById('taskCase').value = task.case_id || '';
+                document.getElementById('taskAssignedTo').value = task.assigned_to || '';
                 document.getElementById('taskPriority').value = task.priority;
-                document.getElementById('taskDueDate').value = task.due_date ? task.due_date.split(' ')[0] : '';
+                document.getElementById('taskDueDate').value = task.due_date ? task.due_date.split('T')[0] : '';
                 document.getElementById('taskDescription').value = task.description || '';
 
                 document.getElementById('modalTitle').textContent = 'تعديل المهمة';

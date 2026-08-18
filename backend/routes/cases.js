@@ -9,6 +9,7 @@ router.use(authMiddleware.requireAuth);
 
 // ✅ Routes CRUD للقضايا
 router.post('/',
+    caseController.assignDefaultLawyer,
     validationMiddleware.validateCase,
     caseController.createCase
 );

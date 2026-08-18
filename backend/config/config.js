@@ -1,3 +1,4 @@
+require('dotenv').config();
 const path = require('path');
 
 const config = {
@@ -16,7 +17,13 @@ const config = {
 
     // إعدادات الجلسة
     session: {
-        secret: process.env.SESSION_SECRET || 'adala-secret-key-2024',
+        secret: (() => {
+            if (process.env.SESSION_SECRET) return process.env.SESSION_SECRET;
+            if (process.env.NODE_ENV === 'production') {
+                throw new Error('يجب تعيين متغير البيئة SESSION_SECRET في بيئة الإنتاج');
+            }
+            return 'dev-only-insecure-secret';
+        })(),
         name: 'adala_session',
         maxAge: 24 * 60 * 60 * 1000 // 24 ساعة
     },

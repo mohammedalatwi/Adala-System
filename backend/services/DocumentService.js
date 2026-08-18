@@ -1,5 +1,6 @@
 const db = require('../db/database');
 const ActivityService = require('./ActivityService');
+const path = require('path');
 
 class DocumentService {
     constructor() {
@@ -30,6 +31,8 @@ class DocumentService {
             if (!sessionExists) throw new Error('الجلسة غير موجودة');
         }
 
+        const relativePath = path.relative(process.cwd(), fileData.path);
+
         const result = await this.db.run(
             `INSERT INTO documents (
                 case_id, session_id, title, description, document_type,
@@ -38,7 +41,7 @@ class DocumentService {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 case_id, session_id, title, description, document_type,
-                fileData.originalname, fileData.path, fileData.size, fileData.mimetype, version,
+                fileData.originalname, relativePath, fileData.size, fileData.mimetype, version,
                 is_confidential ? 1 : 0, userId, officeId
             ]
         );

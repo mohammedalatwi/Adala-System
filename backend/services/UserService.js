@@ -10,6 +10,7 @@ class UserService {
     async createUser(userData, officeId, currentUserId) {
         const { full_name, username, email, password, phone, role, specialization, license_number } = userData;
 
+        // استثناء مقصود: لا يوجد عزل office_id هنا لأن email/username فريدان على مستوى النظام كله
         const existingUser = await this.db.get('SELECT id FROM users WHERE email = ? OR username = ?', [email, username]);
         if (existingUser) throw new Error('البريد الإلكتروني أو اسم المستخدم موجود مسبقاً');
 

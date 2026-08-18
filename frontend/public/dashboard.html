@@ -100,8 +100,8 @@
                             اليوم.</p>
                     </div>
                     <div style="display: flex; gap: 1rem;">
-                        <button class="btn btn-outline" onclick="location.reload()">
-                            <i class="fas fa-sync-alt"></i> تحديث
+                        <button class="btn btn-outline" id="refreshBtn" onclick="DashboardManager.refresh()">
+                            <i class="fas fa-sync-alt"></i> تحديث الإحصائيات
                         </button>
                         <button class="btn btn-primary" onclick="window.location.href='/cases?action=new'">
                             <i class="fas fa-plus"></i> قضية جديدة
@@ -159,48 +159,68 @@
                     </div>
                 </div>
 
-                <!-- Charts & Activity Grid -->
-                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:2rem; margin-bottom:2.5rem;">
-                    <div style="display: flex; flex-direction: column; gap: 2rem;">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-chart-line"></i> مؤشر أداء المكتب</h3>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="casesTrendChart" height="300"></canvas>
-                            </div>
+                <!-- Charts Section -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom: 2.5rem;">
+                    <div class="card" style="padding:1.5rem;">
+                        <h3
+                            style="margin-bottom:1.5rem; font-weight:800; display:flex; justify-content:space-between; align-items:center;">
+                            <span><i class="fas fa-chart-line"
+                                    style="color:var(--brand-primary); margin-left:0.5rem;"></i> مؤشر أداء المكتب
+                                (القضايا)</span>
+                            <span style="font-size:0.8rem; color:var(--text-muted); font-weight:400;">آخر 6 أشهر</span>
+                        </h3>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="casesTrendChart"></canvas>
                         </div>
+                    </div>
+                    <div class="card" style="padding:1.5rem;">
+                        <h3 style="margin-bottom:1.5rem; font-weight:800;"><i class="fas fa-chart-pie"
+                                style="color:var(--brand-primary); margin-left:0.5rem;"></i> توزيع الحالات</h3>
+                        <div style="height: 300px; position: relative;">
+                            <canvas id="casesStatusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
 
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-calendar-check"></i> الجلسات القادمة</h3>
-                                <a href="/sessions" class="btn btn-sm btn-outline">الجدول الكامل</a>
-                            </div>
-                            <div class="card-body" id="upcomingSessionsList">
-                                <!-- Loaded via JS -->
-                            </div>
+                <!-- Bottom Operational Grid -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom: 2.5rem;">
+                    <!-- Sessions Card -->
+                    <div class="card" style="padding:0; overflow:hidden;">
+                        <div class="card-header" style="margin:0; padding:1.5rem; background:var(--bg-surface-hover);">
+                            <h3 style="margin:0; font-size:1.1rem;"><i class="fas fa-calendar-check"
+                                    style="color:var(--warning);"></i> الجلسات القادمة</h3>
+                            <a href="/sessions" class="btn btn-sm btn-outline" style="font-size:0.75rem;">الجدول
+                                الكامل</a>
+                        </div>
+                        <div class="card-body" id="upcomingSessionsList"
+                            style="padding:1.5rem; max-height:400px; overflow-y:auto;">
+                            <!-- Loaded via JS -->
                         </div>
                     </div>
 
-                    <div style="display: flex; flex-direction: column; gap: 2rem;">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-chart-pie"></i> توزيع القضايا</h3>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="casesStatusChart" height="250"></canvas>
-                            </div>
+                    <!-- Tasks/Activities Card -->
+                    <div class="card" style="padding:0; overflow:hidden;">
+                        <div class="card-header" style="margin:0; padding:1.5rem; background:var(--bg-surface-hover);">
+                            <h3 style="margin:0; font-size:1.1rem;"><i class="fas fa-tasks"
+                                    style="color:var(--brand-primary);"></i> مهام نشطة</h3>
+                            <a href="/tasks" class="btn btn-sm btn-outline" style="font-size:0.75rem;">إدارة المهام</a>
                         </div>
+                        <div class="card-body" id="recentTasksList"
+                            style="padding:1.5rem; max-height:400px; overflow-y:auto;">
+                            <!-- Loaded via JS -->
+                        </div>
+                    </div>
+                </div>
 
-                        <div class="card">
-                            <div class="card-header">
-                                <h3><i class="fas fa-tasks"></i> مهام نشطة</h3>
-                                <a href="/tasks" class="btn btn-sm btn-outline">المهام</a>
-                            </div>
-                            <div class="card-body" id="recentTasksList">
-                                <!-- Loaded via JS -->
-                            </div>
-                        </div>
+                <!-- Activity Feed -->
+                <div class="card" style="padding:0; overflow:hidden;">
+                    <div class="card-header"
+                        style="margin:0; padding:1.5rem; border-bottom:1px solid var(--border-color);">
+                        <h3 style="margin:0; font-size:1.1rem;"><i class="fas fa-history"
+                                style="color:var(--text-muted);"></i> آخر الأنشطة</h3>
+                    </div>
+                    <div class="card-body" id="recentActivities" style="padding:0;">
+                        <!-- Loaded via JS -->
                     </div>
                 </div>
             </main>

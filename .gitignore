@@ -13,3 +13,6 @@ node_modules/
 dist/
 build/
 uploads/
+
+# Local secrets (keep placeholder file untracked so real credentials are never committed)
+backend/config/email_credentials.js

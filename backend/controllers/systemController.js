@@ -1,17 +1,25 @@
 const BaseController = require('../utils/BaseController');
 const db = require('../db/database');
 
+const CronService = require('../services/cronService');
+
 class SystemController extends BaseController {
     // ✅ التحقق من حالة النظام
     checkHealth = this.asyncWrapper(async (req, res) => {
-        const userCount = await db.get('SELECT COUNT(*) as count FROM users');
+        await db.get('SELECT 1');
 
         this.sendSuccess(res, {
-            users_count: userCount ? userCount.count : 0,
             database: 'connected',
             status: 'healthy',
             timestamp: new Date().toISOString()
         });
+    });
+
+    // ✅ تشغيل فحص يدوي للتنبيهات (للفحص)
+    triggerManualCheck = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole !== 'admin') throw new Error('غير مصرح لك');
+        await CronService.runManualCheck();
+        this.sendSuccess(res, null, 'تم تشغيل فحص التنبيهات يدوياً');
     });
 }
 

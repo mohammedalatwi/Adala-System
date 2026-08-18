@@ -28,11 +28,7 @@ class DocumentsManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         // Search & Filter
         document.getElementById('searchInput').addEventListener('input', Utils.debounce(() => this.loadDocuments(), 500));
@@ -190,39 +186,36 @@ class DocumentsManager {
     static handleFileSelection(file) {
         this.selectedFile = file;
         this.openUploadModal();
+
+        // Populate preview
         document.getElementById('docTitle').value = file.name;
+        document.getElementById('previewName').textContent = file.name;
+        document.getElementById('previewSize').textContent = Utils.formatSize(file.size);
+
+        const previewIcon = document.getElementById('previewIcon');
+        const iconClass = this.getFileIcon(file.type);
+        const iconColor = this.getFileColor(file.type);
+        previewIcon.innerHTML = `<i class="${iconClass}" style="color:${iconColor}"></i>`;
+
+        document.getElementById('filePreview').style.display = 'flex';
+        document.getElementById('uploadProgressContainer').style.display = 'none';
+        document.getElementById('progressBar').style.width = '0%';
     }
 
     static openUploadModal() {
         document.getElementById('uploadModal').style.display = 'flex';
         if (!this.selectedFile) {
-            // Trigger file input if opened via button without drag/drop
-            // For now, we rely on the drag/drop or the file input change to set selectedFile.
-            // If opened manually, we need to handle that logic separate or just let user drag drop.
-            // Simplified: Button clicks the hidden input in setupEventListeners.
-            // This method is called AFTER file selected.
-            // If called from button (which it isn't directly, button triggers file input), we're good.
-            // Wait, the HTML button calls this directly. Let's fix that interaction.
-        }
-        // If opened via button "Upload", initiate file picker first? 
-        // Logic fix: The "Upload" button in HTML calls openUploadModal(). 
-        // It should probably simulate dropzone click if no file selected.
-        if (!this.selectedFile) {
-            document.getElementById('uploadModal').style.display = 'none'; // Close
-            document.getElementById('fileInput').click(); // Pick file
+            document.getElementById('fileInput').click();
             return;
         }
     }
 
-    // Adjusted logic: Button triggers file select, which triggers modal. 
-    // But if we want a modal where users DROP files, we need to open it empty? 
-    // Let's stick to: Click Upload -> Pick File -> Open Modal with file pre-filled.
-
     static closeUploadModal() {
         document.getElementById('uploadModal').style.display = 'none';
         document.getElementById('uploadForm').reset();
+        document.getElementById('filePreview').style.display = 'none';
+        document.getElementById('uploadProgressContainer').style.display = 'none';
         this.selectedFile = null;
-        // Reset file input value to allow selecting same file again
         document.getElementById('fileInput').value = '';
     }
 
@@ -244,31 +237,42 @@ class DocumentsManager {
         formData.append('document_type', document.getElementById('docType').value);
         formData.append('file', this.selectedFile);
 
-        try {
-            // Can't use API.post because it handles JSON. Need fetch wrapper or handle Multipart.
-            // API.js usually assumes JSON. Let's start raw fetch or update API.js.
-            // Updating API.js is risky mid-flight. Use raw fetch here for safety.
+        const progressContainer = document.getElementById('uploadProgressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
 
-            Utils.showLoading('جاري الرفع...');
-            const response = await fetch('/api/documents', {
-                method: 'POST',
-                body: formData // No headers, let browser set boundary
-            });
+        progressContainer.style.display = 'block';
 
-            const result = await response.json();
-            Utils.hideLoading();
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/documents', true);
 
-            if (result.success) {
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                progressBar.style.width = percent + '%';
+                progressText.textContent = percent + '%';
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                const result = JSON.parse(xhr.responseText);
                 Utils.showMessage('تم رفع المستند بنجاح', 'success');
                 this.closeUploadModal();
                 this.loadDocuments();
             } else {
-                throw new Error(result.message);
+                const error = JSON.parse(xhr.responseText);
+                Utils.showMessage('فشل الرفع: ' + (error.message || xhr.statusText), 'error');
+                progressContainer.style.display = 'none';
             }
-        } catch (error) {
-            Utils.hideLoading();
-            Utils.showMessage('فشل الرفع: ' + error.message, 'error');
-        }
+        };
+
+        xhr.onerror = () => {
+            Utils.showMessage('حدث خطأ أثناء الاتصال بالسيرفر', 'error');
+            progressContainer.style.display = 'none';
+        };
+
+        xhr.send(formData);
     }
 
     static async downloadDoc(id) {

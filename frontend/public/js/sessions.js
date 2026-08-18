@@ -12,6 +12,22 @@ class SessionsManager {
         // Load filter data first
         await this.loadCasesForFilter();
 
+        // Check for URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const caseId = urlParams.get('case_id');
+        const action = urlParams.get('action');
+
+        if (caseId) {
+            const filter = document.getElementById('caseFilter');
+            if (filter) filter.value = caseId;
+
+            if (action === 'new') {
+                this.openNewSessionModal();
+                const sessionCase = document.getElementById('sessionCase');
+                if (sessionCase) sessionCase.value = caseId;
+            }
+        }
+
         // Load main data
         this.loadSessions();
 
@@ -32,11 +48,7 @@ class SessionsManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         document.getElementById('listViewBtn').addEventListener('click', () => this.toggleView('list'));
         document.getElementById('calendarViewBtn').addEventListener('click', () => this.toggleView('calendar'));
@@ -117,54 +129,110 @@ class SessionsManager {
             return;
         }
 
-        container.innerHTML = sessions.map(s => {
+        // 1. Group sessions by date category
+        const groups = {
+            today: { label: 'اليوم', sessions: [] },
+            tomorrow: { label: 'غداً', sessions: [] },
+            upcoming: { label: 'قادمة', sessions: [] },
+            past: { label: 'سابقة', sessions: [] }
+        };
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        sessions.forEach(s => {
             const sDate = new Date(s.session_date);
-            return `
-            <div class="card" style="display:flex; flex-direction:column; gap:1.25rem; position:relative;">
-                <div style="display:flex; align-items:center; gap:1.25rem;">
-                    <div style="background:var(--brand-primary); color:white; min-width:65px; height:65px; border-radius:18px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);">
-                        <div style="font-size:1.4rem; font-weight:800; line-height:1;">${sDate.getDate()}</div>
-                        <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase;">${sDate.toLocaleDateString('ar-SA', { month: 'short' })}</div>
+            const sDateOnly = new Date(sDate);
+            sDateOnly.setHours(0, 0, 0, 0);
+
+            if (sDateOnly.getTime() === today.getTime()) {
+                groups.today.sessions.push({ ...s, dateObj: sDate });
+            } else if (sDateOnly.getTime() === tomorrow.getTime()) {
+                groups.tomorrow.sessions.push({ ...s, dateObj: sDate });
+            } else if (sDateOnly > today) {
+                groups.upcoming.sessions.push({ ...s, dateObj: sDate });
+            } else {
+                groups.past.sessions.push({ ...s, dateObj: sDate });
+            }
+        });
+
+        // Sub-group "upcoming" and "past" by specific dates
+        const buildTimelineHtml = (groupKey) => {
+            const group = groups[groupKey];
+            if (group.sessions.length === 0) return '';
+
+            // Sort chronically
+            group.sessions.sort((a, b) => groupKey === 'past' ? b.dateObj - a.dateObj : a.dateObj - b.dateObj);
+
+            let html = '';
+
+            // For upcoming/past, we group by exact date string. For today/tomorrow, just one header
+            if (groupKey === 'today' || groupKey === 'tomorrow') {
+                html += `<div class="timeline-date-header">${group.label}</div>`;
+                html += `<div style="display:grid; gap:1rem;">${group.sessions.map(s => this.buildCompactCard(s)).join('')}</div>`;
+            } else {
+                const dateMap = {};
+                group.sessions.forEach(s => {
+                    const dateStr = s.dateObj.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    if (!dateMap[dateStr]) dateMap[dateStr] = [];
+                    dateMap[dateStr].push(s);
+                });
+
+                Object.keys(dateMap).forEach(dateStr => {
+                    html += `<div class="timeline-date-header">${dateStr}</div>`;
+                    html += `<div style="display:grid; gap:1rem;">${dateMap[dateStr].map(s => this.buildCompactCard(s)).join('')}</div>`;
+                });
+            }
+            return html;
+        };
+
+        container.innerHTML =
+            buildTimelineHtml('today') +
+            buildTimelineHtml('tomorrow') +
+            buildTimelineHtml('upcoming') +
+            buildTimelineHtml('past');
+    }
+
+    static buildCompactCard(s) {
+        const timeStr = s.dateObj.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' }).split(' ');
+        const timeVal = timeStr[0];
+        const periodVal = timeStr[1] || '';
+
+        const statusColor = this.getStatusColor(s.status);
+
+        return `
+            <div class="session-card-compact" style="border-right: 4px solid ${statusColor};">
+                <div class="session-time-col">
+                    <div class="session-time" style="color: ${statusColor}">${timeVal}</div>
+                    <div class="session-period">${periodVal}</div>
+                </div>
+                <div class="session-details-col">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <h3 class="session-title" onclick="window.location.href='/cases?case_id=${s.case_id}'">${s.case_title}</h3>
+                        <span class="badge" style="background:${statusColor}22; color:${statusColor}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
+                            ${s.status}
+                        </span>
                     </div>
-                    <div style="flex:1;">
-                        <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-main); line-height:1.4;">${s.case_title}</h3>
-                        <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
-                             <span class="badge" style="background:${this.getStatusColor(s.status)}22; color:${this.getStatusColor(s.status)}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
-                                ${s.status}
-                             </span>
-                             <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;"><i class="fas fa-hashtag"></i> #${s.id}</span>
-                        </div>
+                    <div class="session-meta">
+                        <span><i class="fas fa-gavel"></i> ${s.session_type}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> ${s.city || ''} ${s.location ? '- ' + s.location : ''}</span>
+                        <span><i class="fas fa-user-tie"></i> ${s.judge_name || 'القاضي غير محدد'}</span>
+                        <span style="opacity:0.6;"><i class="fas fa-hashtag"></i> #${s.id}</span>
                     </div>
                 </div>
-
-                <div style="display:flex; flex-direction:column; gap:0.6rem; background:rgba(0,0,0,0.02); padding:0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
-                    <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="fas fa-clock" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${sDate.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                    <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="fas fa-map-marker-alt" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${s.city || ''} - ${s.location}
-                    </div>
-                    <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="fas fa-gavel" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${s.session_type}
-                    </div>
-                </div>
-
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">
-                    <div style="font-size:0.85rem; font-weight:600; color:var(--text-muted);">
-                         <i class="fas fa-user-tie"></i> ${s.judge_name || 'غير محدد'}
-                    </div>
-                    <div style="display:flex; gap:0.6rem;">
-                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" title="تعديل" onclick="SessionsManager.editSession(${s.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" onclick="event.stopPropagation(); SessionsManager.deleteSession(${s.id})" title="حذف">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                <div class="session-actions-col">
+                    <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" title="تعديل" onclick="SessionsManager.editSession(${s.id})">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" onclick="event.stopPropagation(); SessionsManager.deleteSession(${s.id})" title="حذف">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `;
-        }).join('');
     }
 
     static toggleView(view) {

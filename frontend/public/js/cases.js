@@ -10,9 +10,16 @@ class CasesManager {
         // Load Data
         await Promise.all([
             this.loadCases(),
-            this.loadClients() // For the modal dropdown
+            this.loadClients(), // For the modal dropdown
+            this.loadLawyers() // For the modal dropdown
         ]);
-        // loadLawyers() removed
+
+        // Check for URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const caseId = urlParams.get('case_id');
+        if (caseId) {
+            this.viewCaseDetails(caseId);
+        }
 
         console.log('✅ Cases Manager Ready');
     }
@@ -31,11 +38,7 @@ class CasesManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         document.getElementById('searchInput').addEventListener('input',
             Utils.debounce(() => this.loadCases(), 500)
@@ -85,6 +88,19 @@ class CasesManager {
         }
     }
 
+    static async loadLawyers() {
+        try {
+            const result = await API.get('/team/lawyers');
+            if (result.success) {
+                const select = document.getElementById('lawyerSelect');
+                select.innerHTML = '<option value="">اختر المحامي</option>' +
+                    result.data.map(l => `<option value="${l.id}">${l.full_name}</option>`).join('');
+            }
+        } catch (error) {
+            console.error('Failed to load lawyers:', error);
+        }
+    }
+
     static renderCases(cases) {
         const container = document.getElementById('casesContainer');
 
@@ -128,6 +144,16 @@ class CasesManager {
                         <span style="font-size:0.85rem; font-weight:600; color:var(--brand-primary);">${c.case_type}</span>
                     </div>
                     <div style="display:flex; gap:0.6rem;">
+                        <button onclick="event.stopPropagation(); window.location.href='/sessions?case_id=${c.id}'" 
+                                class="btn btn-sm btn-outline" title="عرض الجلسات" 
+                                style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary); border-color:var(--brand-primary)44;">
+                            <i class="fas fa-calendar-alt"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); window.location.href='/sessions?action=new&case_id=${c.id}'" 
+                                class="btn btn-sm btn-outline" title="إضافة جلسة" 
+                                style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--success); border-color:var(--success)44;">
+                            <i class="fas fa-plus"></i>
+                        </button>
                         <button onclick="event.stopPropagation(); window.open('/api/exports/case/${c.id}/pdf', '_blank')" 
                                 class="btn btn-sm btn-outline" title="تصدير PDF" 
                                 style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger); border-color:${this.getStatusColor('ملغي')}44;">
@@ -173,13 +199,14 @@ class CasesManager {
             case_type: document.getElementById('caseType').value,
             status: document.getElementById('caseStatus').value,
             client_id: document.getElementById('clientSelect').value,
+            lawyer_id: document.getElementById('lawyerSelect').value,
             priority: document.getElementById('casePriority').value,
             court_name: document.getElementById('courtName').value,
             start_date: document.getElementById('startDate').value
         };
 
-        if (!data.title || !data.client_id || !data.case_number) {
-            Utils.showMessage('يرجى ملء الحقول الإجبارية (رقم القضية، العنوان، والعميل)', 'warning');
+        if (!data.title || !data.client_id || !data.case_number || !data.lawyer_id) {
+            Utils.showMessage('يرجى ملء الحقول الإجبارية (رقم القضية، العنوان، العميل، والمحامي المسؤول)', 'warning');
             return;
         }
 
@@ -216,6 +243,7 @@ class CasesManager {
                 document.getElementById('caseType').value = c.case_type || '';
                 document.getElementById('caseStatus').value = c.status;
                 document.getElementById('clientSelect').value = c.client_id;
+                document.getElementById('lawyerSelect').value = c.lawyer_id || '';
                 document.getElementById('courtName').value = c.court_name || '';
                 document.getElementById('startDate').value = c.start_date ? c.start_date.split('T')[0] : '';
                 document.getElementById('casePriority').value = c.priority;

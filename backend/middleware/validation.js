@@ -24,7 +24,8 @@ class ValidationMiddleware {
     static get validateRegister() {
         return [
             body('full_name').trim().notEmpty().withMessage('الاسم الكامل مطلوب'),
-            body('email').isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
+            body('username').trim().notEmpty().withMessage('اسم المستخدم مطلوب'),
+            body('email').trim().isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
             body('password').isLength({ min: 6 }).withMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
             body('role').optional().isIn(['admin', 'lawyer', 'client']).withMessage('دور غير صالح'),
             validate
@@ -33,7 +34,7 @@ class ValidationMiddleware {
 
     static get validateLogin() {
         return [
-            body('email').isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
+            body('email').trim().notEmpty().withMessage('يرجى إدخال البريد الإلكتروني أو اسم المستخدم'),
             body('password').notEmpty().withMessage('كلمة المرور مطلوبة'),
             validate
         ];
@@ -45,6 +46,9 @@ class ValidationMiddleware {
             body('case_number').trim().notEmpty().withMessage('رقم القضية مطلوب'),
             body('title').trim().notEmpty().withMessage('عنوان القضية مطلوب'),
             body('client_id').notEmpty().withMessage('يجب اختيار موكل صالح'),
+            body('lawyer_id').notEmpty().withMessage('يجب اختيار المحامي المسؤول عن القضية'),
+            body('case_type').trim().notEmpty().withMessage('يجب اختيار نوع القضية')
+                .isIn(['مدني', 'جنائي', 'تجاري', 'أسرة', 'عمل', 'إداري']).withMessage('نوع القضية غير صالح'),
             validate
         ];
     }
@@ -78,8 +82,32 @@ class ValidationMiddleware {
     static get validateTask() {
         return [
             body('title').trim().notEmpty().withMessage('عنوان المهمة مطلوب'),
-            body('assigned_to').notEmpty().withMessage('يجب تعيين المهمة لشخص ما'),
-            body('due_date').optional().isISO8601().withMessage('تاريخ الاستحقاق غير صالح'),
+            body('assigned_to').optional({ checkFalsy: true }),
+            body('due_date').optional({ checkFalsy: true }).isISO8601().withMessage('تاريخ الاستحقاق غير صالح'),
+            validate
+        ];
+    }
+
+    // Invoice Validation
+    static get validateInvoice() {
+        return [
+            body('client_id').notEmpty().withMessage('يجب اختيار عميل صالح'),
+            body('issue_date').notEmpty().withMessage('تاريخ الإصدار مطلوب'),
+            body('items').isArray({ min: 1 }).withMessage('يجب إضافة بند واحد على الأقل للفاتورة'),
+            body('items.*.description').trim().notEmpty().withMessage('وصف بند الفاتورة مطلوب'),
+            body('items.*.quantity').isFloat({ gt: 0 }).withMessage('كمية البند يجب أن تكون رقماً أكبر من صفر'),
+            body('items.*.unit_price').isFloat({ min: 0 }).withMessage('سعر الوحدة يجب أن يكون رقماً صالحاً'),
+            validate
+        ];
+    }
+
+    // Expense Validation
+    static get validateExpense() {
+        return [
+            body('title').trim().notEmpty().withMessage('عنوان المصروف مطلوب'),
+            body('amount').notEmpty().withMessage('قيمة المصروف مطلوبة')
+                .isFloat({ gt: 0 }).withMessage('قيمة المصروف يجب أن تكون رقماً أكبر من صفر'),
+            body('expense_date').notEmpty().withMessage('تاريخ المصروف مطلوب'),
             validate
         ];
     }

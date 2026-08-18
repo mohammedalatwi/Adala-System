@@ -3,6 +3,14 @@ const BaseController = require('../utils/BaseController');
 const db = require('../db/database');
 
 class CaseController extends BaseController {
+    // ✅ إسناد القضية تلقائياً للمحامي الحالي إن لم يُحدَّد محامٍ صراحةً في الفورم
+    assignDefaultLawyer = (req, res, next) => {
+        if (!req.body.lawyer_id && req.session.userRole === 'lawyer') {
+            req.body.lawyer_id = req.session.userId;
+        }
+        next();
+    };
+
     // ✅ إنشاء قضية جديدة
     createCase = this.asyncWrapper(async (req, res) => {
         const result = await CaseService.createCase(req.body, req.session.userId, req.session.officeId);

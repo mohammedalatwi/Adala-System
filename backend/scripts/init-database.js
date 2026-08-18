@@ -14,9 +14,9 @@ const db = new sqlite3.Database('./database/adala.db', (err) => {
 db.serialize(() => {
     // حذف الجداول القديمة لضمان تحديث الهيكلية
     const dropTables = `
+        DROP TABLE IF EXISTS session_reminders;
         DROP TABLE IF EXISTS notifications;
         DROP TABLE IF EXISTS tasks;
-        DROP TABLE IF EXISTS settings;
         DROP TABLE IF EXISTS activities;
         DROP TABLE IF EXISTS expenses;
         DROP TABLE IF EXISTS payments;
@@ -277,6 +277,7 @@ db.serialize(() => {
                 entity_id INTEGER,
                 description TEXT,
                 ip_address TEXT,
+                user_agent TEXT,
                 office_id INTEGER,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
@@ -317,13 +318,6 @@ db.serialize(() => {
                 FOREIGN KEY (user_id) REFERENCES users (id)
             );
 
-            -- جدول الإعدادات
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-
             -- جدول إعدادات التنبيهات للمستخدمين
             CREATE TABLE IF NOT EXISTS notification_settings (
                 user_id INTEGER PRIMARY KEY,
@@ -333,6 +327,14 @@ db.serialize(() => {
                 sms_enabled BOOLEAN DEFAULT 0,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
+            );
+
+            -- جدول تذكيرات الجلسات
+            CREATE TABLE IF NOT EXISTS session_reminders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (session_id) REFERENCES sessions (id)
             );
         `;
 
@@ -381,11 +383,6 @@ async function addSampleData() {
             // بيانات الفواتير
             db.run(`INSERT INTO invoices (id, case_id, client_id, invoice_number, issue_date, amount, status, created_by, office_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [1, 1, 1, 'INV-001', '2024-03-01', 5000.00, 'unpaid', 1, 1]);
-
-            // بيانات الإعدادات الافتراضية
-            db.run(`INSERT INTO settings (key, value) VALUES (?, ?)`, ['firm_name', 'نظام عدالة']);
-            db.run(`INSERT INTO settings (key, value) VALUES (?, ?)`, ['firm_logo', null]);
-            db.run(`INSERT INTO settings (key, value) VALUES (?, ?)`, ['primary_color', '#2563eb']);
 
             console.log('✅ تم إضافة البيانات الأولية');
         });

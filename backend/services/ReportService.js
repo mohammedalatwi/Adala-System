@@ -191,10 +191,10 @@ class ReportService {
         }
 
         const revenueStats = await this.db.get(`SELECT SUM(amount) as total_invoiced, SUM(paid_amount) as total_collected, COUNT(*) as total_invoices FROM invoices WHERE office_id = ? AND is_active = 1 ${dateFilter}`, params);
-        const expenseStats = await this.db.get(`SELECT SUM(amount) as total_expenses FROM expenses WHERE office_id = ? AND is_active = 1 ${dateFilter.replace('created_at', 'expense_date')}`, params);
+        const expenseStats = await this.db.get(`SELECT SUM(amount) as total_expenses FROM expenses WHERE office_id = ? ${dateFilter.replace('created_at', 'expense_date')}`, params);
         const revenueByMonth = await this.db.all(`SELECT strftime('%Y-%m', payment_date) as month, SUM(amount) as amount FROM payments WHERE office_id = ? ${dateFilter.replace('created_at', 'payment_date')} GROUP BY month ORDER BY month DESC LIMIT 12`, params);
-        const revenueByCaseType = await this.db.all(`SELECT c.case_type, SUM(i.paid_amount) as amount FROM invoices i JOIN cases c ON i.case_id = c.id WHERE i.office_id = ? AND i.is_active = 1 ${dateFilter.replace('created_at', 'i.created_at')} GROUP BY c.case_type`, params);
-        const expensesByCategory = await this.db.all(`SELECT category, SUM(amount) as amount FROM expenses WHERE office_id = ? AND is_active = 1 ${dateFilter.replace('created_at', 'expense_date')} GROUP BY category`, params);
+        const revenueByCaseType = await this.db.all(`SELECT c.case_type, SUM(i.paid_amount) as amount FROM invoices i JOIN cases c ON i.case_id = c.id WHERE i.office_id = ? AND i.is_active = 1 AND c.is_active = 1 ${dateFilter.replace('created_at', 'i.created_at')} GROUP BY c.case_type`, params);
+        const expensesByCategory = await this.db.all(`SELECT category, SUM(amount) as amount FROM expenses WHERE office_id = ? ${dateFilter.replace('created_at', 'expense_date')} GROUP BY category`, params);
 
         const totalInvoiced = revenueStats.total_invoiced || 0;
         const totalCollected = revenueStats.total_collected || 0;

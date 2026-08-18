@@ -4,7 +4,6 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const config = require('./backend/config/config');
 
 
@@ -17,24 +16,25 @@ app.use(helmet({
     contentSecurityPolicy: false, // Disable CSP for now as it might block external CDNs like FullCalendar
 }));
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: {
-        success: false,
-        message: 'تم تجاوز عدد المحاولات المسموح بها، يرجى المحاولة لاحقاً'
-    }
-});
-app.use('/api/', limiter);
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
 
 app.use(cors({
-    origin: true,
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // same-origin / server-to-server requests
+        if (allowedOrigins.length > 0) return callback(null, allowedOrigins.includes(origin));
+        // لا يوجد ALLOWED_ORIGINS معرّف: سماح فقط خارج بيئة الإنتاج
+        return callback(null, config.app.env !== 'production');
+    },
     credentials: true
 }));
 
 app.use(express.json({ limit: config.upload.maxFileSize }));
 app.use(express.urlencoded({ extended: true, limit: config.upload.maxFileSize }));
 app.use(express.static(path.join(__dirname, 'frontend/public')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ==================== إعدادات الجلسة ====================
 const SQLiteStore = require('connect-sqlite3')(session);
@@ -70,6 +70,9 @@ app.use((req, res, next) => {
 });
 
 // ==================== Routes API ====================
+const { apiLimiter } = require('./backend/middleware/rateLimiter');
+app.use('/api', apiLimiter);
+
 app.use('/api/auth', require('./backend/routes/auth'));
 app.use('/api/system', require('./backend/routes/system'));
 app.use('/api/dashboard', require('./backend/routes/dashboard'));
@@ -85,9 +88,10 @@ app.use('/api/settings', require('./backend/routes/settings'));
 app.use('/api/team', require('./backend/routes/team'));
 app.use('/api/offices', require('./backend/routes/offices'));
 app.use('/api/exports', require('./backend/routes/exports'));
+app.use('/api/calendar', require('./backend/routes/calendar'));
 
 // ==================== Routes الصفحات (SPA Support) ====================
-const pages = ['/login', '/register', '/dashboard', '/cases', '/clients', '/documents', '/sessions', '/financial', '/reports', '/tasks', '/portal', '/settings', '/team'];
+const pages = ['/login', '/register', '/dashboard', '/cases', '/clients', '/documents', '/sessions', '/financial', '/reports', '/tasks', '/portal', '/settings', '/team', '/calendar'];
 
 pages.forEach(route => {
     app.get(route, (req, res) => {
@@ -125,6 +129,9 @@ async function startServer() {
             console.log('✅ قاعدة البيانات متصلة وجاهزة');
 
             // تهيئة المهام المجدولة
+            // ملاحظة: تذكيرات الجلسات (7 أيام / 3 أيام / 24 ساعة / ساعتين) وتنبيهات
+            // المهام المتأخرة كلها تُدار من NotificationService عبر cronService،
+            // وهي المصدر الوحيد لإرسال التذكيرات والإيميلات.
             const cronService = require('./backend/services/cronService');
             cronService.init();
 
@@ -150,6 +157,8 @@ async function startServer() {
     }
 }
 
-startServer();
+if (require.main === module) {
+    startServer();
+}
 
 module.exports = app;

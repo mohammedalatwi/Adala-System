@@ -1,0 +1,295 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Tenant {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firmName            String               @map("firm_name")
+  subscriptionPlan    String               @default("trial") @map("subscription_plan")
+  subscriptionStatus  String               @default("active") @map("subscription_status")
+  trialEndsAt         DateTime?            @map("trial_ends_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  
+  subscriptions       Subscription[]
+  users               User[]
+  clients             Client[]
+  cases               Case[]
+  sessions            Session[]
+  tasks               Task[]
+  conflictParties     ConflictCheckParty[]
+  timeEntries         TimeEntry[]
+  invoices            Invoice[]
+  payments            Payment[]
+  sentNotifications   SentNotification[]
+  documents           Document[]
+  auditLogs           AuditLog[]
+
+  @@map("tenants")
+}
+
+model Subscription {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  plan               String
+  billingCycle       String   @map("billing_cycle")
+  priceSar           Decimal  @map("price_sar") @db.Decimal(10, 2)
+  currentPeriodEnd   DateTime @map("current_period_end")
+  paymentGatewayRef  String?  @map("payment_gateway_ref")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model PlatformAdmin {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         String   @default("support") // super_admin | support | billing_ops
+
+  @@map("platform_admins")
+}
+
+model User {
+  id               String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String       @map("tenant_id") @db.Uuid
+  email            String
+  username         String       @map("username")
+  passwordHash     String       @map("password_hash")
+  fullName         String       @map("full_name")
+  role             String       // firm_admin | lawyer | assistant | reviewing_partner
+  isActive         Boolean      @default(true) @map("is_active")
+  phone            String?      @map("phone")
+  specialization   String?      @map("specialization")
+  licenseNumber    String?      @map("license_number")
+  experienceYears  Int?         @default(0) @map("experience_years")
+  bio              String?      @map("bio")
+  avatarUrl        String?      @map("avatar_url")
+  lastLogin        DateTime?    @map("last_login")
+  createdAt        DateTime     @default(now()) @map("created_at")
+
+  tenant           Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  casesAsLawyer    Case[]       @relation("LawyerRelation")
+  casesAsAssistant Case[]       @relation("AssistantRelation")
+  tasks            Task[]
+  timeEntries      TimeEntry[]
+  uploadedDocs     Document[]
+  auditLogs        AuditLog[]
+
+  @@unique([tenantId, email])
+  @@unique([tenantId, username])
+  @@map("users")
+}
+
+model Client {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  fullName           String   @map("full_name")
+  nationalId         String?  @map("national_id")
+  email              String?
+  phone              String?
+  clientPortalAccess Boolean  @default(false) @map("client_portal_access")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  cases              Case[]
+  invoices           Invoice[]
+
+  @@map("clients")
+}
+
+model Case {
+  id                  String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId            String               @map("tenant_id") @db.Uuid
+  caseNumber          String               @map("case_number")
+  title               String
+  caseType            String               @map("case_type")
+  status              String               @default("new")
+  priority            String               @default("medium")
+  clientId            String               @map("client_id") @db.Uuid
+  responsibleLawyerId String               @map("responsible_lawyer_id") @db.Uuid
+  assistantId         String?              @map("assistant_id") @db.Uuid
+  createdAt           DateTime             @default(now()) @map("created_at")
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client              Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  lawyer              User                 @relation("LawyerRelation", fields: [responsibleLawyerId], references: [id], onDelete: Cascade)
+  assistant           User?                @relation("AssistantRelation", fields: [assistantId], references: [id])
+  sessions            Session[]
+  tasks               Task[]
+  conflictParties     ConflictCheckParty[]
+  timeEntries         TimeEntry[]
+  invoices            Invoice[]
+  documents           Document[]
+
+  @@map("cases")
+}
+
+model Session {
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId              String             @map("tenant_id") @db.Uuid
+  caseId                String             @map("case_id") @db.Uuid
+  sessionDateGregorian  DateTime           @map("session_date_gregorian")
+  sessionDateHijri      String?            @map("session_date_hijri")
+  courtName             String?            @map("court_name")
+  judgeName             String?            @map("judge_name")
+  previousDecision      String?            @map("previous_decision")
+  nextPreparationNotes  String?            @map("next_preparation_notes")
+  createdAt             DateTime           @default(now()) @map("created_at")
+
+  tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case                  Case               @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sentNotifications     SentNotification[]
+
+  @@map("sessions")
+}
+
+model Task {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId   String    @map("tenant_id") @db.Uuid
+  caseId     String?   @map("case_id") @db.Uuid
+  title      String
+  assignedTo String    @map("assigned_to") @db.Uuid
+  dueDate    DateTime? @map("due_date")
+  status     String    @default("pending")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case       Case?     @relation(fields: [caseId], references: [id])
+  user       User      @relation(fields: [assignedTo], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model ConflictCheckParty {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String @map("tenant_id") @db.Uuid
+  caseId    String @map("case_id") @db.Uuid
+  partyName String @map("party_name")
+  partyRole String @map("party_role") // client | opposing_party | witness
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case      Case   @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@map("conflict_check_parties")
+}
+
+model TimeEntry {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  caseId          String    @map("case_id") @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  startedAt       DateTime  @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  durationMinutes Int?      @map("duration_minutes")
+  billable        Boolean   @default(true)
+  hourlyRateSar   Decimal?  @map("hourly_rate_sar") @db.Decimal(10, 2)
+  description     String?
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case            Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("time_entries")
+}
+
+model Invoice {
+  id             String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId       String            @map("tenant_id") @db.Uuid
+  clientId       String            @map("client_id") @db.Uuid
+  caseId         String?           @map("case_id") @db.Uuid
+  invoiceNumber  String            @map("invoice_number")
+  totalAmountSar Decimal           @map("total_amount_sar") @db.Decimal(10, 2)
+  vatAmountSar   Decimal           @map("vat_amount_sar") @db.Decimal(10, 2)
+  status         String            @default("unpaid") // unpaid | partially_paid | paid | overdue
+  zatcaQrCode    String?           @map("zatca_qr_code")
+  issuedAt       DateTime          @default(now()) @map("issued_at")
+
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  client         Client            @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  case           Case?             @relation(fields: [caseId], references: [id])
+  lineItems      InvoiceLineItem[]
+  payments       Payment[]
+
+  @@unique([tenantId, invoiceNumber])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id           String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId    String  @map("invoice_id") @db.Uuid
+  description  String
+  quantity     Decimal @db.Decimal(10, 2)
+  unitPriceSar Decimal @map("unit_price_sar") @db.Decimal(10, 2)
+  lineTotalSar Decimal @map("line_total_sar") @db.Decimal(10, 2)
+
+  invoice      Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("invoice_line_items")
+}
+
+model Payment {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  invoiceId     String   @map("invoice_id") @db.Uuid
+  amountSar     Decimal  @map("amount_sar") @db.Decimal(10, 2)
+  paymentMethod String   @map("payment_method") // cash | bank_transfer | cheque | card
+  paidAt        DateTime @default(now()) @map("paid_at")
+
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoice       Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
+
+model SentNotification {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  sessionId        String   @map("session_id") @db.Uuid
+  notificationType String   @map("notification_type") // '7days' | '3days' | '24h' | '2h'
+  sentAt           DateTime @default(now()) @map("sent_at")
+
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  session          Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, notificationType])
+  @@map("sent_notifications")
+}
+
+model Document {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  caseId          String?  @map("case_id") @db.Uuid
+  fileName        String   @map("file_name")
+  storagePath     String   @map("storage_path")
+  confidentiality String   @default("internal") // internal | client_visible | privileged
+  uploadedBy      String   @map("uploaded_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  case            Case?    @relation(fields: [caseId], references: [id])
+  user            User     @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String   // 'document.viewed' | 'invoice.deleted' | 'case.access_denied' ...
+  targetType  String   @map("target_type")
+  targetId    String   @map("target_id") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [actorUserId], references: [id])
+
+  @@map("audit_logs")
+}

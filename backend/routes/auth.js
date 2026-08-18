@@ -2,14 +2,17 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const validationMiddleware = require('../middleware/validation');
+const { authLimiter } = require('../middleware/rateLimiter');
 
 // Routes المصادقة
 router.post('/register', 
+    authLimiter,
     validationMiddleware.validateRegister,
     authController.register
 );
 
 router.post('/login',
+    authLimiter,
     validationMiddleware.validateLogin,
     authController.login
 );

@@ -8,19 +8,31 @@ class EmailService {
     }
 
     init() {
-        if (!config.features.enableEmailNotifications) {
+        // Try to load custom credentials
+        let emailConfig = config.email;
+        try {
+            const customConfig = require('../config/email_credentials');
+            if (customConfig && customConfig.user && customConfig.user !== 'your-email@example.com') {
+                emailConfig = customConfig;
+                console.log('✉️ Custom email credentials detected and loaded');
+            }
+        } catch (e) {
+            // No custom config, fallback to default
+        }
+
+        if (!config.features.enableEmailNotifications && emailConfig === config.email) {
             console.log('✉️ Email notifications are disabled in config');
             return;
         }
 
         try {
             this.transporter = nodemailer.createTransport({
-                host: config.email.host,
-                port: config.email.port,
-                secure: config.email.secure,
+                host: emailConfig.host,
+                port: emailConfig.port,
+                secure: emailConfig.secure,
                 auth: {
-                    user: config.email.user,
-                    pass: config.email.pass
+                    user: emailConfig.user,
+                    pass: emailConfig.pass
                 }
             });
             console.log('✉️ Email service initialized');

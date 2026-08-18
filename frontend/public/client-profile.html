@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الملف الشخصي للعميل - نظام عدالة V3</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .profile-header {
+            background: var(--bg-surface);
+            border-radius: 16px;
+            padding: 2.5rem;
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary));
+        }
+
+        .profile-avatar-large {
+            width: 100px;
+            height: 100px;
+            font-size: 2.5rem;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
+            font-weight: 800;
+        }
+
+        .profile-info {
+            flex: 1;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--text-main);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .profile-meta {
+            display: flex;
+            gap: 1.5rem;
+            color: var(--text-muted);
+            font-size: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .profile-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Tabs */
+        .profile-tabs {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .tab-btn.active {
+            color: var(--brand-primary);
+            border-bottom-color: var(--brand-primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Items Grid */
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-surface-hover);
+            border-radius: 12px;
+            border: 1px dashed var(--border-color);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            color: var(--text-muted);
+            opacity: 0.5;
+            margin-bottom: 1rem;
+        }
+
+        .empty-text {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-container">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-name">نظام عدالة</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i class="fas fa-home"></i> <span>الرئيسية</span>
+                </a>
+                <a href="/cases" class="nav-item">
+                    <i class="fas fa-gavel"></i> <span>القضايا</span>
+                </a>
+                <a href="/sessions" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
+                <a href="/clients" class="nav-item active">
+                    <i class="fas fa-users"></i> <span>العملاء</span>
+                </a>
+                <a href="/documents" class="nav-item">
+                    <i class="fas fa-file-contract"></i> <span>المستندات</span>
+                </a>
+                <a href="/financial" class="nav-item">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
+                </a>
+                <a href="/reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> <span>التقارير</span>
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <i class="fas fa-tasks"></i> <span>المهام</span>
+                </a>
+                <a href="/team" class="nav-item">
+                    <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
+                </a>
+                <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                        <i class="fas fa-adjust"></i> <span>المظهر</span>
+                    </a>
+                    <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
+                        <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Header -->
+            <header class="main-header">
+                <div class="header-search">
+                    <a href="/clients" class="btn btn-outline" style="border:none; padding:0 1rem;">
+                        <i class="fas fa-arrow-right"></i> العودة للعملاء
+                    </a>
+                </div>
+
+                <div class="header-actions">
+                    <button class="btn btn-outline" style="border:none;"><i class="fas fa-bell"></i></button>
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <div>
+                            <div style="font-weight:bold; font-size:0.9rem;" id="userName">...</div>
+                            <div style="font-size:0.8rem; color:var(--text-muted);" id="userRole">...</div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Profile Header Layout -->
+                <div class="profile-header" id="profileHeader">
+                    <div style="text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i> جاري التحميل...</div>
+                </div>
+
+                <!-- Tabs Navigation -->
+                <div class="profile-tabs">
+                    <button class="tab-btn active" onclick="ClientProfile.switchTab('cases')">
+                        <i class="fas fa-gavel"></i> القضايا المرتبطة <span class="badge" id="badge-cases"
+                            style="background:#e0e7ff; color:var(--brand-primary); margin-right:5px; border-radius:50px;">0</span>
+                    </button>
+                    <button class="tab-btn" onclick="ClientProfile.switchTab('sessions')">
+                        <i class="fas fa-calendar-check"></i> الجلسات <span class="badge" id="badge-sessions"
+                            style="background:#fef3c7; color:#d97706; margin-right:5px; border-radius:50px;">0</span>
+                    </button>
+                    <button class="tab-btn" onclick="ClientProfile.switchTab('financial')">
+                        <i class="fas fa-file-invoice-dollar"></i> السجل المالي <span class="badge" id="badge-financial"
+                            style="background:#dcfce7; color:#15803d; margin-right:5px; border-radius:50px;">0</span>
+                    </button>
+                    <button class="tab-btn" onclick="ClientProfile.switchTab('documents')">
+                        <i class="fas fa-folder-open"></i> المستندات <span class="badge" id="badge-documents"
+                            style="background:#f3e8ff; color:#7e22ce; margin-right:5px; border-radius:50px;">0</span>
+                    </button>
+                </div>
+
+                <!-- Tabs Content -->
+                <div id="tab-cases" class="tab-content active items-grid">
+                    <!-- Cases injected here -->
+                </div>
+
+                <div id="tab-sessions" class="tab-content items-grid">
+                    <!-- Sessions injected here -->
+                </div>
+
+                <div id="tab-financial" class="tab-content">
+                    <div class="card" style="padding:0; overflow:auto;">
+                        <table class="table" style="width:100%; text-align:right;">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>رقم الإيصال</th>
+                                    <th>نوع العملية</th>
+                                    <th>المبلغ</th>
+                                    <th>القضية المرتبطة</th>
+                                    <th>طريقة الدفع</th>
+                                </tr>
+                            </thead>
+                            <tbody id="financialTableBody">
+                                <!-- Financials injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="tab-documents" class="tab-content items-grid">
+                    <!-- Documents injected here -->
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/client-profile.js"></script>
+</body>
+
+</html>

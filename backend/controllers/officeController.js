@@ -26,7 +26,7 @@ class OfficeController extends BaseController {
 
         if (!req.file) throw new Error('يرجى اختيار ملف الشعار');
 
-        const logoUrl = `/uploads/${req.file.filename}`;
+        const logoUrl = `/uploads/logos/${req.file.filename}`;
         await OfficeService.updateLogo(req.session.officeId, logoUrl, req.session.userId);
 
         this.sendSuccess(res, { logo_url: logoUrl }, 'تم رفع الشعار بنجاح');

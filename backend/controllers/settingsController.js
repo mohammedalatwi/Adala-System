@@ -4,7 +4,7 @@ const BaseController = require('../utils/BaseController');
 class SettingsController extends BaseController {
     // ✅ الحصول على جميع الإعدادات
     getSettings = this.asyncWrapper(async (req, res) => {
-        const settings = await SettingsService.getSettings();
+        const settings = await SettingsService.getSettings(req.session.officeId);
         this.sendSuccess(res, settings);
     });
 
@@ -15,7 +15,7 @@ class SettingsController extends BaseController {
             return res.status(403).json({ success: false, message: 'غير مصرح لك بتعديل الإعدادات' });
         }
 
-        await SettingsService.updateSettings(req.body);
+        await SettingsService.updateSettings(req.session.officeId, req.body);
         this.sendSuccess(res, null, 'تم تحديث الإعدادات بنجاح');
     });
 
@@ -29,7 +29,7 @@ class SettingsController extends BaseController {
         if (!req.file) throw new Error('لم يتم اختيار ملف');
 
         const logoPath = `/uploads/branding/${req.file.filename}`;
-        await SettingsService.updateFirmLogo(logoPath);
+        await SettingsService.updateFirmLogo(req.session.officeId, logoPath);
 
         this.sendSuccess(res, { logoPath }, 'تم رفع الشعار بنجاح');
     });

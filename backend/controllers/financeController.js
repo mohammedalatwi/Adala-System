@@ -110,10 +110,7 @@ class FinanceController extends BaseController {
         const items = await db.all('SELECT * FROM invoice_items WHERE invoice_id = ?', [id]);
 
         const doc = new PDFDocument({ margin: 50 });
-
-        // Font handling should ideally be centralized, but keeping consistency for now
-        const fontPath = '/System/Library/Fonts/Supplemental/Arial Unicode.ttf';
-        if (fs.existsSync(fontPath)) doc.font(fontPath);
+        PDFHelper.setupDoc(doc);
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Invoice_${invoice.invoice_number}.pdf`);

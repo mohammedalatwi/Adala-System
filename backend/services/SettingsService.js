@@ -5,30 +5,37 @@ class SettingsService {
         this.db = db;
     }
 
-    async getSettings() {
-        const rows = await this.db.all('SELECT key, value FROM settings');
-        const settings = {};
-        rows.forEach(row => {
-            settings[row.key] = row.value;
-        });
-        return settings;
+    async getSettings(officeId) {
+        const office = await this.db.get('SELECT settings_json FROM offices WHERE id = ?', [officeId]);
+        if (!office) throw new Error('لم يتم العثور على بيانات المكتب');
+
+        let settings = {};
+        if (office.settings_json && typeof office.settings_json === 'string') {
+            try {
+                settings = JSON.parse(office.settings_json);
+            } catch (e) {
+                settings = {};
+            }
+        }
+
+        return {
+            firm_name: 'نظام عدالة',
+            firm_logo: null,
+            primary_color: '#2563eb',
+            ...settings
+        };
     }
 
-    async updateSettings(updates) {
-        await this.db.run('BEGIN TRANSACTION');
-        try {
-            for (const [key, value] of Object.entries(updates)) {
-                await this.db.run(
-                    'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP',
-                    [key, value]
-                );
-            }
-            await this.db.run('COMMIT');
-            return true;
-        } catch (error) {
-            await this.db.run('ROLLBACK');
-            throw error;
-        }
+    async updateSettings(officeId, updates) {
+        const current = await this.getSettings(officeId);
+        const merged = { ...current, ...updates };
+
+        await this.db.run(
+            'UPDATE offices SET settings_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+            [JSON.stringify(merged), officeId]
+        );
+
+        return true;
     }
 
     async getNotificationSettings(userId) {
@@ -58,11 +65,8 @@ class SettingsService {
         return true;
     }
 
-    async updateFirmLogo(logoPath) {
-        await this.db.run(
-            'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP',
-            ['firm_logo', logoPath]
-        );
+    async updateFirmLogo(officeId, logoPath) {
+        await this.updateSettings(officeId, { firm_logo: logoPath });
         return logoPath;
     }
 }

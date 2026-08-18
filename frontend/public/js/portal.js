@@ -17,17 +17,8 @@ class PortalManager {
             document.getElementById('clientName').textContent = auth.user.full_name;
         }
 
-        // Logout Handler
-        const logoutBtn = document.getElementById('logoutBtn');
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', async () => {
-                const confirmLogout = confirm('هل أنت متأكد من تسجيل الخروج؟');
-                if (confirmLogout) {
-                    await API.post('/auth/logout');
-                    window.location.href = '/login';
-                }
-            });
-        }
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
+        // (تأكيد الخروج في البوابة يأتي من السمة data-confirm على الزر)
 
         this.loadData();
     }

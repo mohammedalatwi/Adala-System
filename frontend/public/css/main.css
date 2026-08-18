@@ -142,6 +142,16 @@ input {
     justify-content: center;
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
     font-size: 1.2rem;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.brand-logo-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 2px;
+    background: transparent;
 }
 
 .sidebar-nav {
@@ -849,6 +859,7 @@ input {
     border-bottom-left-radius: var(--radius-lg);
     border-bottom-right-radius: var(--radius-lg);
 }
+
 /* ================== Command Palette (Spotlight) ================== */
 .command-palette-overlay {
     position: fixed;
@@ -874,8 +885,15 @@ input {
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .command-palette-header {
@@ -918,7 +936,8 @@ input {
     transition: var(--transition-fast);
 }
 
-.command-result-item:hover, .command-result-item.selected {
+.command-result-item:hover,
+.command-result-item.selected {
     background: rgba(37, 99, 235, 0.1);
     color: var(--brand-primary);
 }

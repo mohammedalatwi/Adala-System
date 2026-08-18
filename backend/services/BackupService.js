@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const config = require('../config/config');
 
+const db = require('../db/database');
+
 class BackupService {
     constructor() {
         this.dbPath = config.database.path;
@@ -25,8 +27,8 @@ class BackupService {
             const backupFileName = `adala-backup-${timestamp}.db`;
             const backupPath = path.join(this.backupDir, backupFileName);
 
-            // Copy the database file
-            fs.copyFileSync(this.dbPath, backupPath);
+            // Safe database backup using SQLite's native backup API
+            await db.backupDatabase(backupPath);
             console.log(`💾 Backup created successfully: ${backupFileName}`);
 
             // Cleanup old backups

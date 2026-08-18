@@ -117,16 +117,14 @@
                             onclick="Reports.refresh()">
                             <i class="fas fa-sync-alt"></i> تحديث
                         </button>
-                        <button class="btn btn-outline"
-                            style="border-radius:12px; font-weight:700; color:#ef4444; border-color:#ef444444;"
-                            onclick="window.open('/api/exports/finance/pdf', '_blank')">
-                            <i class="fas fa-file-pdf"></i> PDF
-                        </button>
-                        <button class="btn btn-outline"
-                            style="border-radius:12px; font-weight:700; color:#10b981; border-color:#10b98144;"
-                            onclick="window.open('/api/exports/reports/excel', '_blank')">
-                            <i class="fas fa-file-excel"></i> Excel
-                        </button>
+                        <a href="/api/exports/finance/summary" target="_blank" class="btn btn-outline"
+                            style="border-radius:12px; font-weight:700; color:#ef4444; border-color:#ef444444; text-decoration: none; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-file-pdf"></i> ملخص PDF
+                        </a>
+                        <a href="/api/exports/reports/excel" target="_blank" class="btn btn-outline"
+                            style="border-radius:12px; font-weight:700; color:#10b981; border-color:#10b98144; text-decoration: none; display: flex; align-items: center; gap: 5px;">
+                            <i class="fas fa-file-excel"></i> قضايا Excel
+                        </a>
                         <button class="btn btn-primary" style="border-radius:12px; padding:0.6rem 1.8rem;"
                             onclick="window.print()">
                             <i class="fas fa-print"></i> طباعة الفوري

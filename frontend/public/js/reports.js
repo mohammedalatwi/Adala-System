@@ -25,11 +25,7 @@ class ReportsManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
     }
 
     static async refresh() {
@@ -167,7 +163,13 @@ class ReportsManager {
             }
         });
     }
+    static startAutoRefresh() {
+        setInterval(() => this.loadAllReports(), 60000);
+    }
 }
 
 window.Reports = ReportsManager;
-document.addEventListener('DOMContentLoaded', () => ReportsManager.init());
+document.addEventListener('DOMContentLoaded', () => {
+    ReportsManager.init();
+    ReportsManager.startAutoRefresh();
+});

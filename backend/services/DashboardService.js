@@ -17,9 +17,11 @@ class DashboardService {
                     (SELECT COUNT(*) FROM cases WHERE status = 'جديد' AND is_active = 1 AND office_id = ?) as new_cases,
                     (SELECT COUNT(*) FROM cases WHERE status = 'قيد الدراسة' AND is_active = 1 AND office_id = ?) as in_progress_cases,
                     (SELECT COUNT(*) FROM cases WHERE status = 'منتهي' AND is_active = 1 AND office_id = ?) as completed_cases,
-                    (SELECT COUNT(*) FROM users WHERE is_active = 1 AND role = 'lawyer' AND office_id = ?) as total_lawyers
+                    (SELECT COUNT(*) FROM users WHERE is_active = 1 AND role = 'lawyer' AND office_id = ?) as total_lawyers,
+                    (SELECT SUM(amount) FROM invoices WHERE office_id = ?) as total_invoiced,
+                    (SELECT SUM(paid_amount) FROM invoices WHERE office_id = ?) as total_paid
             `;
-            params = Array(8).fill(officeId);
+            params = Array(10).fill(officeId);
         } else {
             query = `
                 SELECT 
@@ -30,9 +32,10 @@ class DashboardService {
                     (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'جديد' AND is_active = 1 AND office_id = ?) as new_cases,
                     (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'قيد الدراسة' AND is_active = 1 AND office_id = ?) as in_progress_cases,
                     (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'منتهي' AND is_active = 1 AND office_id = ?) as completed_cases,
-                    0 as total_lawyers
+                    (SELECT SUM(amount) FROM invoices i JOIN cases c ON i.case_id = c.id WHERE c.lawyer_id = ? AND i.office_id = ? AND c.is_active = 1) as total_invoiced,
+                    (SELECT SUM(paid_amount) FROM invoices i JOIN cases c ON i.case_id = c.id WHERE c.lawyer_id = ? AND i.office_id = ? AND c.is_active = 1) as total_paid
             `;
-            params = [userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId];
+            params = [userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId];
         }
         return await this.db.get(query, params) || {};
     }
@@ -73,8 +76,11 @@ class DashboardService {
         return await this.db.all(query, params) || [];
     }
 
-    async getNotifications(userId, officeId) {
-        return await this.db.all(`SELECT id, title, message, type, is_read, created_at FROM notifications WHERE user_id = ? AND office_id = ? ORDER BY created_at DESC LIMIT 20`, [userId, officeId]);
+    async getNotifications(userId, officeId, onlyUnread = false) {
+        let sql = `SELECT id, title, message, type, is_read, created_at FROM notifications WHERE user_id = ? AND office_id = ?`;
+        if (onlyUnread) sql += ` AND is_read = 0`;
+        sql += ` ORDER BY created_at DESC LIMIT 20`;
+        return await this.db.all(sql, [userId, officeId]);
     }
 
     async getRecentActivities(userId, userRole, officeId) {

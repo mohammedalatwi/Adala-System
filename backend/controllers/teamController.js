@@ -24,6 +24,16 @@ class TeamController extends BaseController {
         this.sendSuccess(res, team);
     });
 
+    // ✅ قائمة مبسّطة بالمحامين لإسناد القضايا (متاحة لأي مستخدم مسجّل دخول)
+    getLawyers = this.asyncWrapper(async (req, res) => {
+        const officeId = req.session.officeId;
+        const lawyers = await db.all(
+            `SELECT id, full_name FROM users WHERE office_id = ? AND role = 'lawyer' AND is_active = 1 ORDER BY full_name`,
+            [officeId]
+        );
+        this.sendSuccess(res, lawyers);
+    });
+
     // ✅ إضافة متدرب جديد
     addTrainee = this.asyncWrapper(async (req, res) => {
         const { full_name, username, email, password, phone, specialization } = req.body;
@@ -32,6 +42,7 @@ class TeamController extends BaseController {
 
         // Reuse logic from UserService if compatible, but TeamController has specific supervisor_id
         // For now, let's keep it here but using asyncWrapper
+        // استثناء مقصود: لا يوجد عزل office_id هنا لأن username/email فريدان على مستوى النظام كله
         const existing = await db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
         if (existing) throw new Error('اسم المستخدم أو البريد الإلكتروني موجود مسبقاً');
 

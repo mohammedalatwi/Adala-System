@@ -2,8 +2,27 @@ const DocumentService = require('../services/DocumentService');
 const BaseController = require('../utils/BaseController');
 const db = require('../db/database');
 const fs = require('fs');
+const path = require('path');
 
 class DocumentController extends BaseController {
+    /**
+     * ✅ فحص صلاحية الوصول لمستند بناءً على القضية المرتبطة به.
+     * يطابق منطق التصفية المستخدم في getAllDocuments حتى لا يختلف
+     * ما يظهر في القائمة عمّا يُسمح بفتحه أو تحميله.
+     */
+    static hasCaseAccess(caseObj, { userRole, userId, clientId }) {
+        if (userRole === 'admin') return true;
+        if (!caseObj) return false;
+
+        if (userRole === 'client') return caseObj.client_id === clientId;
+        if (userRole === 'lawyer' || userRole === 'assistant') {
+            return caseObj.lawyer_id === userId || caseObj.assistant_lawyer_id === userId;
+        }
+        if (userRole === 'trainee') return caseObj.assistant_lawyer_id === userId;
+
+        return false;
+    }
+
     // ✅ إنشاء مستند جديد
     createDocument = this.asyncWrapper(async (req, res) => {
         const result = await DocumentService.createDocument(req.body, req.file, req.session.userId, req.session.officeId);
@@ -92,15 +111,12 @@ class DocumentController extends BaseController {
         if (!document) throw new Error('المستند غير موجود');
 
         // RBAC check
-        const { userRole, userId, clientId: userClientId } = req.session;
+        const { userRole, userId, clientId } = req.session;
         let hasAccess = userRole === 'admin';
 
         if (!hasAccess) {
-            const caseObj = await db.get('SELECT client_id, lawyer_id, assistant_lawyer_id FROM cases WHERE id = ?', [document.case_id]);
-            if (caseObj) {
-                if (userRole === 'client' && caseObj.client_id === userClientId) hasAccess = true;
-                else if ((userRole === 'lawyer' || userRole === 'assistant') && (caseObj.lawyer_id === userId || caseObj.assistant_lawyer_id === userId)) hasAccess = true;
-            }
+            const caseObj = await db.get('SELECT client_id, lawyer_id, assistant_lawyer_id FROM cases WHERE id = ? AND office_id = ?', [document.case_id, officeId]);
+            hasAccess = DocumentController.hasCaseAccess(caseObj, { userRole, userId, clientId });
         }
 
         if (!hasAccess) return res.status(403).json({ success: false, message: 'غير مصرح لك بالوصول لهذا المستند' });
@@ -129,23 +145,21 @@ class DocumentController extends BaseController {
         if (!document) throw new Error('المستند غير موجود');
 
         // RBAC check
-        const { userRole, userId, clientId: userClientId } = req.session;
+        const { userRole, userId, clientId } = req.session;
         let hasAccess = userRole === 'admin';
         if (!hasAccess) {
-            const caseObj = await db.get('SELECT client_id, lawyer_id, assistant_lawyer_id FROM cases WHERE id = ?', [document.case_id]);
-            if (caseObj) {
-                if (userRole === 'client' && caseObj.client_id === userClientId) hasAccess = true;
-                else if ((userRole === 'lawyer' || userRole === 'assistant') && (caseObj.lawyer_id === userId || caseObj.assistant_lawyer_id === userId)) hasAccess = true;
-            }
+            const caseObj = await db.get('SELECT client_id, lawyer_id, assistant_lawyer_id FROM cases WHERE id = ? AND office_id = ?', [document.case_id, officeId]);
+            hasAccess = DocumentController.hasCaseAccess(caseObj, { userRole, userId, clientId });
         }
         if (!hasAccess) return res.status(403).json({ success: false, message: 'غير مصرح لك بتحميل هذا المستند' });
 
-        if (!document.file_path || !fs.existsSync(document.file_path)) throw new Error('الملف غير موجود على الخادم');
+        const absolutePath = path.resolve(process.cwd(), document.file_path);
+        if (!document.file_path || !fs.existsSync(absolutePath)) throw new Error('الملف غير موجود على الخادم');
 
-        await db.run('INSERT INTO activities (user_id, action_type, entity_type, entity_id, description) VALUES (?, ?, ?, ?, ?)',
-            [userId, 'download', 'document', id, `تحميل المستند: ${document.file_name}`]);
+        await db.run('INSERT INTO activities (user_id, action_type, entity_type, entity_id, description, office_id) VALUES (?, ?, ?, ?, ?, ?)',
+            [userId, 'download', 'document', id, `تحميل المستند: ${document.file_name}`, officeId]);
 
-        res.download(document.file_path, document.file_name);
+        res.download(absolutePath, document.file_name);
     });
 
     // ✅ إحصائيات المستندات

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>التقويم التفاعلي - نظام عدالة</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        :root {
+            --fc-border-color: var(--border-color);
+            --fc-button-bg-color: var(--brand-primary);
+            --fc-button-border-color: var(--brand-primary);
+            --fc-button-hover-bg-color: var(--brand-secondary);
+            --fc-page-bg-color: var(--bg-surface);
+        }
+
+        .calendar-container {
+            background: var(--bg-surface);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            height: calc(100vh - 160px);
+        }
+
+        .fc .fc-toolbar-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .fc .fc-button {
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            border-radius: 8px;
+            text-transform: none;
+        }
+
+        .fc .fc-col-header-cell-cushion {
+            padding: 10px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .fc-event {
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            border: none !important;
+        }
+
+        .fc-daygrid-event-dot {
+            border-color: #fff !important;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--bg-surface);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-container">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-name">نظام عدالة</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i class="fas fa-th-large"></i> <span>لوحة التحكم</span>
+                </a>
+                <a href="/cases" class="nav-item">
+                    <i class="fas fa-gavel"></i> <span>القضايا</span>
+                </a>
+                <a href="/clients" class="nav-item">
+                    <i class="fas fa-users"></i> <span>العملاء</span>
+                </a>
+                <a href="/sessions" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
+                <a href="/documents" class="nav-item">
+                    <i class="fas fa-folder-open"></i> <span>المستندات</span>
+                </a>
+                <a href="/financial" class="nav-item">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
+                </a>
+                <a href="/reports" class="nav-item">
+                    <i class="fas fa-chart-pie"></i> <span>التقارير</span>
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <i class="fas fa-tasks"></i> <span>المهام</span>
+                </a>
+                <a href="/team" class="nav-item">
+                    <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
+                </a>
+                <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <a href="/settings" class="nav-item">
+                        <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
+                    </a>
+                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                        <i class="fas fa-adjust"></i> <span>المظهر</span>
+                    </a>
+                    <a href="#" id="logoutBtn" class="nav-item logout-link" style="color: #ff4757;">
+                        <i class="fas fa-sign-out-alt"></i> <span>تسجيل الخروج</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <div class="header-title">
+                    <h1>التقويم التفاعلي</h1>
+                    <p>متابعة الجلسات والمواعيد النهائية بشكل مرئي</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="window.location.href='/sessions'">
+                        <i class="fas fa-plus"></i> جدولة جلسة
+                    </button>
+                    <div class="user-profile">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <div class="user-info">
+                            <span class="user-name" id="userName">المسؤول</span>
+                            <span class="user-role" id="userRole">مدير النظام</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="calendar-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #3b82f6;"></span>
+                    <span>جلسات</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #ef4444;"></span>
+                    <span>مهام عاجلة</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #f59e0b;"></span>
+                    <span>مهام عامة</span>
+                </div>
+            </div>
+
+            <div class="calendar-container">
+                <div id='calendar'></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+    <script src="js/api.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/calendar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            CalendarManager.init();
+
+            // تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
+
+            // Set user profile
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            if (user.full_name) {
+                document.getElementById('userName').textContent = user.full_name;
+                document.getElementById('userRole').textContent = user.role;
+                document.getElementById('userAvatar').textContent = user.full_name.charAt(0).toUpperCase();
+            }
+        });
+    </script>
+</body>
+
+</html>

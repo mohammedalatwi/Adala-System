@@ -156,6 +156,15 @@ class Utils {
         });
     }
 
+    // ✅ تنسيق الحجم
+    static formatSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
     // ✅ الوقت النسبي (منذ)
     static formatRelativeTime(dateString) {
         if (!dateString) return 'غير محدد';
@@ -225,11 +234,46 @@ class Utils {
         }
     }
 
+    // ✅ تسجيل الخروج العالمي
+    static async handleLogout() {
+        try {
+            this.showLoading('جاري تسجيل الخروج...');
+            const response = await fetch('/api/auth/logout', {
+                method: 'POST',
+                credentials: 'include'
+            });
+
+            // تنظيف الذاكرة المحلية والمؤقتة
+            sessionStorage.clear();
+            localStorage.removeItem('adala_session'); // إذا كان مستخدماً
+
+            window.location.href = '/login';
+        } catch (error) {
+            console.error('Logout error:', error);
+            window.location.href = '/login'; // التوجه لصفحة الدخول حتى في حال الخطأ للمزيد من الأمان
+        } finally {
+            this.hideLoading();
+        }
+    }
+
     // ✅ تهيئة الأدوات العالمية
     static initGlobal() {
         this.loadBranding();
         this.applyRoleRestrictions();
         this.initCommandPalette();
+
+        // تهيئة زر تسجيل الخروج المشترك (المصدر الوحيد لتسجيل الخروج في كل الصفحات)
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                // صفحات معيّنة (مثل بوابة العميل) تطلب تأكيداً عبر data-confirm
+                const confirmMessage = logoutBtn.dataset.confirm;
+                if (confirmMessage && !confirm(confirmMessage)) return;
+                this.handleLogout();
+            });
+        }
+
         console.log('✨ Utils Initialized');
     }
 
@@ -305,6 +349,9 @@ class Utils {
             if (settings) {
                 this.applyBranding(settings);
             }
+
+            // تفعيل التنبيهات الحية
+            this.initLiveNotifications();
         } catch (error) {
             console.error('Error loading branding:', error);
         }
@@ -326,9 +373,15 @@ class Utils {
         // تطبيق اللوجو في جميع الحاويات المخصصة
         document.querySelectorAll('.brand-logo-container').forEach(container => {
             if (firm_logo) {
-                container.innerHTML = `<img src="${firm_logo}" alt="${firm_name}">`;
+                // استخدام الصورة المخصصة
+                container.innerHTML = `<img src="${firm_logo}" alt="${firm_name || 'Logo'}" onerror="this.src='/img/default-logo.png'; this.parentElement.innerHTML='<i class=\'fas fa-balance-scale\'></i>'">`;
+                container.style.background = 'white'; // خلفية بيضاء للشعارات الملونة لضمان الوضوح
+                container.style.padding = '4px';
             } else {
+                // استخدام الأيقونة الافتراضية
                 container.innerHTML = `<i class="fas fa-balance-scale"></i>`;
+                container.style.background = ''; // العودة للخلفية الافتراضية (التدرج)
+                container.style.padding = '';
             }
         });
 
@@ -650,6 +703,102 @@ class Utils {
         overlay.onclick = (e) => {
             if (e.target === overlay) closePalette();
         };
+    }
+
+    // ✅ نظام التنبيهات الحية (Live Notifications)
+    static initLiveNotifications() {
+        // تشغيل الفحص الأولي
+        this.checkLiveNotifications();
+
+        // البدء بفحص دوري كل دقيقة
+        setInterval(() => this.checkLiveNotifications(), 60000);
+    }
+
+    static async checkLiveNotifications() {
+        try {
+            const response = await fetch('/api/dashboard/notifications');
+            const result = await response.json();
+
+            if (result.success) {
+                const notifications = result.data;
+                const unread = notifications.filter(n => !n.is_read);
+
+                // تحديث عداد التنبيهات في الصفحة إذا وجد
+                this.updateNotificationBadge(unread.length);
+
+                // البحث عن تنبيهات جديدة لم يتم عرضها بعد (بناءً على التوقيت)
+                const lastCheckSetting = sessionStorage.getItem('last_notif_check');
+                const lastCheck = lastCheckSetting ? new Date(lastCheckSetting) : new Date(Date.now() - 60000);
+
+                unread.forEach(notif => {
+                    const notifDate = new Date(notif.created_at);
+                    if (notifDate > lastCheck) {
+                        this.showLiveToast(notif);
+                    }
+                });
+
+                sessionStorage.setItem('last_notif_check', new Date().toISOString());
+            }
+        } catch (error) {
+            console.error('Live Notifications Error:', error);
+        }
+    }
+
+    static updateNotificationBadge(count) {
+        const bell = document.querySelector('.fa-bell')?.parentElement;
+        if (!bell) return;
+
+        let badge = bell.querySelector('.notification-badge');
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'notification-badge';
+            bell.classList.add('notification-bell-wrapper');
+            bell.appendChild(badge);
+        }
+
+        if (count > 0) {
+            badge.textContent = count > 9 ? '+9' : count;
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+
+    static showLiveToast(notif) {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${notif.type || 'info'}`;
+
+        const icons = {
+            info: 'fa-info-circle',
+            success: 'fa-check-circle',
+            warning: 'fa-exclamation-triangle',
+            danger: 'fa-exclamation-circle'
+        };
+
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <i class="fas ${icons[notif.type] || icons.info}"></i>
+            </div>
+            <div class="toast-content">
+                <div class="toast-title">${notif.title}</div>
+                <div class="toast-message">${notif.message}</div>
+            </div>
+        `;
+
+        container.appendChild(toast);
+
+        // إخفاء آلي
+        setTimeout(() => {
+            toast.classList.add('removing');
+            setTimeout(() => toast.remove(), 400);
+        }, 8000);
     }
 }
 

@@ -44,6 +44,30 @@ class ExportService {
             WHERE c.office_id = ?
         `, [officeId]);
     }
+
+    async getAllInvoicesForExport(officeId) {
+        return await this.db.all(`
+            SELECT i.*, cl.full_name as client_name, c.title as case_title
+            FROM invoices i
+            JOIN clients cl ON i.client_id = cl.id
+            LEFT JOIN cases c ON i.case_id = c.id
+            WHERE i.office_id = ?
+            ORDER BY i.issue_date DESC
+        `, [officeId]);
+    }
+
+    async getDetailedFinancialStats(officeId) {
+        const stats = await this.db.get(`
+            SELECT 
+                SUM(amount) as total_invoiced,
+                SUM(paid_amount) as total_paid,
+                (SELECT SUM(amount) FROM expenses WHERE office_id = ?) as total_expenses
+            FROM invoices 
+            WHERE office_id = ?
+        `, [officeId, officeId]);
+
+        return stats || { total_invoiced: 0, total_paid: 0, total_expenses: 0 };
+    }
 }
 
 module.exports = new ExportService();

@@ -24,11 +24,7 @@ class ClientsManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         document.getElementById('searchInput').addEventListener('input',
             Utils.debounce(() => this.loadClients(), 500)
@@ -44,13 +40,16 @@ class ClientsManager {
 
     static async loadStats() {
         try {
-            // Using system stats endpoint for now, or specific client stats if available
-            const result = await API.get('/system/stats');
+            const result = await API.get('/reports/system-stats');
             if (result.success) {
                 const s = result.data;
-                document.getElementById('totalClients').textContent = s.total_clients || 0;
-                document.getElementById('activeClients').textContent = s.total_clients || 0; // Assuming all active for now
-                document.getElementById('totalCases').textContent = s.total_cases || 0;
+                // Mapping from formatted report stats
+                const totalClients = s.clients?.active || 0;
+                const totalCases = s.cases ? Object.values(s.cases).reduce((a, b) => a + b, 0) : 0;
+
+                document.getElementById('totalClients').textContent = totalClients;
+                document.getElementById('activeClients').textContent = totalClients;
+                document.getElementById('totalCases').textContent = totalCases;
             }
         } catch (error) {
             console.error('Failed to load stats:', error);
@@ -117,10 +116,9 @@ class ClientsManager {
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">
                     <div style="display:flex; align-items:center; gap:0.4rem;">
-                        <div style="background:var(--brand-primary); color:white; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:800;">
-                            ${client.cases_count || 0}
-                        </div>
-                        <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted);">قضية مرتبطة</span>
+                        <button class="btn btn-sm btn-outline" style="border-radius:10px; color:var(--brand-primary); border-color:var(--brand-primary); font-weight:700;" onclick="window.location.href='/client-profile.html?id=${client.id}'">
+                            <i class="fas fa-user-circle"></i> الملف الشخصي
+                        </button>
                     </div>
                     <div style="display:flex; gap:0.6rem;">
                         <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" onclick="ClientsManager.editClient(${client.id})" title="تعديل">
@@ -188,7 +186,7 @@ class ClientsManager {
         try {
             const result = await API.get(`/clients/${id}`);
             if (result.success) {
-                const c = result.data;
+                const c = result.data.client; // تم التعديل لأن الـ API أصبحت تعيد {client, cases, sessions...}
                 document.getElementById('modalTitle').textContent = 'تعديل بيانات العميل';
                 document.getElementById('clientId').value = c.id;
                 document.getElementById('clientName').value = c.full_name;

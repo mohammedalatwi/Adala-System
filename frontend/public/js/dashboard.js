@@ -5,14 +5,14 @@
 class DashboardManager {
 
     // ✅ تحميل بيانات لوحة التحكم
-    static async loadDashboardData() {
+    static async loadDashboardData(silent = false) {
         try {
+            if (!silent) Utils.showLoading('جاري تحميل البيانات...');
             const result = await API.get('/dashboard/data');
 
             if (result.success) {
                 this.updateDashboardUI(result.data);
 
-                // Update header user info if available
                 if (result.data.user) {
                     document.getElementById('userName').textContent = result.data.user.full_name;
                     document.getElementById('userRole').textContent = result.data.user.role;
@@ -20,15 +20,24 @@ class DashboardManager {
                 }
             }
 
-            // تحميل وقت الترحيب الديناميكي
             this.updateGreeting();
-
-            // تحميل الرسوم البيانية
-            this.loadCharts();
+            await this.loadCharts();
+            if (!silent) Utils.hideLoading();
 
         } catch (error) {
             console.error('Failed to load dashboard:', error);
+            if (!silent) Utils.hideLoading();
         }
+    }
+
+    static async refresh() {
+        console.log('🔄 Refreshing dashboard data...');
+        await this.loadDashboardData(true);
+    }
+
+    static startAutoRefresh() {
+        // Refresh every 60 seconds
+        setInterval(() => this.refresh(), 60000);
     }
 
     // ✅ تحميل وعرض الرسوم البيانية
@@ -44,12 +53,19 @@ class DashboardManager {
         }
     }
 
-    static renderCasesTrendChart(data) {
-        const ctx = document.getElementById('casesTrendChart').getContext('2d');
-        const months = data.map(d => d.month).reverse();
-        const counts = data.map(d => d.count).reverse();
+    static renderCasesTrendChart(data = []) {
+        const ctx = document.getElementById('casesTrendChart')?.getContext('2d');
+        if (!ctx) return;
 
-        new Chart(ctx, {
+        // Destroy previous instance
+        if (window.casesTrendChartInstance) {
+            window.casesTrendChartInstance.destroy();
+        }
+
+        const months = [...data].map(d => d.month).reverse();
+        const counts = [...data].map(d => d.count).reverse();
+
+        window.casesTrendChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: months,
@@ -68,13 +84,23 @@ class DashboardManager {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
                 }
             }
         });
     }
 
-    static renderCasesStatusChart(data) {
-        const ctx = document.getElementById('casesStatusChart').getContext('2d');
+    static renderCasesStatusChart(data = []) {
+        const ctx = document.getElementById('casesStatusChart')?.getContext('2d');
+        if (!ctx) return;
+
+        // Destroy previous instance
+        if (window.casesStatusChartInstance) {
+            window.casesStatusChartInstance.destroy();
+        }
+
         const labels = data.map(d => d.status);
         const counts = data.map(d => d.count);
         const colors = {
@@ -85,7 +111,7 @@ class DashboardManager {
             'ملغي': '#ef4444'
         };
 
-        new Chart(ctx, {
+        window.casesStatusChartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: {
                 labels: labels,
@@ -152,22 +178,21 @@ class DashboardManager {
             'totalDocuments': stats.total_documents || 0,
             'activeCases': stats.in_progress_cases || 0,
             'completedCases': stats.completed_cases || 0,
-            'totalLawyers': stats.total_lawyers || 0
+            'totalLawyers': stats.total_lawyers || 0,
+            'statsSessions': stats.upcoming_sessions || 0
         };
 
         Object.entries(statsElements).forEach(([id, value]) => {
             const element = document.getElementById(id);
             if (element) {
-                // تأثير عد متدرج
                 this.animateValue(element, 0, value, 1000);
             }
         });
     }
 
-    // ✅ تأثير العد المتدرج للإحصائيات
-    static animateValue(element, start, end, duration) {
+    // ✅ تأثير العد المتدرج للإحصائيات (يدعم اللاحقة)
+    static animateValue(element, start, end, duration, suffix = '') {
         const startTime = performance.now();
-        const originalValue = element.textContent;
 
         function update(currentTime) {
             const elapsed = currentTime - startTime;
@@ -176,7 +201,7 @@ class DashboardManager {
             // تأثير ease-out
             const currentValue = Math.floor(start + (end - start) * (1 - Math.pow(1 - progress, 3)));
 
-            element.textContent = currentValue.toLocaleString('ar-SA');
+            element.textContent = currentValue.toLocaleString('ar-SA') + suffix;
 
             if (progress < 1) {
                 requestAnimationFrame(update);
@@ -193,10 +218,9 @@ class DashboardManager {
 
         if (!sessions || sessions.length === 0) {
             container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-calendar-times"></i>
+                <div class="empty-state" style="padding:4rem; text-align:center; color:var(--text-muted);">
+                    <i class="fas fa-calendar-times" style="font-size:3rem; margin-bottom:1rem; opacity:0.3;"></i>
                     <p>لا توجد جلسات قادمة</p>
-                    <small>سيتم عرض الجلسات المجدولة هنا</small>
                 </div>
             `;
             return;
@@ -204,18 +228,18 @@ class DashboardManager {
 
         container.innerHTML = sessions.map(session => `
             <div class="list-item" onclick="window.location.href='/sessions?id=${session.id}'" style="
-                display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; border-radius: var(--radius-md); 
+                display: flex; flex-direction: column; gap: 0.5rem; padding: 1.25rem; border-radius: 14px; 
                 background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer; transition: var(--transition-base);
-                margin-bottom: 0.75rem;">
+                margin-bottom: 1rem; box-shadow: var(--shadow-sm);">
                 <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <div style="font-weight:700; color:var(--text-main);">${session.case_title || 'جلسة بدون عنوان'}</div>
-                    <span class="badge badge-${this.getSessionBadgeType(session)}">
+                    <div style="font-weight:800; color:var(--text-main); font-size:1rem;">${session.case_title || 'جلسة بدون عنوان'}</div>
+                    <span class="badge" style="background:var(--brand-primary)11; color:var(--brand-primary); padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; border:1px solid var(--brand-primary)22;">
                         ${this.formatSessionDate(session.session_date)}
                     </span>
                 </div>
-                <div style="display:flex; gap:1rem; font-size:0.85rem; color:var(--text-muted);">
-                    <span><i class="fas fa-clock"></i> ${this.formatTime(session.session_date)}</span>
-                    <span><i class="fas fa-map-marker-alt"></i> ${session.location || 'غير محدد'}</span>
+                <div style="display:flex; gap:1.25rem; font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
+                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-clock" style="color:var(--brand-primary);"></i> ${this.formatTime(session.session_date)}</span>
+                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> ${session.location || 'غير محدد'}</span>
                 </div>
             </div>
         `).join('');
@@ -305,14 +329,16 @@ class DashboardManager {
         }
 
         container.innerHTML = activities.map(activity => `
-            <div class="activity-item">
-                <div class="activity-icon">
-                    <i class="fas ${this.getActivityIcon(activity.action_type)}"></i>
+            <div class="activity-item" style="padding:1.25rem 1.5rem; border-bottom:1px solid var(--border-color); display:flex; gap:1rem; transition:var(--transition-base);">
+                <div class="activity-icon" style="width:40px; height:40px; border-radius:12px; background:var(--bg-body); display:flex; align-items:center; justify-content:center; color:var(--brand-primary); border:1px solid var(--border-color);">
+                    <i class="fas ${this.getActivityIcon(activity.action_type)}" style="font-size:1.1rem;"></i>
                 </div>
-                <div class="activity-content">
-                    <div class="activity-message">${activity.description || 'نشاط'}</div>
-                    <div class="activity-user">بواسطة: ${activity.user_name || 'مستخدم'}</div>
-                    <div class="activity-time">${this.formatRelativeTime(activity.created_at)}</div>
+                <div class="activity-content" style="flex:1;">
+                    <div class="activity-message" style="font-weight:700; font-size:0.95rem; margin-bottom:0.25rem; color:var(--text-main);">${activity.description || 'نشاط'}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="activity-user" style="font-size:0.85rem; color:var(--text-muted);">بواسطة: ${activity.user_name || 'مستخدم'}</div>
+                        <div class="activity-time" style="font-size:0.8rem; color:var(--brand-primary); font-weight:700; background:var(--brand-primary)11; padding:2px 8px; border-radius:6px;">${this.formatRelativeTime(activity.created_at)}</div>
+                    </div>
                 </div>
             </div>
         `).join('');
@@ -334,16 +360,16 @@ class DashboardManager {
         }
 
         container.innerHTML = tasks.map(task => `
-            <div class="list-item" onclick="window.location.href='/tasks'">
-                <div class="list-item-header">
-                    <div class="list-item-title">${task.title}</div>
-                    <span class="badge" style="background:${this.getPriorityColor(task.priority)}22; color:${this.getPriorityColor(task.priority)};">
+            <div class="list-item" onclick="window.location.href='/tasks'" style="padding:1.25rem; border-bottom:1px solid var(--border-color); cursor:pointer; transition:var(--transition-base); background:var(--bg-surface); margin-bottom:0.5rem; border-radius:12px; border:1px solid transparent;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
+                    <div class="list-item-title" style="font-weight:800; color:var(--text-main); font-size:0.95rem;">${task.title}</div>
+                    <span class="badge" style="background:${this.getPriorityColor(task.priority)}11; color:${this.getPriorityColor(task.priority)}; padding:2px 10px; border-radius:8px; font-size:0.75rem; font-weight:800; border:1px solid ${this.getPriorityColor(task.priority)}33;">
                         ${task.priority}
                     </span>
                 </div>
-                <div class="list-item-meta">
-                    <span><i class="fas fa-gavel"></i> ${task.case_title || 'عام'}</span>
-                    <span><i class="fas fa-calendar-alt"></i> ${task.due_date ? new Date(task.due_date).toLocaleDateString('ar-SA') : 'بدون موعد'}</span>
+                <div class="list-item-meta" style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--text-muted);">
+                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-gavel" style="color:var(--brand-primary);"></i> ${task.case_title || 'عام'}</span>
+                    <span style="display:flex; align-items:center; gap:0.4rem; font-weight:700;"><i class="fas fa-calendar-alt" style="color:var(--warning);"></i> ${task.due_date ? new Date(task.due_date).toLocaleDateString('ar-SA') : 'بدون موعد'}</span>
                 </div>
             </div>
         `).join('');
@@ -480,6 +506,21 @@ class DashboardManager {
         }
     }
 
+    // ✅ تأثير عد متدرج (محسن لدعم اللاحقة)
+    static animateValue(obj, start, end, duration, suffix = '') {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const val = Math.floor(progress * (end - start) + start);
+            obj.textContent = val.toLocaleString() + suffix;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
     // ✅ عرض الأخطاء
     static showError(message) {
         Utils.showMessage(message, 'error');
@@ -497,13 +538,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/login';
         } else {
             DashboardManager.loadDashboardData();
+            DashboardManager.startAutoRefresh();
         }
     });
 
-    // Logout Handler
-    document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-        e.preventDefault();
-        await API.post('/auth/logout');
-        window.location.href = '/login';
-    });
+    // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 });

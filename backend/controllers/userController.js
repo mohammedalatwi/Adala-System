@@ -63,12 +63,12 @@ class UserController extends BaseController {
         if (!user) throw new Error('المستخدم غير موجود');
 
         const stats = await db.get(`
-            SELECT 
-                (SELECT COUNT(*) FROM cases WHERE lawyer_id = ?) as total_cases,
-                (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'منتهي') as completed_cases,
-                (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status IN ('جديد', 'قيد الدراسة', 'قيد التنفيذ')) as active_cases,
-                (SELECT COUNT(*) FROM clients WHERE created_by = ?) as total_clients
-        `, [id, id, id, id]);
+            SELECT
+                (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND office_id = ?) as total_cases,
+                (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND office_id = ? AND status = 'منتهي') as completed_cases,
+                (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND office_id = ? AND status IN ('جديد', 'قيد الدراسة', 'قيد التنفيذ')) as active_cases,
+                (SELECT COUNT(*) FROM clients WHERE created_by = ? AND office_id = ?) as total_clients
+        `, [id, officeId, id, officeId, id, officeId, id, officeId]);
 
         this.sendSuccess(res, { ...user, stats });
     });

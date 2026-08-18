@@ -12,8 +12,23 @@ class FinanceManager {
         ]);
 
         this.loadInvoices();
+        this.renderCharts();
 
         console.log('✅ Finance Manager Ready');
+    }
+
+    static animateValue(obj, start, end, duration, suffix = '') {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const val = Math.floor(progress * (end - start) + start);
+            obj.textContent = val.toLocaleString() + suffix;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
     }
 
     static async checkAuth() {
@@ -30,11 +45,7 @@ class FinanceManager {
     }
 
     static setupEventListeners() {
-        document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-            e.preventDefault();
-            await API.post('/auth/logout');
-            window.location.href = '/login';
-        });
+        // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         document.getElementById('searchInput').addEventListener('input',
             Utils.debounce(() => this.loadInvoices(), 500)
@@ -50,6 +61,91 @@ class FinanceManager {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('invIssueDate').value = today;
         document.getElementById('invDueDate').value = today;
+    }
+
+    static async renderCharts() {
+        try {
+            const result = await API.get('/dashboard/charts');
+            if (result.success && result.data) {
+                this.renderFinanceOutlookChart(result.data.monthlyRevenue, result.data.monthlyExpenses);
+            }
+        } catch (error) {
+            console.error('Failed to load charts:', error);
+        }
+    }
+
+    static renderFinanceOutlookChart(revenueData = [], expenseData = []) {
+        const ctx = document.getElementById('financeOutlookChart')?.getContext('2d');
+        if (!ctx) return;
+
+        if (window.financeChart) window.financeChart.destroy();
+
+        const labels = revenueData.map(d => d.month);
+        const revenueValues = revenueData.map(d => d.total);
+        const expenseValues = labels.map(label => {
+            const match = expenseData.find(e => e.month === label);
+            return match ? match.total : 0;
+        });
+
+        window.financeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'الدخل (ر.س)',
+                        data: revenueValues,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'المصروفات (ر.س)',
+                        data: expenseValues,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { family: 'Cairo' } } }
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    static renderCollectionRateChart(rate) {
+        const ctx = document.getElementById('collectionRateChart')?.getContext('2d');
+        if (!ctx) return;
+
+        if (window.collectionChart) window.collectionChart.destroy();
+
+        window.collectionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [rate, 100 - rate],
+                    backgroundColor: ['#2563eb', '#f1f5f9'],
+                    borderWidth: 0,
+                    circumference: 360,
+                    rotation: 0
+                }]
+            },
+            options: { cutout: '85%', plugins: { legend: { display: false } }, maintainAspectRatio: false }
+        });
     }
 
     static switchTab(tab) {
@@ -132,8 +228,9 @@ class FinanceManager {
     static async loadCasesForExpenses() {
         const res = await API.get('/cases?limit=100');
         if (res.success) {
+            const cases = res.data.cases || res.data;
             document.getElementById('expCase').innerHTML = '<option value="">عام</option>' +
-                res.data.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
         }
     }
 
@@ -190,7 +287,7 @@ class FinanceManager {
 
     static async loadFinancialSummary() {
         try {
-            const result = await API.get('/api/reports/financial');
+            const result = await API.get('/reports/financial');
             if (result.success && result.data) {
                 const s = result.data.summary;
                 document.getElementById('statsTotal').textContent = Number(s.totalInvoiced).toFixed(2) + ' ر.س';
@@ -198,6 +295,12 @@ class FinanceManager {
                 document.getElementById('statsExpenses').textContent = Number(s.totalExpenses).toFixed(2) + ' ر.س';
                 document.getElementById('statsProfit').textContent = Number(s.netProfit).toFixed(2) + ' ر.س';
                 document.getElementById('statsDue').textContent = Number(s.outstanding).toFixed(2) + ' ر.س';
+
+                // Collection Rate
+                const rate = s.totalInvoiced > 0 ? Math.round((s.totalCollected / s.totalInvoiced) * 100) : 0;
+                const rateLabel = document.getElementById('collectionRateLabel');
+                if (rateLabel) rateLabel.textContent = `${rate}%`;
+                this.renderCollectionRateChart(rate);
             }
         } catch (error) {
             console.error('Error loading financial summary:', error);
@@ -341,6 +444,11 @@ class FinanceManager {
 
         if (!data.client_id || items.length === 0 || !valid) {
             Utils.showMessage('يرجى تعبئة جميع الحقول المطلوبة', 'error');
+            return;
+        }
+
+        if (!data.issue_date) {
+            Utils.showMessage('يرجى تحديد تاريخ الإصدار', 'error');
             return;
         }
 

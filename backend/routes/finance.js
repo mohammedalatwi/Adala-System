@@ -2,17 +2,18 @@ const express = require('express');
 const router = express.Router();
 const financeController = require('../controllers/financeController');
 const authMiddleware = require('../middleware/auth');
+const validationMiddleware = require('../middleware/validation');
 
 router.use(authMiddleware.requireAuth);
 
 // Invoices
-router.post('/invoices', financeController.createInvoice);
+router.post('/invoices', validationMiddleware.validateInvoice, financeController.createInvoice);
 router.get('/invoices', financeController.getAllInvoices);
 router.get('/invoices/:id/download', financeController.downloadInvoicePDF);
 router.post('/payments', financeController.recordPayment);
 
 // Expenses
-router.post('/expenses', financeController.createExpense);
+router.post('/expenses', validationMiddleware.validateExpense, financeController.createExpense);
 router.get('/expenses', financeController.getAllExpenses);
 
 module.exports = router;

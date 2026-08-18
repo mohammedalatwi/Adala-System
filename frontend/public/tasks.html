@@ -122,9 +122,33 @@
                         <p style="color:var(--text-muted); font-size:1.1rem;">تتبع المهام اليومية، المواعيد النهائية،
                             وتوزيع العمل بكفاءة.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="TasksManager.openTaskModal()">
-                        <i class="fas fa-plus-circle"></i> إضافة مهمة جديدة
-                    </button>
+                    <div style="display:flex; gap:1rem;">
+                        <button class="btn btn-outline" onclick="TasksManager.loadTasks()">
+                            <i class="fas fa-sync-alt"></i> تحديث القائمة
+                        </button>
+                        <button class="btn btn-primary" onclick="TasksManager.openTaskModal()">
+                            <i class="fas fa-plus-circle"></i> إضافة مهمة جديدة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div
+                    style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:1.5rem; margin-bottom:2.5rem;">
+                    <div class="card stat-card" style="padding:1.5rem; border-right: 4px solid var(--brand-primary);">
+                        <div style="color:var(--text-muted); font-size:0.9rem; font-weight:700;">إجمالي المهام</div>
+                        <div id="totalTasksCount" style="font-size:1.8rem; font-weight:800; margin-top:0.5rem;">0</div>
+                    </div>
+                    <div class="card stat-card" style="padding:1.5rem; border-right: 4px solid var(--warning);">
+                        <div style="color:var(--text-muted); font-size:0.9rem; font-weight:700;">قيد التنفيذ</div>
+                        <div id="pendingTasksCount" style="font-size:1.8rem; font-weight:800; margin-top:0.5rem;">0
+                        </div>
+                    </div>
+                    <div class="card stat-card" style="padding:1.5rem; border-right: 4px solid var(--success);">
+                        <div style="color:var(--text-muted); font-size:0.9rem; font-weight:700;">مهام مكتملة</div>
+                        <div id="completedTasksCount" style="font-size:1.8rem; font-weight:800; margin-top:0.5rem;">0
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Filters -->
@@ -157,13 +181,6 @@
                             <option value="منخفض">منخفض</option>
                         </select>
                     </div>
-                    <div>
-                        <button class="btn btn-outline"
-                            style="padding: 0.6rem 2rem; border-color: var(--brand-primary); color: var(--brand-primary);"
-                            onclick="TasksManager.loadTasks()">
-                            <i class="fas fa-sync-alt"></i> تحديث القائمة
-                        </button>
-                    </div>
                 </div>
 
                 <!-- Tasks Listing -->
@@ -190,11 +207,19 @@
                         <label class="form-label">عنوان المهمة *</label>
                         <input type="text" id="taskTitle" class="form-control" required>
                     </div>
-                    <div class="form-group" style="margin-top:1rem;">
-                        <label class="form-label">القضية (اختياري)</label>
-                        <select id="taskCase" class="form-control">
-                            <option value="">عام</option>
-                        </select>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
+                        <div class="form-group">
+                            <label class="form-label">القضية (اختياري)</label>
+                            <select id="taskCase" class="form-control">
+                                <option value="">عام</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">إسناد إلى</label>
+                            <select id="taskAssignedTo" class="form-control">
+                                <option value="">أنا (تلقائي)</option>
+                            </select>
+                        </div>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1rem;">
                         <div class="form-group">

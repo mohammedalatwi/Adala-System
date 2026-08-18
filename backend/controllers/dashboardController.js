@@ -29,7 +29,8 @@ class DashboardController extends BaseController {
 
     // ✅ API: جلب الإشعارات
     getNotifications = this.asyncWrapper(async (req, res) => {
-        const notifications = await DashboardService.getNotifications(req.session.userId, req.session.officeId);
+        const { unread } = req.query;
+        const notifications = await DashboardService.getNotifications(req.session.userId, req.session.officeId, unread === 'true');
         this.sendSuccess(res, notifications);
     });
 
@@ -51,19 +52,40 @@ class DashboardController extends BaseController {
     getChartData = this.asyncWrapper(async (req, res) => {
         const { userId, userRole, officeId } = req.session;
 
+        // 1. Cases monthly trend
         const monthlyCases = await db.all(`
             SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
             FROM cases WHERE is_active = 1 AND office_id = ? ${userRole !== 'admin' ? 'AND lawyer_id = ?' : ''}
             GROUP BY strftime('%Y-%m', created_at) ORDER BY month DESC LIMIT 6
         `, userRole !== 'admin' ? [officeId, userId] : [officeId]);
 
+        // 2. Cases by status (for doughnut chart)
         const casesByStatus = await db.all(`
             SELECT status, COUNT(*) as count
             FROM cases WHERE is_active = 1 AND office_id = ? ${userRole !== 'admin' ? 'AND lawyer_id = ?' : ''}
             GROUP BY status
         `, userRole !== 'admin' ? [officeId, userId] : [officeId]);
 
-        this.sendSuccess(res, { monthlyCases, casesByStatus });
+        // 3. Monthly Revenue (Payments) - Last 6 months
+        const monthlyRevenue = await db.all(`
+            SELECT strftime('%Y-%m', payment_date) as month, SUM(amount) as total
+            FROM payments WHERE office_id = ?
+            GROUP BY month ORDER BY month DESC LIMIT 6
+        `, [officeId]);
+
+        // 4. Monthly Expenses - Last 6 months
+        const monthlyExpenses = await db.all(`
+            SELECT strftime('%Y-%m', expense_date) as month, SUM(amount) as total
+            FROM expenses WHERE office_id = ?
+            GROUP BY month ORDER BY month DESC LIMIT 6
+        `, [officeId]);
+
+        this.sendSuccess(res, {
+            monthlyCases,
+            casesByStatus,
+            monthlyRevenue: monthlyRevenue.reverse(),
+            monthlyExpenses: monthlyExpenses.reverse()
+        });
     });
 }
 

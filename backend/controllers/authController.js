@@ -35,8 +35,10 @@ class AuthController extends BaseController {
 
     // ✅ تسجيل الخروج
     logout = this.asyncWrapper(async (req, res) => {
+        const sessionName = req.session.cookie.name || 'adala_session';
         req.session.destroy((err) => {
             if (err) throw new Error('فشل في تسجيل الخروج');
+            res.clearCookie(sessionName);
             res.json({ success: true, message: 'تم تسجيل الخروج' });
         });
     });
@@ -66,6 +68,7 @@ class AuthController extends BaseController {
     // ✅ التحقق من اسم المستخدم
     checkUsername = this.asyncWrapper(async (req, res) => {
         const { username } = req.params;
+        // استثناء مقصود: لا يوجد عزل office_id هنا لأن username فريد على مستوى النظام كله (قبل تسجيل الدخول/انتساب المستخدم لمكتب)
         const existingUser = await db.get('SELECT id FROM users WHERE username = ?', [username]);
         res.json({
             available: !existingUser,
@@ -76,6 +79,7 @@ class AuthController extends BaseController {
     // ✅ التحقق من البريد الإلكتروني
     checkEmail = this.asyncWrapper(async (req, res) => {
         const { email } = req.params;
+        // استثناء مقصود: لا يوجد عزل office_id هنا لأن email فريد على مستوى النظام كله (قبل تسجيل الدخول/انتساب المستخدم لمكتب)
         const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
         res.json({
             available: !existingUser,
