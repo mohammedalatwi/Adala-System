@@ -8,6 +8,13 @@ const validationMiddleware = require('../middleware/validation');
 router.use(authMiddleware.requireAuth);
 
 // Routes المستخدمين
+// ملاحظة: /me يجب أن تُسجَّل قبل /:id، وإلا فإن Express يطابقها كمعرّف id="me"
+router.get('/me', userController.getMyProfile);
+router.put('/me',
+    validationMiddleware.validateUpdateOwnProfile,
+    userController.updateMyProfile
+);
+
 router.get('/', userController.getAllUsers);
 router.get('/stats', userController.getUserStats);
 router.get('/:id', userController.getUserById);

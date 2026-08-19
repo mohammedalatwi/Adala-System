@@ -107,6 +107,77 @@ class UserService {
         return true;
     }
 
+    async getOwnProfile(userId, officeId) {
+        const user = await this.db.get(
+            `SELECT id, full_name, phone, email, avatar_url, specialization, license_number,
+                    experience_years, bio, role, created_at, last_login, is_active
+             FROM users WHERE id = ? AND office_id = ? AND is_active = 1`,
+            [userId, officeId]
+        );
+        if (!user) throw new Error('المستخدم غير موجود');
+        return user;
+    }
+
+    // قائمة الحقول المسموح للمستخدم بتعديلها ذاتيًا أضيق عمدًا من allowedFields بـ updateUser:
+    // تستثني role/is_active/office_id/supervisor_id/client_id/must_change_password لأنها
+    // تحت تحكم الأدمن حصريًا عبر PUT /api/users/:id. تعديل email حالة خاصة تُعالَج بمنطق
+    // منفصل أدناه لأنها تتطلب تأكيد current_password، بخلاف باقي الحقول.
+    async updateOwnProfile(userId, officeId, updateData) {
+        const existingUser = await this.db.get('SELECT * FROM users WHERE id = ? AND office_id = ? AND is_active = 1', [userId, officeId]);
+        if (!existingUser) throw new Error('المستخدم غير موجود');
+
+        const allowedFields = ['full_name', 'phone', 'avatar_url', 'specialization', 'license_number', 'experience_years', 'bio'];
+        const updates = [];
+        const values = [];
+
+        Object.keys(updateData).forEach(key => {
+            if (allowedFields.includes(key) && updateData[key] !== undefined) {
+                updates.push(`${key} = ?`);
+                values.push(updateData[key]);
+            }
+        });
+
+        if (updateData.email !== undefined) {
+            if (!updateData.current_password) {
+                const error = new Error('يجب إدخال كلمة المرور الحالية لتأكيد تغيير البريد الإلكتروني');
+                error.statusCode = 400;
+                throw error;
+            }
+
+            const isValidPassword = await bcrypt.compare(updateData.current_password, existingUser.password_hash);
+            if (!isValidPassword) {
+                const error = new Error('كلمة المرور الحالية غير صحيحة');
+                error.statusCode = 401;
+                throw error;
+            }
+
+            // استثناء مقصود: لا عزل office_id هنا لأن email فريد على مستوى النظام كله
+            const emailTaken = await this.db.get('SELECT id FROM users WHERE email = ? AND id != ?', [updateData.email, userId]);
+            if (emailTaken) throw new Error('البريد الإلكتروني موجود مسبقاً');
+
+            updates.push('email = ?');
+            values.push(updateData.email);
+        }
+
+        if (updates.length === 0) throw new Error('لا توجد بيانات لتحديثها');
+
+        updates.push('updated_at = datetime("now")');
+        values.push(userId, officeId);
+
+        await this.db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`, values);
+
+        await ActivityService.logActivity({
+            userId,
+            actionType: 'update',
+            entityType: 'user',
+            entityId: userId,
+            description: 'تحديث الملف الشخصي',
+            officeId
+        });
+
+        return true;
+    }
+
     async updateUserStatus(id, is_active, officeId, currentUserId) {
         const existingUser = await this.db.get('SELECT id, full_name FROM users WHERE id = ? AND office_id = ?', [id, officeId]);
         if (!existingUser) throw new Error('المستخدم غير موجود');

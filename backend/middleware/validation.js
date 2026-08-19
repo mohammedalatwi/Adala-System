@@ -207,6 +207,34 @@ class ValidationMiddleware {
         ];
     }
 
+    // Self-Service Own-Profile Update Validation (PUT /api/users/me) — deliberately its own
+    // validator rather than reusing validateUserUpdate: the allowed field set is narrower
+    // (mirrors UserService.updateOwnProfile's allowlist, no role/is_active/office_id/etc.),
+    // and email here is a special case requiring current_password confirmation.
+    //
+    // Uses checkExact (unlike updateUser's silent-ignore allowlist) to reject any field
+    // outside this list with an explicit 400, rather than dropping it quietly: this route
+    // is reachable by every role, so a role/is_active field in the body is a privilege-
+    // escalation attempt worth surfacing loudly, not just a harmless no-op.
+    static get validateUpdateOwnProfile() {
+        const chains = [
+            body('full_name').optional().trim().notEmpty().withMessage('الاسم الكامل لا يمكن أن يكون فارغاً'),
+            body('phone').optional().trim().notEmpty().withMessage('رقم الهاتف لا يمكن أن يكون فارغاً'),
+            body('avatar_url').optional({ nullable: true }).isString().withMessage('صيغة الصورة الشخصية غير صالحة'),
+            body('specialization').optional({ nullable: true }).trim(),
+            body('license_number').optional({ nullable: true }).trim(),
+            body('experience_years').optional().isInt({ min: 0 }).withMessage('سنوات الخبرة يجب أن تكون رقماً صحيحاً غير سالب'),
+            body('bio').optional({ nullable: true }).trim(),
+            body('email').optional().trim().isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
+            body('current_password').optional().notEmpty().withMessage('كلمة المرور الحالية مطلوبة'),
+        ];
+        return [
+            ...chains,
+            checkExact(chains, { message: 'حقل غير مسموح بتعديله من هذا المسار' }),
+            validate
+        ];
+    }
+
     // User Status Update Validation
     static get validateUserStatusUpdate() {
         return [

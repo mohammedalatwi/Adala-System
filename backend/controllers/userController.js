@@ -49,6 +49,18 @@ class UserController extends BaseController {
         });
     });
 
+    // ✅ جلب بياناتي الشخصية
+    getMyProfile = this.asyncWrapper(async (req, res) => {
+        const user = await UserService.getOwnProfile(req.session.userId, req.session.officeId);
+        this.sendSuccess(res, user);
+    });
+
+    // ✅ تحديث بياناتي الشخصية
+    updateMyProfile = this.asyncWrapper(async (req, res) => {
+        await UserService.updateOwnProfile(req.session.userId, req.session.officeId, req.body);
+        this.sendSuccess(res, null, 'تم تحديث بياناتك الشخصية بنجاح');
+    });
+
     // ✅ جلب مستخدم محدد
     getUserById = this.asyncWrapper(async (req, res) => {
         const { id } = req.params;
