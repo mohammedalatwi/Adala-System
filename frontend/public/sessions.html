@@ -165,7 +165,7 @@
                     <a href="/settings" class="nav-item">
                         <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -216,7 +216,7 @@
                                 <i class="fas fa-calendar-alt"></i> تقويم
                             </button>
                         </div>
-                        <button class="btn btn-primary" onclick="SessionsManager.openNewSessionModal()">
+                        <button class="btn btn-primary" data-action="openNewSessionModal">
                             <i class="fas fa-plus"></i> جدولة جلسة جديدة
                         </button>
                     </div>
@@ -259,7 +259,7 @@
                     <div>
                         <button class="btn btn-outline"
                             style="padding: 0.6rem 2rem; border-color: var(--brand-primary); color: var(--brand-primary);"
-                            onclick="SessionsManager.loadSessions()">
+                            data-action="loadSessions">
                             <i class="fas fa-filter"></i> تصفية
                         </button>
                     </div>
@@ -283,7 +283,7 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3 id="modalTitle">جدولة جلسة جديدة</h3>
-                <button class="modal-close" onclick="SessionsManager.closeSessionModal()">&times;</button>
+                <button class="modal-close" data-action="closeSessionModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="sessionForm">
@@ -300,8 +300,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">حالة الجلسة</label>
-                            <select id="sessionStatus" class="form-control"
-                                onchange="SessionsManager.handleStatusChange()">
+                            <select id="sessionStatus" class="form-control">
                                 <option value="مجدول">مجدول</option>
                                 <option value="منعقد">منعقد</option>
                                 <option value="مكتمل">مكتمل</option>
@@ -359,8 +358,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="SessionsManager.closeSessionModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="SessionsManager.saveSession()">حفظ</button>
+                    data-action="closeSessionModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="saveSession">حفظ</button>
             </div>
         </div>
     </div>

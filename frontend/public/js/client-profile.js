@@ -18,8 +18,27 @@ class ClientProfile {
 
         // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
+        this.setupEventListeners();
         await this.loadProfileData();
         console.log('✅ Client Profile Manager Ready');
+    }
+
+    static setupEventListeners() {
+        // أزرار التبويبات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => this.switchTab(btn.dataset.tab));
+        });
+
+        // بطاقات القضايا/المستندات المُولّدة ديناميكياً
+        document.getElementById('tab-cases').addEventListener('click', (e) => {
+            const card = e.target.closest('[data-card-action="open-case"]');
+            if (card) window.location.href = `/cases?case_id=${card.dataset.id}`;
+        });
+
+        document.getElementById('tab-documents').addEventListener('click', (e) => {
+            const card = e.target.closest('[data-card-action="download-doc"]');
+            if (card) window.open(`/api/documents/${card.dataset.id}/download`, '_blank');
+        });
     }
 
     static async checkAuth() {
@@ -39,7 +58,7 @@ class ClientProfile {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-        document.querySelector(`.tab-btn[onclick="ClientProfile.switchTab('${tabId}')"]`).classList.add('active');
+        document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
         document.getElementById(`tab-${tabId}`).classList.add('active');
     }
 
@@ -105,7 +124,7 @@ class ClientProfile {
         }
 
         container.innerHTML = cases.map(c => `
-            <div class="card" style="display:flex; flex-direction:column; gap:1rem; cursor:pointer;" onclick="window.location.href='/cases?case_id=${c.id}'">
+            <div class="card" style="display:flex; flex-direction:column; gap:1rem; cursor:pointer;" data-card-action="open-case" data-id="${c.id}">
                 <div style="display:flex; justify-content:space-between;">
                     <div class="badge" style="background:var(--brand-primary)22; color:var(--brand-primary);">${Utils.escapeHTML(c.case_number)}</div>
                     <div class="badge" style="background:#fef3c7; color:#d97706;">${Utils.escapeHTML(c.status)}</div>
@@ -190,7 +209,7 @@ class ClientProfile {
         }
 
         container.innerHTML = documents.map(doc => `
-            <div class="card" style="display:flex; align-items:center; gap:1rem; cursor:pointer;" onclick="window.open('/api/documents/${doc.id}/download', '_blank')">
+            <div class="card" style="display:flex; align-items:center; gap:1rem; cursor:pointer;" data-card-action="download-doc" data-id="${doc.id}">
                 <div style="width:40px; height:40px; border-radius:10px; background:var(--bg-surface-hover); display:flex; align-items:center; justify-content:center; color:var(--brand-primary); font-size:1.2rem;">
                     <i class="fas fa-file-alt"></i>
                 </div>

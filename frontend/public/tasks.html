@@ -83,7 +83,7 @@
                     <a href="/settings" class="nav-item">
                         <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -123,10 +123,10 @@
                             وتوزيع العمل بكفاءة.</p>
                     </div>
                     <div style="display:flex; gap:1rem;">
-                        <button class="btn btn-outline" onclick="TasksManager.loadTasks()">
+                        <button class="btn btn-outline" data-action="loadTasks">
                             <i class="fas fa-sync-alt"></i> تحديث القائمة
                         </button>
-                        <button class="btn btn-primary" onclick="TasksManager.openTaskModal()">
+                        <button class="btn btn-primary" data-action="openTaskModal">
                             <i class="fas fa-plus-circle"></i> إضافة مهمة جديدة
                         </button>
                     </div>
@@ -159,8 +159,7 @@
                             style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">تصفية حسب
                             الحالة</label>
                         <select id="statusFilter" class="form-control"
-                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;"
-                            onchange="TasksManager.loadTasks()">
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;">
                             <option value="">جميع الحالات</option>
                             <option value="قيد الانتظار">قيد الانتظار</option>
                             <option value="قيد التنفيذ">قيد التنفيذ</option>
@@ -172,8 +171,7 @@
                             style="font-weight:700; font-size:0.9rem; margin-bottom:0.5rem; display:block;">تصفية حسب
                             الأولوية</label>
                         <select id="priorityFilter" class="form-control"
-                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;"
-                            onchange="TasksManager.loadTasks()">
+                            style="background: var(--bg-body); border-radius: var(--radius-md); border: 1.5px solid var(--border-color); padding: 0.6rem;">
                             <option value="">جميع الأولويات</option>
                             <option value="عاجل">عاجل</option>
                             <option value="عالي">عالي</option>
@@ -198,7 +196,7 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 id="modalTitle">إضافة مهمة جديدة</h3>
-                <button class="modal-close" onclick="TasksManager.closeTaskModal()">&times;</button>
+                <button class="modal-close" data-action="closeTaskModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="taskForm">
@@ -244,8 +242,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="TasksManager.closeTaskModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="TasksManager.saveTask()">حفظ المهمة</button>
+                    data-action="closeTaskModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="saveTask">حفظ المهمة</button>
             </div>
         </div>
     </div>

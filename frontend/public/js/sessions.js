@@ -58,11 +58,33 @@ class SessionsManager {
         document.getElementById('statusFilter').addEventListener('change', () => this.loadSessions());
         document.getElementById('caseFilter').addEventListener('change', () => this.loadSessions());
         document.getElementById('timelineFilter').addEventListener('change', () => this.loadSessions());
+        document.getElementById('sessionStatus').addEventListener('change', () => this.handleStatusChange());
 
         // Modal outside click
         window.addEventListener('click', (e) => {
             if (e.target === document.getElementById('sessionModal')) {
                 this.closeSessionModal();
+            }
+        });
+
+        // أزرار ثابتة بلا معطيات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        // بطاقات الجلسات المُولّدة ديناميكياً (تفويض عبر data-id بدل onclick)
+        document.getElementById('sessionsContainer').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action]');
+            if (!btn) return;
+            e.stopPropagation();
+            const { cardAction, id } = btn.dataset;
+            switch (cardAction) {
+                case 'open-case': window.location.href = `/cases?case_id=${id}`; break;
+                case 'edit': this.editSession(id); break;
+                case 'delete': this.deleteSession(id); break;
             }
         });
     }
@@ -211,7 +233,7 @@ class SessionsManager {
                 </div>
                 <div class="session-details-col">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <h3 class="session-title" onclick="window.location.href='/cases?case_id=${s.case_id}'">${Utils.escapeHTML(s.case_title)}</h3>
+                        <h3 class="session-title" data-card-action="open-case" data-id="${s.case_id}">${Utils.escapeHTML(s.case_title)}</h3>
                         <span class="badge" style="background:${statusColor}22; color:${statusColor}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
                             ${Utils.escapeHTML(s.status)}
                         </span>
@@ -224,10 +246,10 @@ class SessionsManager {
                     </div>
                 </div>
                 <div class="session-actions-col">
-                    <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" title="تعديل" onclick="SessionsManager.editSession(${s.id})">
+                    <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" title="تعديل" data-card-action="edit" data-id="${s.id}">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" onclick="event.stopPropagation(); SessionsManager.deleteSession(${s.id})" title="حذف">
+                    <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" data-card-action="delete" data-id="${s.id}" title="حذف">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>

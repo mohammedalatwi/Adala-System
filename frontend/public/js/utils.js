@@ -38,7 +38,7 @@ class Utils {
             <div class="alert-content">
                 <strong>${this.capitalize(type)}!</strong> ${message}
             </div>
-            <button class="alert-close" onclick="this.parentElement.remove()" style="
+            <button class="alert-close" style="
                 background: none;
                 border: none;
                 font-size: 1.25rem;
@@ -47,6 +47,9 @@ class Utils {
                 opacity: 0.7;
             ">&times;</button>
         `;
+
+        // بدون onclick لتوافق CSP: ربط زر الإغلاق عبر مستمع حدث
+        alert.querySelector('.alert-close').addEventListener('click', () => alert.remove());
 
         document.body.appendChild(alert);
 
@@ -384,8 +387,16 @@ class Utils {
         // تطبيق اللوجو في جميع الحاويات المخصصة
         document.querySelectorAll('.brand-logo-container').forEach(container => {
             if (firm_logo) {
-                // استخدام الصورة المخصصة
-                container.innerHTML = `<img src="${this.escapeHTML(firm_logo)}" alt="${this.escapeHTML(firm_name || 'Logo')}" onerror="this.src='/img/default-logo.png'; this.parentElement.innerHTML='<i class=\'fas fa-balance-scale\'></i>'">`;
+                // استخدام الصورة المخصصة. تُبنى عبر createElement و onerror كخاصية JS
+                // (لا كسمة HTML نصية) حتى تعمل تحت سياسة أمان محتوى صارمة بدون unsafe-inline
+                container.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = firm_logo;
+                img.alt = firm_name || 'Logo';
+                img.onerror = function () {
+                    this.parentElement.innerHTML = '<i class="fas fa-balance-scale"></i>';
+                };
+                container.appendChild(img);
                 container.style.background = 'white'; // خلفية بيضاء للشعارات الملونة لضمان الوضوح
                 container.style.padding = '4px';
             } else {

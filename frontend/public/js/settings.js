@@ -40,7 +40,7 @@ class SettingsManager {
 
                 if (s.firm_logo && this.logoPreview) {
                     this.logoPreview.innerHTML = `<img src="${Utils.escapeHTML(s.firm_logo)}" alt="Logo">
-                        <div class="upload-overlay" onclick="document.getElementById('logoInput').click()"><i class="fas fa-camera"></i></div>`;
+                        <div class="upload-overlay js-trigger-logo-input"><i class="fas fa-camera"></i></div>`;
                 }
             }
         } catch (error) {
@@ -84,6 +84,14 @@ class SettingsManager {
             this.resetBtn.addEventListener('click', () => this.resetToDefault());
         }
 
+        // زر فتح اختيار الشعار داخل معاينة اللوجو (المحتوى يُعاد بناؤه ديناميكياً،
+        // لذا التفويض على الحاوية الثابتة logoPreviewContainer بدل onclick لكل نسخة)
+        if (this.logoPreview) {
+            this.logoPreview.addEventListener('click', (e) => {
+                if (e.target.closest('.js-trigger-logo-input')) this.logoInput.click();
+            });
+        }
+
         if (this.notificationForm) {
             this.notificationForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -113,7 +121,7 @@ class SettingsManager {
                 // Update preview
                 if (this.logoPreview) {
                     this.logoPreview.innerHTML = `<img src="${Utils.escapeHTML(data.logo_url)}" alt="Preview">
-                        <div class="upload-overlay" onclick="document.getElementById('logoInput').click()"><i class="fas fa-camera"></i></div>`;
+                        <div class="upload-overlay js-trigger-logo-input"><i class="fas fa-camera"></i></div>`;
                 }
                 Utils.loadBranding();
             } else {

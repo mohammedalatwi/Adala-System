@@ -198,7 +198,7 @@
                     <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
                 </a>
                 <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -239,19 +239,19 @@
 
                 <!-- Tabs Navigation -->
                 <div class="profile-tabs">
-                    <button class="tab-btn active" onclick="ClientProfile.switchTab('cases')">
+                    <button class="tab-btn active" data-tab="cases">
                         <i class="fas fa-gavel"></i> القضايا المرتبطة <span class="badge" id="badge-cases"
                             style="background:#e0e7ff; color:var(--brand-primary); margin-right:5px; border-radius:50px;">0</span>
                     </button>
-                    <button class="tab-btn" onclick="ClientProfile.switchTab('sessions')">
+                    <button class="tab-btn" data-tab="sessions">
                         <i class="fas fa-calendar-check"></i> الجلسات <span class="badge" id="badge-sessions"
                             style="background:#fef3c7; color:#d97706; margin-right:5px; border-radius:50px;">0</span>
                     </button>
-                    <button class="tab-btn" onclick="ClientProfile.switchTab('financial')">
+                    <button class="tab-btn" data-tab="financial">
                         <i class="fas fa-file-invoice-dollar"></i> السجل المالي <span class="badge" id="badge-financial"
                             style="background:#dcfce7; color:#15803d; margin-right:5px; border-radius:50px;">0</span>
                     </button>
-                    <button class="tab-btn" onclick="ClientProfile.switchTab('documents')">
+                    <button class="tab-btn" data-tab="documents">
                         <i class="fas fa-folder-open"></i> المستندات <span class="badge" id="badge-documents"
                             style="background:#f3e8ff; color:#7e22ce; margin-right:5px; border-radius:50px;">0</span>
                     </button>

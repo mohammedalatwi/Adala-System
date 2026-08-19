@@ -32,11 +32,33 @@ class TasksManager {
         // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
 
         document.getElementById('searchInput').addEventListener('input', Utils.debounce(() => this.loadTasks(), 500));
+        document.getElementById('statusFilter').addEventListener('change', () => this.loadTasks());
+        document.getElementById('priorityFilter').addEventListener('change', () => this.loadTasks());
 
         // Modal outside click
         window.addEventListener('click', (e) => {
             if (e.target === document.getElementById('taskModal')) {
                 this.closeTaskModal();
+            }
+        });
+
+        // أزرار ثابتة بلا معطيات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        // بطاقات المهام المُولّدة ديناميكياً (تفويض عبر data-id بدل onclick)
+        document.getElementById('tasksGrid').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action]');
+            if (!btn) return;
+            const { cardAction, id, status } = btn.dataset;
+            switch (cardAction) {
+                case 'toggle-status': this.toggleStatus(id, status); break;
+                case 'edit': this.editTask(id); break;
+                case 'delete': this.deleteTask(id); break;
             }
         });
     }
@@ -159,18 +181,18 @@ class TasksManager {
                     </div>
                     <div style="display:flex; gap:0.5rem;">
                         ${!isCompleted ? `
-                            <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--success); border-color:var(--success)44;" onclick="TasksManager.toggleStatus(${task.id}, 'مكتمل')" title="إكمال">
+                            <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--success); border-color:var(--success)44;" data-card-action="toggle-status" data-id="${task.id}" data-status="مكتمل" title="إكمال">
                                 <i class="fas fa-check"></i>
                             </button>
                         ` : `
-                            <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--warning); border-color:var(--warning)44;" onclick="TasksManager.toggleStatus(${task.id}, 'قيد الانتظار')" title="إعادة فتح">
+                            <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--warning); border-color:var(--warning)44;" data-card-action="toggle-status" data-id="${task.id}" data-status="قيد الانتظار" title="إعادة فتح">
                                 <i class="fas fa-undo"></i>
                             </button>
                         `}
-                        <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--brand-primary);" onclick="TasksManager.editTask(${task.id})" title="تعديل">
+                        <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--brand-primary);" data-card-action="edit" data-id="${task.id}" title="تعديل">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--danger);" onclick="TasksManager.deleteTask(${task.id})" title="حذف">
+                        <button class="btn btn-sm btn-outline" style="width:34px; height:34px; padding:0; border-radius:10px; color:var(--danger);" data-card-action="delete" data-id="${task.id}" title="حذف">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

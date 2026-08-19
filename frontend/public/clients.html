@@ -53,7 +53,7 @@
                     <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
                 </a>
                 <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -92,7 +92,7 @@
                         <p style="color:var(--text-muted); font-size:1.1rem;">سجل العملاء وإدارة الملفات الشخصية بخصوصية
                             واحترافية.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="ClientsManager.openNewClientModal()">
+                    <button class="btn btn-primary" data-action="openNewClientModal">
                         <i class="fas fa-user-plus"></i> إضافة عميل جديد
                     </button>
                 </div>
@@ -150,7 +150,7 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3 id="modalTitle">إضافة عميل جديد</h3>
-                <button class="modal-close" onclick="ClientsManager.closeClientModal()">&times;</button>
+                <button class="modal-close" data-action="closeClientModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="clientForm">
@@ -195,8 +195,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="ClientsManager.closeClientModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="ClientsManager.saveClient()">حفظ</button>
+                    data-action="closeClientModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="saveClient">حفظ</button>
             </div>
         </div>
     </div>

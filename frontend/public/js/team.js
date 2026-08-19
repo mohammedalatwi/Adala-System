@@ -87,7 +87,7 @@ class TeamManager {
                     <button class="btn btn-outline btn-copy-member" style="border-radius:12px; font-weight:700; font-size:0.85rem; border-style:dashed;">
                         <i class="fas fa-copy"></i> نسخ البيانات
                     </button>
-                    <button class="btn btn-outline" style="border-radius:12px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;" onclick="TeamManager.deleteMember(${member.id})">
+                    <button class="btn btn-outline btn-delete-member" style="border-radius:12px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;">
                         <i class="fas fa-user-slash"></i> تعطيل
                     </button>
                 </div>
@@ -97,6 +97,10 @@ class TeamManager {
             // عبر اسم المستخدم أو الاسم الكامل (تهريب HTML وحده لا يحمي داخل onclick)
             card.querySelector('.btn-copy-member')
                 .addEventListener('click', () => this.copyMemberInfo(member.username, member.full_name));
+
+            // ربط زر "تعطيل" عبر مستمع حدث بدلاً من onclick (يتوافق مع سياسة أمان المحتوى)
+            card.querySelector('.btn-delete-member')
+                .addEventListener('click', () => this.deleteMember(member.id));
 
             grid.appendChild(card);
         });

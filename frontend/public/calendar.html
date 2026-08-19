@@ -132,7 +132,7 @@
                     <a href="/settings" class="nav-item">
                         <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item logout-link" style="color: #ff4757;">
@@ -150,7 +150,7 @@
                     <p>متابعة الجلسات والمواعيد النهائية بشكل مرئي</p>
                 </div>
                 <div class="header-actions">
-                    <button class="btn btn-primary" onclick="window.location.href='/sessions'">
+                    <button class="btn btn-primary" data-href="/sessions">
                         <i class="fas fa-plus"></i> جدولة جلسة
                     </button>
                     <div class="user-profile">
@@ -189,21 +189,6 @@
     <script src="js/api.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/calendar.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            CalendarManager.init();
-
-            // تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
-
-            // Set user profile
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            if (user.full_name) {
-                document.getElementById('userName').textContent = user.full_name;
-                document.getElementById('userRole').textContent = user.role;
-                document.getElementById('userAvatar').textContent = user.full_name.charAt(0).toUpperCase();
-            }
-        });
-    </script>
 </body>
 
 </html>

@@ -290,3 +290,24 @@ class CalendarManager {
         });
     }
 }
+
+// كان هذا سكربتاً مضمّناً في calendar.html — تم نقله هنا (بدون <script> inline)
+// حتى يعمل تحت سياسة أمان محتوى صارمة بدون 'unsafe-inline' على script-src
+document.addEventListener('DOMContentLoaded', () => {
+    CalendarManager.init();
+
+    // تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
+
+    // Set user profile
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.full_name) {
+        document.getElementById('userName').textContent = user.full_name;
+        document.getElementById('userRole').textContent = user.role;
+        document.getElementById('userAvatar').textContent = user.full_name.charAt(0).toUpperCase();
+    }
+
+    // زر "جدولة جلسة" الثابت (بدون onclick لتوافق CSP)
+    document.querySelectorAll('[data-href]').forEach(el => {
+        el.addEventListener('click', () => { window.location.href = el.dataset.href; });
+    });
+});

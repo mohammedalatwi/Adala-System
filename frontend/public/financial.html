@@ -58,7 +58,7 @@
                     <a href="/settings" class="nav-item">
                         <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -100,15 +100,15 @@
                     <div style="display:flex; gap:0.75rem;">
                         <button class="btn btn-outline"
                             style="border-radius:12px; font-weight:700; color:#ef4444; border-color:#ef444444;"
-                            onclick="window.open('/api/exports/finance/summary', '_blank')">
+                            data-action="open-blank" data-target="/api/exports/finance/summary">
                             <i class="fas fa-file-pdf"></i> ملخص PDF
                         </button>
                         <button class="btn btn-outline"
                             style="border-radius:12px; font-weight:700; color:#10b981; border-color:#10b98144;"
-                            onclick="window.open('/api/exports/finance/excel', '_blank')">
+                            data-action="open-blank" data-target="/api/exports/finance/excel">
                             <i class="fas fa-file-excel"></i> تصدير Excel
                         </button>
-                        <button class="btn btn-primary" onclick="FinanceManager.openInvoiceModal()">
+                        <button class="btn btn-primary" data-action="openInvoiceModal">
                             <i class="fas fa-file-invoice-dollar"></i> إصدار فاتورة جديدة
                         </button>
                     </div>
@@ -211,11 +211,11 @@
                 <!-- Tabs -->
                 <div
                     style="margin-bottom:2rem; background:var(--bg-surface-hover); padding:5px; border-radius:14px; display:inline-flex; gap:6px; box-shadow: var(--shadow-sm); border: 1.5px solid var(--border-color);">
-                    <button class="btn btn-sm active" id="tabInvoices" onclick="FinanceManager.switchTab('invoices')"
+                    <button class="btn btn-sm active" id="tabInvoices" data-action="switch-tab" data-tab="invoices"
                         style="border-radius:10px; background:var(--brand-primary); color:white; font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
                         <i class="fas fa-file-invoice"></i> الفواتير
                     </button>
-                    <button class="btn btn-sm" id="tabExpenses" onclick="FinanceManager.switchTab('expenses')"
+                    <button class="btn btn-sm" id="tabExpenses" data-action="switch-tab" data-tab="expenses"
                         style="border-radius:10px; background:transparent; color:var(--text-muted); font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
                         <i class="fas fa-wallet"></i> المصروفات
                     </button>
@@ -247,7 +247,7 @@
                 <!-- Expenses List -->
                 <div id="expensesView" style="display:none;">
                     <div style="display:flex; justify-content:flex-end; margin-bottom:1rem;">
-                        <button class="btn btn-primary" onclick="FinanceManager.openExpenseModal()">
+                        <button class="btn btn-primary" data-action="openExpenseModal">
                             <i class="fas fa-plus"></i> إضافة مصروف
                         </button>
                     </div>
@@ -280,7 +280,7 @@
         <div class="modal-content" style="max-width: 700px;">
             <div class="modal-header">
                 <h3 id="modalTitle">إصدار فاتورة جديدة</h3>
-                <button class="modal-close" onclick="FinanceManager.closeInvoiceModal()">&times;</button>
+                <button class="modal-close" data-action="closeInvoiceModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="invoiceForm">
@@ -317,14 +317,13 @@
                                 style="display:grid; grid-template-columns: 3fr 1fr 1fr auto; gap:0.5rem; margin-bottom:0.5rem; align-items:center;">
                                 <input type="text" class="form-control item-desc" placeholder="الوصف" required>
                                 <input type="number" class="form-control item-qty" placeholder="الكمية" value="1"
-                                    min="1" onchange="FinanceManager.calculateTotal()">
-                                <input type="number" class="form-control item-price" placeholder="السعر" step="0.01"
-                                    onchange="FinanceManager.calculateTotal()">
+                                    min="1">
+                                <input type="number" class="form-control item-price" placeholder="السعر" step="0.01">
                                 <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger);"
                                     disabled><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline" onclick="FinanceManager.addItemRow()">
+                        <button type="button" class="btn btn-sm btn-outline" data-action="addItemRow">
                             <i class="fas fa-plus"></i> إضافة بند
                         </button>
 
@@ -337,8 +336,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="FinanceManager.closeInvoiceModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="FinanceManager.saveInvoice()">إصدار
+                    data-action="closeInvoiceModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="saveInvoice">إصدار
                     الفاتورة</button>
             </div>
         </div>
@@ -349,8 +348,7 @@
         <div class="modal-content" style="max-width: 400px;">
             <div class="modal-header">
                 <h3>تسجيل دفعة</h3>
-                <button class="modal-close"
-                    onclick="document.getElementById('paymentModal').style.display='none'">&times;</button>
+                <button class="modal-close" data-action="closePaymentModal">&times;</button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="payInvoiceId">
@@ -364,7 +362,7 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" onclick="FinanceManager.submitPayment()">حفظ
+                <button type="button" class="btn btn-primary" data-action="submitPayment">حفظ
                     الدفعة</button>
             </div>
         </div>
@@ -375,7 +373,7 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3>تسجيل مصروف جديد</h3>
-                <button class="modal-close" onclick="FinanceManager.closeExpenseModal()">&times;</button>
+                <button class="modal-close" data-action="closeExpenseModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="expenseForm">
@@ -423,8 +421,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="FinanceManager.closeExpenseModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="FinanceManager.saveExpense()">حفظ
+                    data-action="closeExpenseModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="saveExpense">حفظ
                     المصروف</button>
             </div>
         </div>

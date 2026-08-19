@@ -53,7 +53,7 @@
                     <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
                 </a>
                 <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -92,7 +92,7 @@
                         <p style="color:var(--text-muted); font-size:1.1rem;">تتبع وقم بإدارة كافة ملفات القضايا
                             والطلبات القانونية في مكان واحد.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="CasesManager.openNewCaseModal()">
+                    <button class="btn btn-primary" data-action="openNewCaseModal">
                         <i class="fas fa-plus"></i> إضافة قضية جديدة
                     </button>
                 </div>
@@ -130,7 +130,7 @@
                     <div>
                         <button class="btn btn-outline"
                             style="padding: 0.6rem 2rem; border-color: var(--brand-primary); color: var(--brand-primary);"
-                            onclick="CasesManager.loadCases()">
+                            data-action="loadCases">
                             <i class="fas fa-filter"></i> تطبيق التصفية
                         </button>
                     </div>
@@ -150,7 +150,7 @@
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h3 id="modalTitle">إضافة قضية جديدة</h3>
-                <button class="modal-close" onclick="CasesManager.closeCaseModal()">&times;</button>
+                <button class="modal-close" data-action="closeCaseModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="caseForm">
@@ -220,8 +220,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="CasesManager.closeCaseModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="CasesManager.saveCase()">حفظ</button>
+                    data-action="closeCaseModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="saveCase">حفظ</button>
             </div>
         </div>
     </div>

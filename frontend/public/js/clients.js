@@ -36,6 +36,26 @@ class ClientsManager {
                 this.closeClientModal();
             }
         });
+
+        // أزرار ثابتة بلا معطيات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        // أزرار البطاقات المُولّدة ديناميكياً (تفويض عبر data-id بدل onclick)
+        document.getElementById('clientsContainer').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action]');
+            if (!btn) return;
+            const { cardAction, id } = btn.dataset;
+            switch (cardAction) {
+                case 'profile': window.location.href = `/client-profile.html?id=${id}`; break;
+                case 'edit': this.editClient(id); break;
+                case 'delete': this.deleteClient(id); break;
+            }
+        });
     }
 
     static async loadStats() {
@@ -116,15 +136,15 @@ class ClientsManager {
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">
                     <div style="display:flex; align-items:center; gap:0.4rem;">
-                        <button class="btn btn-sm btn-outline" style="border-radius:10px; color:var(--brand-primary); border-color:var(--brand-primary); font-weight:700;" onclick="window.location.href='/client-profile.html?id=${client.id}'">
+                        <button class="btn btn-sm btn-outline" style="border-radius:10px; color:var(--brand-primary); border-color:var(--brand-primary); font-weight:700;" data-card-action="profile" data-id="${client.id}">
                             <i class="fas fa-user-circle"></i> الملف الشخصي
                         </button>
                     </div>
                     <div style="display:flex; gap:0.6rem;">
-                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" onclick="ClientsManager.editClient(${client.id})" title="تعديل">
+                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary);" data-card-action="edit" data-id="${client.id}" title="تعديل">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" onclick="ClientsManager.deleteClient(${client.id})" title="حذف">
+                        <button class="btn btn-sm btn-outline" style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger);" data-card-action="delete" data-id="${client.id}" title="حذف">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

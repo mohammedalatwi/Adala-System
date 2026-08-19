@@ -77,7 +77,7 @@
                     <a href="/settings" class="nav-item">
                         <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
                     </a>
-                    <a href="#" class="nav-item" onclick="ThemeManager.toggle()">
+                    <a href="#" class="nav-item js-theme-toggle">
                         <i class="fas fa-adjust"></i> <span>المظهر</span>
                     </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
@@ -116,7 +116,7 @@
                         <p style="color:var(--text-muted); font-size:1.1rem;">الأرشيف الرقمي، مذكرات القضايا، والمستندات
                             القانونية المؤرشفة.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="DocumentsManager.openUploadModal()">
+                    <button class="btn btn-primary" data-action="openUploadModal">
                         <i class="fas fa-cloud-upload-alt"></i> رفع مستند جديد
                     </button>
                 </div>
@@ -162,7 +162,7 @@
                     </div>
                     <div>
                         <button class="btn btn-primary" style="padding: 0.6rem 2rem;"
-                            onclick="DocumentsManager.loadDocuments()">
+                            data-action="loadDocuments">
                             <i class="fas fa-filter"></i> تطبيق التصفية
                         </button>
                     </div>
@@ -182,7 +182,7 @@
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
                 <h3 id="modalTitle">رفع مستند جديد</h3>
-                <button class="modal-close" onclick="DocumentsManager.closeUploadModal()">&times;</button>
+                <button class="modal-close" data-action="closeUploadModal">&times;</button>
             </div>
             <div class="modal-body">
                 <form id="uploadForm">
@@ -236,8 +236,8 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline" style="border:1px solid #ddd;"
-                    onclick="DocumentsManager.closeUploadModal()">إلغاء</button>
-                <button type="button" class="btn btn-primary" onclick="DocumentsManager.uploadFile()">رفع</button>
+                    data-action="closeUploadModal">إلغاء</button>
+                <button type="button" class="btn btn-primary" data-action="uploadFile">رفع</button>
             </div>
         </div>
     </div>

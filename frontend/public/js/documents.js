@@ -71,6 +71,23 @@ class DocumentsManager {
                 this.closeUploadModal();
             }
         });
+
+        // أزرار ثابتة بلا معطيات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        // بطاقات المستندات المُولّدة ديناميكياً
+        document.getElementById('docsGrid').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action]');
+            if (!btn) return;
+            const { cardAction, id } = btn.dataset;
+            if (cardAction === 'download') this.downloadDoc(id);
+            if (cardAction === 'delete') this.deleteDoc(id);
+        });
     }
 
     static async loadCasesForFilter() {
@@ -152,10 +169,10 @@ class DocumentsManager {
                         </div>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:1.25rem;">
-                        <button class="btn btn-outline" style="border-radius:10px; font-weight:700; font-size:0.85rem; border-color:var(--brand-primary)44; color:var(--brand-primary);" onclick="DocumentsManager.downloadDoc(${doc.id})">
+                        <button class="btn btn-outline" style="border-radius:10px; font-weight:700; font-size:0.85rem; border-color:var(--brand-primary)44; color:var(--brand-primary);" data-card-action="download" data-id="${doc.id}">
                             <i class="fas fa-download"></i> تحميل
                         </button>
-                        <button class="btn btn-outline" style="border-radius:10px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;" onclick="DocumentsManager.deleteDoc(${doc.id})">
+                        <button class="btn btn-outline" style="border-radius:10px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;" data-card-action="delete" data-id="${doc.id}">
                             <i class="fas fa-trash-alt"></i> حذف
                         </button>
                     </div>

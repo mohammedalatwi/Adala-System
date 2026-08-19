@@ -290,26 +290,7 @@
         <p>© 2026 نظام عدالة V2.0 - جميع الحقوق محفوظة</p>
     </footer>
 
-    <script>
-        // التحقق من حالة المصادقة
-        async function checkAuth() {
-            try {
-                const response = await fetch('/api/auth/status', {
-                    credentials: 'include'
-                });
-                const data = await response.json();
-
-                if (data.authenticated) {
-                    window.location.href = '/dashboard';
-                }
-            } catch (error) {
-                console.log('User not authenticated');
-            }
-        }
-
-        // التحقق عند تحميل الصفحة
-        document.addEventListener('DOMContentLoaded', checkAuth);
-    </script>
+    <script src="js/index.js"></script>
 </body>
 
 </html>

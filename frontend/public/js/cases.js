@@ -50,6 +50,29 @@ class CasesManager {
                 this.closeCaseModal();
             }
         });
+
+        // أزرار ثابتة بلا معطيات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        // أزرار البطاقات المُولّدة ديناميكياً (تفويض عبر data-id بدل onclick)
+        document.getElementById('casesContainer').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action]');
+            if (!btn) return;
+            e.stopPropagation();
+            const { cardAction, id } = btn.dataset;
+            switch (cardAction) {
+                case 'delete': this.deleteCase(id); break;
+                case 'view-sessions': window.location.href = `/sessions?case_id=${id}`; break;
+                case 'new-session': window.location.href = `/sessions?action=new&case_id=${id}`; break;
+                case 'export-pdf': window.open(`/api/exports/case/${id}/pdf`, '_blank'); break;
+                case 'view-details': this.viewCaseDetails(id); break;
+            }
+        });
     }
 
     static async loadCases() {
@@ -126,7 +149,7 @@ class CasesManager {
                         <span class="badge" style="background:${this.getStatusColor(c.status)}22; color:${this.getStatusColor(c.status)}; padding:4px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; border: 1px solid ${this.getStatusColor(c.status)}44;">
                             ${Utils.escapeHTML(c.status)}
                         </span>
-                        <button onclick="event.stopPropagation(); CasesManager.deleteCase(${c.id})" class="btn-icon" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="حذف">
+                        <button data-card-action="delete" data-id="${c.id}" class="btn-icon" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="حذف">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
@@ -144,23 +167,23 @@ class CasesManager {
                         <span style="font-size:0.85rem; font-weight:600; color:var(--brand-primary);">${Utils.escapeHTML(c.case_type)}</span>
                     </div>
                     <div style="display:flex; gap:0.6rem;">
-                        <button onclick="event.stopPropagation(); window.location.href='/sessions?case_id=${c.id}'" 
-                                class="btn btn-sm btn-outline" title="عرض الجلسات" 
+                        <button data-card-action="view-sessions" data-id="${c.id}"
+                                class="btn btn-sm btn-outline" title="عرض الجلسات"
                                 style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--brand-primary); border-color:var(--brand-primary)44;">
                             <i class="fas fa-calendar-alt"></i>
                         </button>
-                        <button onclick="event.stopPropagation(); window.location.href='/sessions?action=new&case_id=${c.id}'" 
-                                class="btn btn-sm btn-outline" title="إضافة جلسة" 
+                        <button data-card-action="new-session" data-id="${c.id}"
+                                class="btn btn-sm btn-outline" title="إضافة جلسة"
                                 style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--success); border-color:var(--success)44;">
                             <i class="fas fa-plus"></i>
                         </button>
-                        <button onclick="event.stopPropagation(); window.open('/api/exports/case/${c.id}/pdf', '_blank')" 
-                                class="btn btn-sm btn-outline" title="تصدير PDF" 
+                        <button data-card-action="export-pdf" data-id="${c.id}"
+                                class="btn btn-sm btn-outline" title="تصدير PDF"
                                 style="width:36px; height:36px; padding:0; border-radius:10px; color:var(--danger); border-color:${this.getStatusColor('ملغي')}44;">
                             <i class="fas fa-file-pdf"></i>
                         </button>
-                        <button onclick="event.stopPropagation(); CasesManager.viewCaseDetails(${c.id})" 
-                                class="btn btn-sm btn-primary" 
+                        <button data-card-action="view-details" data-id="${c.id}"
+                                class="btn btn-sm btn-primary"
                                 style="border-radius:10px; padding: 0 1rem; font-size:0.8rem;">
                             التفاصيل
                         </button>

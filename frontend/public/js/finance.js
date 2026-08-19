@@ -61,6 +61,44 @@ class FinanceManager {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('invIssueDate').value = today;
         document.getElementById('invDueDate').value = today;
+
+        // أزرار ثابتة بلا معطيات + تبويبات + روابط تصدير (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const { action, target, tab } = el.dataset;
+                if (action === 'open-blank') { window.open(target, '_blank'); return; }
+                if (action === 'switch-tab') { this.switchTab(tab); return; }
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        // صفوف بنود الفاتورة (الثابت والمُضاف ديناميكياً عبر addItemRow)
+        const invItems = document.getElementById('invItems');
+        invItems.addEventListener('change', (e) => {
+            if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-price')) {
+                this.calculateTotal();
+            }
+        });
+        invItems.addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action="remove-row"]');
+            if (btn) {
+                btn.closest('.item-row').remove();
+                this.calculateTotal();
+            }
+        });
+
+        // أزرار الفواتير المُولّدة ديناميكياً (تفويض عبر data-id بدل onclick)
+        document.getElementById('invoicesList').addEventListener('click', (e) => {
+            const btn = e.target.closest('[data-card-action]');
+            if (!btn) return;
+            const { cardAction, id, due } = btn.dataset;
+            if (cardAction === 'pay') this.openPaymentModal(id, parseFloat(due));
+            if (cardAction === 'download') this.downloadInvoice(id);
+        });
+    }
+
+    static closePaymentModal() {
+        document.getElementById('paymentModal').style.display = 'none';
     }
 
     static async renderCharts() {
@@ -328,10 +366,10 @@ class FinanceManager {
                     <td>${this.getStatusBadge(inv.status)}</td>
                     <td>
                         <div style="display:flex; gap:0.3rem;">
-                            <button class="btn btn-sm btn-outline-primary" style="padding:2px 8px;" onclick="FinanceManager.openPaymentModal(${inv.id}, ${due})">
+                            <button class="btn btn-sm btn-outline-primary" style="padding:2px 8px;" data-card-action="pay" data-id="${inv.id}" data-due="${due}">
                                 <i class="fas fa-dollar-sign"></i> دفع
                             </button>
-                            <button class="btn btn-sm btn-outline" style="padding:2px 8px; color:var(--brand-primary);" onclick="FinanceManager.downloadInvoice(${inv.id})">
+                            <button class="btn btn-sm btn-outline" style="padding:2px 8px; color:var(--brand-primary);" data-card-action="download" data-id="${inv.id}">
                                 <i class="fas fa-download"></i>
                             </button>
                         </div>
@@ -399,9 +437,9 @@ class FinanceManager {
         div.style = 'display:grid; grid-template-columns: 3fr 1fr 1fr auto; gap:0.5rem; margin-bottom:0.5rem; align-items:center;';
         div.innerHTML = `
             <input type="text" class="form-control item-desc" placeholder="الوصف" required>
-            <input type="number" class="form-control item-qty" placeholder="الكمية" value="1" min="1" onchange="FinanceManager.calculateTotal()">
-            <input type="number" class="form-control item-price" placeholder="السعر" step="0.01" onchange="FinanceManager.calculateTotal()">
-            <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger);" onclick="this.parentElement.remove(); FinanceManager.calculateTotal()"><i class="fas fa-trash"></i></button>
+            <input type="number" class="form-control item-qty" placeholder="الكمية" value="1" min="1">
+            <input type="number" class="form-control item-price" placeholder="السعر" step="0.01">
+            <button type="button" class="btn btn-sm btn-outline" style="color:var(--danger);" data-card-action="remove-row"><i class="fas fa-trash"></i></button>
         `;
         document.getElementById('invItems').appendChild(div);
     }

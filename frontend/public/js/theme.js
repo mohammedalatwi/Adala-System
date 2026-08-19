@@ -53,3 +53,13 @@ class ThemeManager {
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => ThemeManager.init());
+
+// رابط تبديل المظهر في القائمة الجانبية (نفس الزر في كل الصفحات) — مفوَّض هنا
+// بدلاً من onclick مضمّن في كل ملف HTML حتى يعمل تحت سياسة أمان المحتوى الصارمة
+document.addEventListener('click', (e) => {
+    const toggleLink = e.target.closest('.js-theme-toggle');
+    if (toggleLink) {
+        e.preventDefault();
+        ThemeManager.toggle();
+    }
+});

@@ -35,6 +35,42 @@ class DashboardManager {
         await this.loadDashboardData(true);
     }
 
+    // أزرار بدون معطيات + روابط تنقل ثابتة (بدون onclick لتوافق CSP)
+    static setupEventListeners() {
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
+
+        document.querySelectorAll('[data-href]').forEach(el => {
+            el.addEventListener('click', () => { window.location.href = el.dataset.href; });
+        });
+
+        // القوائم المُولّدة ديناميكياً (تفويض عبر data-id بدل onclick)
+        const bindNavigate = (containerId, buildHref) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.addEventListener('click', (e) => {
+                const item = e.target.closest('[data-id]');
+                if (item) window.location.href = buildHref(item.dataset.id);
+            });
+        };
+
+        bindNavigate('upcomingSessionsList', id => `/sessions?id=${id}`);
+        bindNavigate('recentCasesList', id => `/cases?id=${id}`);
+        bindNavigate('recentTasksList', () => '/tasks');
+
+        const notifList = document.getElementById('notificationsList');
+        if (notifList) {
+            notifList.addEventListener('click', (e) => {
+                const item = e.target.closest('[data-id]');
+                if (item) this.markNotificationAsRead(item.dataset.id, item);
+            });
+        }
+    }
+
     static startAutoRefresh() {
         // Refresh every 60 seconds
         setInterval(() => this.refresh(), 60000);
@@ -227,7 +263,7 @@ class DashboardManager {
         }
 
         container.innerHTML = sessions.map(session => `
-            <div class="list-item" onclick="window.location.href='/sessions?id=${session.id}'" style="
+            <div class="list-item" data-id="${session.id}" style="
                 display: flex; flex-direction: column; gap: 0.5rem; padding: 1.25rem; border-radius: 14px; 
                 background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer; transition: var(--transition-base);
                 margin-bottom: 1rem; box-shadow: var(--shadow-sm);">
@@ -262,7 +298,7 @@ class DashboardManager {
         }
 
         container.innerHTML = cases.map(caseItem => `
-            <div class="list-item" onclick="window.location.href='/cases?id=${caseItem.id}'">
+            <div class="list-item" data-id="${caseItem.id}">
                 <div class="list-item-header">
                     <div class="list-item-title">${caseItem.title ? Utils.escapeHTML(caseItem.title) : 'قضية بدون عنوان'}</div>
                     <span class="badge badge-${this.getCaseBadgeType(caseItem.status)}">
@@ -296,7 +332,7 @@ class DashboardManager {
         }
 
         container.innerHTML = notifications.map(notif => `
-            <div class="list-item notification-item ${notif.is_read ? '' : 'unread'}" onclick="DashboardManager.markNotificationAsRead(${notif.id}, this)">
+            <div class="list-item notification-item ${notif.is_read ? '' : 'unread'}" data-id="${notif.id}">
                 <div class="list-item-header">
                     <div class="list-item-title">${notif.title ? Utils.escapeHTML(notif.title) : 'إشعار'}</div>
                     <span class="badge badge-${notif.type ? Utils.escapeHTML(notif.type) : 'info'}">${notif.type ? Utils.escapeHTML(notif.type) : 'معلومات'}</span>
@@ -360,7 +396,7 @@ class DashboardManager {
         }
 
         container.innerHTML = tasks.map(task => `
-            <div class="list-item" onclick="window.location.href='/tasks'" style="padding:1.25rem; border-bottom:1px solid var(--border-color); cursor:pointer; transition:var(--transition-base); background:var(--bg-surface); margin-bottom:0.5rem; border-radius:12px; border:1px solid transparent;">
+            <div class="list-item" data-id="task" style="padding:1.25rem; border-bottom:1px solid var(--border-color); cursor:pointer; transition:var(--transition-base); background:var(--bg-surface); margin-bottom:0.5rem; border-radius:12px; border:1px solid transparent;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
                     <div class="list-item-title" style="font-weight:800; color:var(--text-main); font-size:0.95rem;">${Utils.escapeHTML(task.title)}</div>
                     <span class="badge" style="background:${this.getPriorityColor(task.priority)}11; color:${this.getPriorityColor(task.priority)}; padding:2px 10px; border-radius:8px; font-size:0.75rem; font-weight:800; border:1px solid ${this.getPriorityColor(task.priority)}33;">
@@ -532,6 +568,8 @@ window.DashboardManager = DashboardManager;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+    DashboardManager.setupEventListeners();
+
     // Check Auth first
     API.get('/auth/status').then(res => {
         if (!res.authenticated) {

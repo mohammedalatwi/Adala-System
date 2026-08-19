@@ -26,6 +26,15 @@ class ReportsManager {
 
     static setupEventListeners() {
         // زر تسجيل الخروج يُهيّأ مركزياً في Utils.initGlobal()
+
+        // أزرار ثابتة بلا معطيات (بدون onclick لتوافق CSP)
+        document.querySelectorAll('[data-action]').forEach(el => {
+            el.addEventListener('click', () => {
+                const action = el.dataset.action;
+                if (action === 'print') { window.print(); return; }
+                if (typeof this[action] === 'function') this[action]();
+            });
+        });
     }
 
     static async refresh() {
