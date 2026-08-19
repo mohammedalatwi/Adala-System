@@ -17,12 +17,16 @@ router.post('/',
     userController.createUser
 );
 router.put('/:id',
+    authMiddleware.requireRole(['admin']),
     userController.updateUser
 );
 router.delete('/:id',
     authMiddleware.requireRole(['admin']),
     userController.deleteUser
 );
-router.put('/:id/status', userController.updateUserStatus);
+router.put('/:id/status',
+    authMiddleware.requireRole(['admin']),
+    userController.updateUserStatus
+);
 
 module.exports = router;
