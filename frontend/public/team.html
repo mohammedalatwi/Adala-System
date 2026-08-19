@@ -310,13 +310,21 @@
     <div class="modal modal-glass" id="memberModal">
         <div class="modal-content" style="max-width: 550px; border-radius: 25px; padding: 2rem;">
             <div class="modal-header" style="border: none; padding-bottom: 1.5rem;">
-                <h2 id="modalTitle" style="font-weight: 800; font-size: 1.5rem;">دعوة متدرب جديد</h2>
+                <h2 id="modalTitle" style="font-weight: 800; font-size: 1.5rem;">إضافة عضو فريق جديد</h2>
                 <button class="close-modal" style="font-size: 2rem;">&times;</button>
             </div>
-            <p style="margin-top: -1rem; margin-bottom: 2rem; color: var(--text-muted); font-size: 0.95rem;">
-                قم بإدخال بيانات المتدرب لإنشاء حساب خاص له بصلاحيات مقيدة.
+            <p id="modalSubtitle" style="margin-top: -1rem; margin-bottom: 2rem; color: var(--text-muted); font-size: 0.95rem;">
+                اختر نوع الحساب وأدخل بياناته لإنشاء حساب دخول خاص به.
             </p>
             <form id="memberForm">
+                <div class="form-group">
+                    <label>نوع الحساب</label>
+                    <select name="role" id="memberRoleSelect" required style="border-radius: 12px; padding: 0.8rem;">
+                        <option value="trainee">متدرب</option>
+                        <option value="lawyer">محامي</option>
+                        <option value="client">عميل (بوابة العملاء)</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label>الاسم بالكامل</label>
                     <input type="text" name="full_name" required placeholder="مثال: خالد محمد العتيبي"
@@ -341,20 +349,26 @@
                             style="border-radius: 12px; padding: 0.8rem;">
                     </div>
                     <div class="form-group">
-                        <label>رقم هاتف المتدرب</label>
+                        <label>رقم الهاتف</label>
                         <input type="tel" name="phone" placeholder="05xxxxxxxx"
                             style="border-radius: 12px; padding: 0.8rem;">
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>مجال التدريب / التخصص</label>
+                <div class="form-group" id="specializationGroup">
+                    <label>مجال العمل / التخصص</label>
                     <input type="text" name="specialization" placeholder="مثال: بحوث قانونية وصياغة"
                         style="border-radius: 12px; padding: 0.8rem;">
+                </div>
+                <div class="form-group" id="clientIdGroup" style="display: none;">
+                    <label>ربط الحساب بعميل موجود</label>
+                    <select name="client_id" id="clientIdSelect" style="border-radius: 12px; padding: 0.8rem;">
+                        <option value="">-- اختر عميلاً --</option>
+                    </select>
                 </div>
 
                 <div
                     style="background: rgba(37, 99, 235, 0.05); padding: 1rem; border-radius: 12px; border: 1px solid rgba(37, 99, 235, 0.1); margin-top: 1rem;">
-                    <p style="font-size: 0.85rem; color: var(--brand-primary); margin: 0;">
+                    <p id="modalInfoBanner" style="font-size: 0.85rem; color: var(--brand-primary); margin: 0;">
                         <i class="fas fa-info-circle"></i> سيتمكن المتدرب من الدخول لرؤية القضايا المسندة له فقط، ولن
                         يرى أي مبالغ مالية.
                     </p>

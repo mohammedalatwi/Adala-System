@@ -12,7 +12,7 @@ class TeamController extends BaseController {
 
         if (role === 'admin') {
             // المدير يرى الجميع في مكتبه
-            query = 'SELECT id, full_name, username, email, phone, role, specialization, is_active, created_at FROM users WHERE office_id = ? AND role IN ("admin", "lawyer", "assistant", "trainee")';
+            query = 'SELECT id, full_name, username, email, phone, role, specialization, is_active, created_at FROM users WHERE office_id = ? AND role IN ("admin", "lawyer", "trainee")';
             params = [officeId];
         } else {
             // المحامي يرى المتدربين التابعين له في مكتبه
