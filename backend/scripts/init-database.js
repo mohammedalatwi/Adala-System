@@ -1,17 +1,82 @@
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
+const config = require('../config/config');
 
-// إنشاء اتصال بقاعدة البيانات
-const db = new sqlite3.Database('./database/adala.db', (err) => {
+// مسار قاعدة البيانات يأتي من config (الذي يقرأ DB_PATH) وليس مسارًا ثابتًا،
+// حتى لا يختلف السكريبت عن التطبيق ويكتب في قاعدة بيانات غير المقصودة.
+const DB_PATH = config.database.path;
+
+// --force مطلوب للكتابة فوق قاعدة بيانات تحتوي على بيانات فعلية
+const FORCE = process.argv.includes('--force');
+
+// عدد صفوف البيانات التجريبية: أي عدد أكبر منه يعني وجود بيانات حقيقية
+const SAMPLE_USERS = 2;
+const SAMPLE_CLIENTS = 2;
+
+console.log('🚀 بدء تهيئة قاعدة البيانات...');
+console.log(`📂 قاعدة البيانات المستهدفة: ${DB_PATH}`);
+console.log('⚠️  تحذير: هذا السكريبت يحذف كل الجداول ثم يعيد إنشاءها بالبيانات التجريبية.');
+
+fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+
+const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) {
         console.error('❌ خطأ في الاتصال بقاعدة البيانات:', err.message);
         process.exit(1);
     }
     console.log('✅ تم الاتصال بقاعدة البيانات');
+    guardExistingData();
 });
 
+/**
+ * عدّ صفوف جدول واحد. الجدول غير الموجود (قاعدة بيانات جديدة) يعني صفرًا.
+ */
+function countRows(table) {
+    return new Promise((resolve) => {
+        db.get(`SELECT COUNT(*) AS n FROM ${table}`, (err, row) => {
+            if (err) return resolve(0);
+            resolve(row ? row.n : 0);
+        });
+    });
+}
+
+/**
+ * يمنع حذف قاعدة بيانات تحتوي على بيانات حقيقية إلا عند تمرير --force.
+ * السبب: تشغيل `npm run init-db` بالخطأ على قاعدة الإنتاج يمحو كل شيء بلا رجعة.
+ */
+async function guardExistingData() {
+    const users = await countRows('users');
+    const clients = await countRows('clients');
+    const hasRealData = users > SAMPLE_USERS || clients > SAMPLE_CLIENTS;
+
+    console.log(`📊 المحتوى الحالي: ${users} مستخدم / ${clients} موكل.`);
+
+    if (hasRealData && !FORCE) {
+        console.error('');
+        console.error('⛔ تم إيقاف العملية: قاعدة البيانات تحتوي على بيانات تتجاوز البيانات التجريبية.');
+        console.error(`⛔ المسار: ${DB_PATH}`);
+        console.error('⛔ المتابعة ستحذف هذه البيانات نهائيًا.');
+        console.error('');
+        console.error('   • للتهيئة في مسار آخر:      DB_PATH=/path/to/new.db npm run init-db');
+        console.error('   • لتأكيد الحذف فعليًا:       npm run init-db -- --force');
+        console.error('   • خذ نسخة احتياطية أولًا من database/backups/');
+        console.error('');
+        db.close(() => process.exit(1));
+        return;
+    }
+
+    if (hasRealData && FORCE) {
+        console.warn('⚠️  --force مُفعّل: سيتم حذف بيانات حقيقية موجودة في قاعدة البيانات!');
+    }
+
+    initSchema();
+}
+
 // تفعيل المفاتيح الخارجية وتحسين الأداء
-db.serialize(() => {
+function initSchema() {
+    db.serialize(() => {
     // حذف الجداول القديمة لضمان تحديث الهيكلية
     const dropTables = `
         DROP TABLE IF EXISTS session_reminders;
@@ -347,7 +412,8 @@ db.serialize(() => {
             }
         });
     });
-});
+    });
+}
 
 async function addSampleData() {
     try {
@@ -401,5 +467,3 @@ async function addSampleData() {
         });
     }, 2000);
 }
-
-console.log('🚀 بدء تهيئة قاعدة البيانات...');
