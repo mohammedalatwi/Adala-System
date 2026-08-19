@@ -12,8 +12,57 @@ const app = express();
 const PORT = config.app.port;
 
 // ==================== Middleware الأساسية ====================
+// سياسة أمان المحتوى (CSP)
+// المصادر الخارجية المسموح بها مأخوذة من مسح شامل لـ frontend/public:
+//   cdn.jsdelivr.net      → Chart.js + FullCalendar (سكربت و CSS)
+//   cdnjs.cloudflare.com  → Font Awesome (CSS + ملفات الخطوط معًا)
+//   fonts.googleapis.com  → CSS خط Cairo
+//   fonts.gstatic.com     → ملفات خط Cairo
+//   www.transparenttextures.com → صورة خلفية في index.html فقط
+//
+// CSP_MODE يتحكم في الوضع: 'enforce' للتطبيق الفعلي (الافتراضي)، 'report-only'
+// للرصد دون منع، 'off' للتعطيل.
+//
+// المرحلة الأولى (المطبَّقة الآن): script-src صارم بلا 'unsafe-inline' بعد تحويل
+// كل معالجات onclick/onchange/onerror إلى addEventListener ونقل كل سكربتات
+// <script> المضمّنة إلى ملفات خارجية. أما style-src فيبقى متساهلاً مؤقتاً لأن
+// المشروع يحتوي أكثر من 700 سمة style= مضمّنة (المرحلة الثانية).
+const CSP_MODE = process.env.CSP_MODE || 'enforce';
+
+// وضع الرصد يعرض عمداً السياسة الأكثر صرامة (بدون 'unsafe-inline' في style-src)
+// لقياس ما تبقّى من عمل المرحلة الثانية، وليس نسخة مما يُطبَّق فعلياً الآن.
+const STYLE_SRC = ["'self'", 'https://cdn.jsdelivr.net', 'https://cdnjs.cloudflare.com', 'https://fonts.googleapis.com'];
+if (CSP_MODE !== 'report-only') {
+    STYLE_SRC.splice(1, 0, "'unsafe-inline'");
+}
+
+const cspDirectives = {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", 'https://cdn.jsdelivr.net'],
+    'style-src': STYLE_SRC,
+    // data: مطلوب لأن FullCalendar يضمّن خط أيقوناته (fcicons) كـ base64
+    'font-src': ["'self'", 'data:', 'https://cdnjs.cloudflare.com', 'https://fonts.gstatic.com'],
+    'img-src': ["'self'", 'https://www.transparenttextures.com'],
+    'connect-src': ["'self'"],
+    'object-src': ["'none'"],
+    'base-uri': ["'self'"],
+    'form-action': ["'self'"],
+    'frame-ancestors': ["'none'"]
+};
+
+// في وضع الرصد نضيف report-uri حتى تصل المخالفات إلى الخادم
+if (CSP_MODE === 'report-only') {
+    cspDirectives['report-uri'] = ['/api/csp-report'];
+}
+
 app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP for now as it might block external CDNs like FullCalendar
+    contentSecurityPolicy: CSP_MODE === 'off' ? false : {
+        // useDefaults=false: نحدد كل التوجيهات صراحةً حتى لا يضيف helmet
+        // توجيهات ضمنية (مثل upgrade-insecure-requests) تكسر التطوير على http.
+        useDefaults: false,
+        directives: cspDirectives,
+        reportOnly: CSP_MODE === 'report-only'
+    }
 }));
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -68,6 +117,41 @@ app.use((req, res, next) => {
     console.log(`📨 [${timestamp}] ${req.method} ${req.url} - ${req.ip}`);
     next();
 });
+
+// ==================== مستقبِل تقارير CSP (وضع الرصد فقط) ====================
+// يُركّب قبل apiLimiter لأن المتصفح قد يرسل مئات التقارير دفعة واحدة فتُستهلك
+// حصة الـ rate limit وتضيع البيانات. لا يقرأ ولا يكتب أي بيانات مكتب، لذا فهو
+// خارج قاعدة "كل مسار /api لبيانات المكاتب يجب أن يكون خلف requireAuth".
+// المسار موجود فقط في وضع report-only ويختفي تمامًا عند التطبيق الفعلي.
+if (CSP_MODE === 'report-only') {
+    const cspReportLog = process.env.CSP_REPORT_LOG;
+
+    app.post('/api/csp-report',
+        express.json({ type: ['application/csp-report', 'application/reports+json', 'application/json'], limit: '256kb' }),
+        (req, res) => {
+            // report-uri يرسل {"csp-report": {...}}، أما Reporting API فيرسل مصفوفة
+            const body = req.body || {};
+            const reports = Array.isArray(body) ? body : [body['csp-report'] || body];
+
+            for (const r of reports) {
+                if (!r) continue;
+                const entry = {
+                    directive: r['effective-directive'] || r['violated-directive'] || r.effectiveDirective,
+                    blocked: r['blocked-uri'] || r.blockedURL,
+                    document: r['document-uri'] || r.documentURL,
+                    line: r['line-number'] || r.lineNumber,
+                    sample: r['script-sample'] || r.sample
+                };
+                console.log(`🛡️  [CSP] ${JSON.stringify(entry)}`);
+                if (cspReportLog) {
+                    fs.appendFileSync(cspReportLog, JSON.stringify(entry) + '\n');
+                }
+            }
+
+            res.status(204).end();
+        }
+    );
+}
 
 // ==================== Routes API ====================
 const { apiLimiter } = require('./backend/middleware/rateLimiter');

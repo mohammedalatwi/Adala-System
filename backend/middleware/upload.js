@@ -9,6 +9,23 @@ if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// ✅ الامتدادات المسموح بها لكل نوع MIME
+// نوع الـ MIME يأتي من المتصفح (من العميل) ويمكن تزويره، لذلك لا يكفي وحده:
+// ملف باسم "evil.js" مع mimetype مزوّر "text/plain" كان يُحفظ سابقاً بامتداد .js
+// داخل مجلد uploads الذي يُقدّم من نفس الأصل (same-origin)، فيصبح تحميله
+// مسموحاً به تحت script-src 'self' — أي ثغرة تلتف على سياسة أمان المحتوى.
+// الحل: التحقق من الامتداد الفعلي ومطابقته لنوع الـ MIME المُعلن معاً.
+const EXTENSIONS_BY_MIME = {
+    'application/pdf': ['.pdf'],
+    'application/msword': ['.doc'],
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'text/plain': ['.txt']
+};
+
+const ALLOWED_EXTENSIONS = [...new Set(Object.values(EXTENSIONS_BY_MIME).flat())];
+
 // ✅ إعدادات التخزين
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -23,8 +40,10 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        const name = path.basename(file.originalname, ext);
+        // الامتداد هنا مُتحقَّق منه مسبقاً في fileFilter ويُكتب بأحرف صغيرة،
+        // فلا يُؤخذ امتداد اسم الملف الأصلي كما هو أبداً
+        const ext = path.extname(file.originalname).toLowerCase();
+        const name = path.basename(file.originalname, path.extname(file.originalname));
         
         // إنشاء اسم ملف آمن
         const safeName = name.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, '_') + '-' + uniqueSuffix + ext;
@@ -32,13 +51,28 @@ const storage = multer.diskStorage({
     }
 });
 
-// ✅ فلتر أنواع الملفات
+// ✅ فلتر أنواع الملفات: نوع الـ MIME + الامتداد الفعلي معاً
 const fileFilter = (req, file, cb) => {
-    if (config.upload.allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error(`نوع الملف غير مسموح به. الأنواع المسموحة: ${config.upload.allowedTypes.join(', ')}`), false);
+    const mimetype = file.mimetype;
+
+    if (!config.upload.allowedTypes.includes(mimetype)) {
+        return cb(new Error(`نوع الملف غير مسموح به. الأنواع المسموحة: ${config.upload.allowedTypes.join(', ')}`), false);
     }
+
+    const ext = path.extname(file.originalname).toLowerCase();
+
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+        return cb(new Error(`امتداد الملف غير مسموح به. الامتدادات المسموحة: ${ALLOWED_EXTENSIONS.join(', ')}`), false);
+    }
+
+    // يجب أن يطابق الامتداد نوع الـ MIME المُعلن
+    // (يمنع رفع ملف .js بادعاء أنه text/plain)
+    const expectedExtensions = EXTENSIONS_BY_MIME[mimetype] || [];
+    if (!expectedExtensions.includes(ext)) {
+        return cb(new Error(`امتداد الملف (${ext}) لا يطابق نوع الملف المُعلن (${mimetype})`), false);
+    }
+
+    cb(null, true);
 };
 
 // ✅ إعداد multer
