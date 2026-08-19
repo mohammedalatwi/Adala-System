@@ -49,6 +49,18 @@ class ValidationMiddleware {
         ];
     }
 
+    static get validateChangePassword() {
+        return [
+            body('current_password').notEmpty().withMessage('كلمة المرور الحالية مطلوبة'),
+            body('new_password').isLength({ min: 6 }).withMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
+            body('confirm_password')
+                .notEmpty().withMessage('تأكيد كلمة المرور مطلوب')
+                .custom((value, { req }) => value === req.body.new_password)
+                .withMessage('كلمة المرور الجديدة وتأكيدها غير متطابقين'),
+            validate
+        ];
+    }
+
     static get validateLogin() {
         return [
             body('email').trim().notEmpty().withMessage('يرجى إدخال البريد الإلكتروني أو اسم المستخدم'),

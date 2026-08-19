@@ -66,6 +66,13 @@ class AuthController extends BaseController {
         res.json({ authenticated: true, user: user });
     });
 
+    // ✅ تغيير كلمة المرور
+    changePassword = this.asyncWrapper(async (req, res) => {
+        const { current_password, new_password } = req.body;
+        await AuthService.changePassword(req.session.userId, current_password, new_password);
+        this.sendSuccess(res, null, 'تم تغيير كلمة المرور بنجاح');
+    });
+
     // ✅ التحقق من اسم المستخدم
     checkUsername = this.asyncWrapper(async (req, res) => {
         const { username } = req.params;

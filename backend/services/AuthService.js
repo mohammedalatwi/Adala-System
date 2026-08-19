@@ -82,6 +82,40 @@ class AuthService {
 
         return user;
     }
+
+    /**
+     * Change a logged-in user's own password after verifying their current one.
+     */
+    async changePassword(userId, currentPassword, newPassword) {
+        const user = await this.db.get('SELECT * FROM users WHERE id = ? AND is_active = 1', [userId]);
+        if (!user) {
+            throw new Error('المستخدم غير موجود');
+        }
+
+        const isValidPassword = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isValidPassword) {
+            const error = new Error('كلمة المرور الحالية غير صحيحة');
+            error.statusCode = 401;
+            throw error;
+        }
+
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+        await this.db.run(
+            'UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = datetime("now") WHERE id = ?',
+            [passwordHash, user.id]
+        );
+
+        await ActivityService.logActivity({
+            userId: user.id,
+            actionType: 'update',
+            entityType: 'user',
+            entityId: user.id,
+            description: 'تغيير كلمة المرور',
+            officeId: user.office_id
+        });
+    }
 }
 
 module.exports = new AuthService();

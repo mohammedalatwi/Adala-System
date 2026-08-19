@@ -129,3 +129,65 @@ describe('Auth flow', () => {
         expect(casesRes.body.success).toBe(true);
     });
 });
+
+describe('PUT /api/auth/password', () => {
+    let pwdUser;
+    let agent;
+
+    // تسجيل دخول واحد يُعاد استخدامه في كل اختبارات هذا الوصف، بدل تسجيل دخول
+    // منفصل بكل اختبار، لتفادي تجاوز الحد الأقصى لـ authLimiter (5 محاولات/15 دقيقة
+    // لكل IP) المشترك مع طلبات POST /api/auth/login وPOST /api/auth/register
+    // الأخرى بنفس ملف الاختبار.
+    beforeAll(async () => {
+        const passwordHash = await bcrypt.hash('originalPass1', 10);
+        const officeResult = await db.run('INSERT INTO offices (name) VALUES (?)', ['مكتب اختبار كلمة المرور']);
+        const userResult = await db.run(
+            `INSERT INTO users (full_name, username, email, password_hash, role, must_change_password, office_id)
+             VALUES (?, ?, ?, ?, 'lawyer', 1, ?)`,
+            ['محامي اختبار كلمة المرور', 'pwd_test_lawyer', 'pwd_test_lawyer@example.com', passwordHash, officeResult.id]
+        );
+        pwdUser = { id: userResult.id, email: 'pwd_test_lawyer@example.com' };
+
+        agent = request.agent(app);
+        await agent
+            .post('/api/auth/login')
+            .set('Accept', 'application/json')
+            .send({ email: pwdUser.email, password: 'originalPass1' });
+    });
+
+    test('rejects change when current_password is wrong', async () => {
+        const res = await agent
+            .put('/api/auth/password')
+            .set('Accept', 'application/json')
+            .send({ current_password: 'wrong-password', new_password: 'newPass456', confirm_password: 'newPass456' });
+
+        expect(res.body.success).toBe(false);
+        expect(res.status).toBe(401);
+    });
+
+    test('rejects new_password shorter than the minimum length', async () => {
+        const res = await agent
+            .put('/api/auth/password')
+            .set('Accept', 'application/json')
+            .send({ current_password: 'originalPass1', new_password: '123', confirm_password: '123' });
+
+        expect(res.body.success).toBe(false);
+        expect(res.status).toBe(400);
+    });
+
+    test('changes the password and clears must_change_password', async () => {
+        const res = await agent
+            .put('/api/auth/password')
+            .set('Accept', 'application/json')
+            .send({ current_password: 'originalPass1', new_password: 'newPass456', confirm_password: 'newPass456' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        const updatedUser = await db.get('SELECT password_hash, must_change_password FROM users WHERE id = ?', [pwdUser.id]);
+        expect(updatedUser.must_change_password).toBe(0);
+
+        const newPasswordMatches = await bcrypt.compare('newPass456', updatedUser.password_hash);
+        expect(newPasswordMatches).toBe(true);
+    });
+});
