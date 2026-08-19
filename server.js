@@ -157,6 +157,14 @@ if (CSP_MODE === 'report-only') {
 const { apiLimiter } = require('./backend/middleware/rateLimiter');
 app.use('/api', apiLimiter);
 
+// حظر إلزامي: من كانت كلمة مروره مؤقتة (must_change_password = 1) لا يصل لأي مسار
+// /api عدا تغيير كلمة المرور وتسجيل الخروج وفحص الحالة. يُركَّب هنا عالميًا قبل كل
+// الراوترات ليغطيها جميعًا بلا استثناء حسب الدور، بدل تكراره داخل كل راوتر على حدة
+// حيث يسهل نسيانه عند إضافة مسار جديد. الطلبات غير المصادَق عليها تمرّ منه ليتولاها
+// requireAuth داخل الراوتر المعني.
+const authMiddleware = require('./backend/middleware/auth');
+app.use('/api', authMiddleware.requireNoPendingPasswordChange);
+
 app.use('/api/auth', require('./backend/routes/auth'));
 app.use('/api/system', require('./backend/routes/system'));
 app.use('/api/dashboard', require('./backend/routes/dashboard'));

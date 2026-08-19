@@ -110,6 +110,13 @@ describe('POST /api/team/members (lawyer caller)', () => {
     let lawyerAgent;
 
     beforeAll(async () => {
+        // UserService.createUser يضبط must_change_password = 1 لكل حساب ينشئه شخص آخر،
+        // وحظر كلمة المرور المؤقتة (requireNoPendingPasswordChange) يمنع صاحبه من كل
+        // مسارات /api حتى يغيّرها. يُصفَّر العَلَم هنا مباشرةً بقاعدة البيانات لأن هذه
+        // الاختبارات تفحص صلاحيات الدور لا الحظر: لولا ذلك لأصبحت اختبارات الرفض (403)
+        // أدناه تنجح بسبب الحظر لا بسبب فحص الدور، فتفقد قيمتها بصمت.
+        await db.run('UPDATE users SET must_change_password = 0 WHERE email = ?', ['new_lawyer@example.com']);
+
         lawyerAgent = request.agent(app);
         await lawyerAgent
             .post('/api/auth/login')
@@ -147,6 +154,10 @@ describe('POST /api/team/members (lawyer caller)', () => {
 
 describe('POST /api/team/members (unauthorized callers)', () => {
     test('a trainee cannot call this endpoint at all', async () => {
+        // كما بالوصف السابق: يُصفَّر العَلَم ليأتي الرفض من فحص الدور لا من حظر
+        // كلمة المرور المؤقتة، وإلا نجح الاختبار للسبب الخطأ.
+        await db.run('UPDATE users SET must_change_password = 0 WHERE email = ?', ['new_trainee@example.com']);
+
         const traineeAgent = request.agent(app);
         await traineeAgent
             .post('/api/auth/login')

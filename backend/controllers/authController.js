@@ -29,7 +29,9 @@ class AuthController extends BaseController {
                 role: user.role,
                 specialization: user.specialization,
                 client_id: user.client_id,
-                office_id: user.office_id
+                office_id: user.office_id,
+                // تعرف منه الواجهة أن عليها تحويل المستخدم فورًا لتبويب كلمة المرور
+                must_change_password: user.must_change_password
             }
         }, 'تم تسجيل الدخول بنجاح');
     });
@@ -52,8 +54,8 @@ class AuthController extends BaseController {
 
         const user = await db.get(
             `SELECT id, full_name, username, email, role, specialization, client_id, office_id,
-                    avatar_url, created_at 
-             FROM users 
+                    avatar_url, created_at, must_change_password
+             FROM users
              WHERE id = ? AND is_active = 1`,
             [req.session.userId]
         );
