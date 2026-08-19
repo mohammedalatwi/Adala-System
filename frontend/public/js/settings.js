@@ -39,7 +39,7 @@ class SettingsManager {
                 if (this.primaryColorInput) this.primaryColorInput.value = s.primary_color || '#2563eb';
 
                 if (s.firm_logo && this.logoPreview) {
-                    this.logoPreview.innerHTML = `<img src="${s.firm_logo}" alt="Logo">
+                    this.logoPreview.innerHTML = `<img src="${Utils.escapeHTML(s.firm_logo)}" alt="Logo">
                         <div class="upload-overlay" onclick="document.getElementById('logoInput').click()"><i class="fas fa-camera"></i></div>`;
                 }
             }
@@ -112,7 +112,7 @@ class SettingsManager {
                 sessionStorage.removeItem('adala_settings');
                 // Update preview
                 if (this.logoPreview) {
-                    this.logoPreview.innerHTML = `<img src="${data.logo_url}" alt="Preview">
+                    this.logoPreview.innerHTML = `<img src="${Utils.escapeHTML(data.logo_url)}" alt="Preview">
                         <div class="upload-overlay" onclick="document.getElementById('logoInput').click()"><i class="fas fa-camera"></i></div>`;
                 }
                 Utils.loadBranding();

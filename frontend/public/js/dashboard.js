@@ -232,14 +232,14 @@ class DashboardManager {
                 background: var(--bg-surface); border: 1px solid var(--border-color); cursor: pointer; transition: var(--transition-base);
                 margin-bottom: 1rem; box-shadow: var(--shadow-sm);">
                 <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <div style="font-weight:800; color:var(--text-main); font-size:1rem;">${session.case_title || 'جلسة بدون عنوان'}</div>
+                    <div style="font-weight:800; color:var(--text-main); font-size:1rem;">${session.case_title ? Utils.escapeHTML(session.case_title) : 'جلسة بدون عنوان'}</div>
                     <span class="badge" style="background:var(--brand-primary)11; color:var(--brand-primary); padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:700; border:1px solid var(--brand-primary)22;">
                         ${this.formatSessionDate(session.session_date)}
                     </span>
                 </div>
                 <div style="display:flex; gap:1.25rem; font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem;">
                     <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-clock" style="color:var(--brand-primary);"></i> ${this.formatTime(session.session_date)}</span>
-                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> ${session.location || 'غير محدد'}</span>
+                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> ${session.location ? Utils.escapeHTML(session.location) : 'غير محدد'}</span>
                 </div>
             </div>
         `).join('');
@@ -264,17 +264,17 @@ class DashboardManager {
         container.innerHTML = cases.map(caseItem => `
             <div class="list-item" onclick="window.location.href='/cases?id=${caseItem.id}'">
                 <div class="list-item-header">
-                    <div class="list-item-title">${caseItem.title || 'قضية بدون عنوان'}</div>
+                    <div class="list-item-title">${caseItem.title ? Utils.escapeHTML(caseItem.title) : 'قضية بدون عنوان'}</div>
                     <span class="badge badge-${this.getCaseBadgeType(caseItem.status)}">
-                        ${caseItem.status || 'غير محدد'}
+                        ${caseItem.status ? Utils.escapeHTML(caseItem.status) : 'غير محدد'}
                     </span>
                 </div>
                 <div class="list-item-meta">
-                    <span><i class="fas fa-hashtag"></i> ${caseItem.case_number || 'بدون رقم'}</span>
-                    <span><i class="fas fa-user"></i> ${caseItem.client_name || 'عميل غير محدد'}</span>
+                    <span><i class="fas fa-hashtag"></i> ${caseItem.case_number ? Utils.escapeHTML(caseItem.case_number) : 'بدون رقم'}</span>
+                    <span><i class="fas fa-user"></i> ${caseItem.client_name ? Utils.escapeHTML(caseItem.client_name) : 'عميل غير محدد'}</span>
                     <span><i class="fas fa-calendar"></i> ${this.formatDate(caseItem.created_at)}</span>
                 </div>
-                ${caseItem.lawyer_name ? `<div class="list-item-lawyer"><i class="fas fa-user-tie"></i> ${caseItem.lawyer_name}</div>` : ''}
+                ${caseItem.lawyer_name ? `<div class="list-item-lawyer"><i class="fas fa-user-tie"></i> ${Utils.escapeHTML(caseItem.lawyer_name)}</div>` : ''}
             </div>
         `).join('');
     }
@@ -298,11 +298,11 @@ class DashboardManager {
         container.innerHTML = notifications.map(notif => `
             <div class="list-item notification-item ${notif.is_read ? '' : 'unread'}" onclick="DashboardManager.markNotificationAsRead(${notif.id}, this)">
                 <div class="list-item-header">
-                    <div class="list-item-title">${notif.title || 'إشعار'}</div>
-                    <span class="badge badge-${notif.type || 'info'}">${notif.type || 'معلومات'}</span>
+                    <div class="list-item-title">${notif.title ? Utils.escapeHTML(notif.title) : 'إشعار'}</div>
+                    <span class="badge badge-${notif.type ? Utils.escapeHTML(notif.type) : 'info'}">${notif.type ? Utils.escapeHTML(notif.type) : 'معلومات'}</span>
                 </div>
                 <div class="list-item-meta">
-                    <span>${notif.message || 'لا يوجد محتوى'}</span>
+                    <span>${notif.message ? Utils.escapeHTML(notif.message) : 'لا يوجد محتوى'}</span>
                 </div>
                 <div class="notification-time">
                     <i class="fas fa-clock"></i> ${this.formatRelativeTime(notif.created_at)}
@@ -334,9 +334,9 @@ class DashboardManager {
                     <i class="fas ${this.getActivityIcon(activity.action_type)}" style="font-size:1.1rem;"></i>
                 </div>
                 <div class="activity-content" style="flex:1;">
-                    <div class="activity-message" style="font-weight:700; font-size:0.95rem; margin-bottom:0.25rem; color:var(--text-main);">${activity.description || 'نشاط'}</div>
+                    <div class="activity-message" style="font-weight:700; font-size:0.95rem; margin-bottom:0.25rem; color:var(--text-main);">${activity.description ? Utils.escapeHTML(activity.description) : 'نشاط'}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="activity-user" style="font-size:0.85rem; color:var(--text-muted);">بواسطة: ${activity.user_name || 'مستخدم'}</div>
+                        <div class="activity-user" style="font-size:0.85rem; color:var(--text-muted);">بواسطة: ${activity.user_name ? Utils.escapeHTML(activity.user_name) : 'مستخدم'}</div>
                         <div class="activity-time" style="font-size:0.8rem; color:var(--brand-primary); font-weight:700; background:var(--brand-primary)11; padding:2px 8px; border-radius:6px;">${this.formatRelativeTime(activity.created_at)}</div>
                     </div>
                 </div>
@@ -362,13 +362,13 @@ class DashboardManager {
         container.innerHTML = tasks.map(task => `
             <div class="list-item" onclick="window.location.href='/tasks'" style="padding:1.25rem; border-bottom:1px solid var(--border-color); cursor:pointer; transition:var(--transition-base); background:var(--bg-surface); margin-bottom:0.5rem; border-radius:12px; border:1px solid transparent;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.75rem;">
-                    <div class="list-item-title" style="font-weight:800; color:var(--text-main); font-size:0.95rem;">${task.title}</div>
+                    <div class="list-item-title" style="font-weight:800; color:var(--text-main); font-size:0.95rem;">${Utils.escapeHTML(task.title)}</div>
                     <span class="badge" style="background:${this.getPriorityColor(task.priority)}11; color:${this.getPriorityColor(task.priority)}; padding:2px 10px; border-radius:8px; font-size:0.75rem; font-weight:800; border:1px solid ${this.getPriorityColor(task.priority)}33;">
-                        ${task.priority}
+                        ${Utils.escapeHTML(task.priority)}
                     </span>
                 </div>
                 <div class="list-item-meta" style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem; color:var(--text-muted);">
-                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-gavel" style="color:var(--brand-primary);"></i> ${task.case_title || 'عام'}</span>
+                    <span style="display:flex; align-items:center; gap:0.4rem;"><i class="fas fa-gavel" style="color:var(--brand-primary);"></i> ${task.case_title ? Utils.escapeHTML(task.case_title) : 'عام'}</span>
                     <span style="display:flex; align-items:center; gap:0.4rem; font-weight:700;"><i class="fas fa-calendar-alt" style="color:var(--warning);"></i> ${task.due_date ? new Date(task.due_date).toLocaleDateString('ar-SA') : 'بدون موعد'}</span>
                 </div>
             </div>
@@ -502,7 +502,7 @@ class DashboardManager {
         const welcomeEl = document.getElementById('welcomeMessage');
         if (welcomeEl) {
             const userName = document.getElementById('userName')?.textContent || 'أستاذ';
-            welcomeEl.innerHTML = `${greeting}، ${userName.split(' ')[0]} 👋`;
+            welcomeEl.innerHTML = `${greeting}، ${Utils.escapeHTML(userName.split(' ')[0])} 👋`;
         }
     }
 

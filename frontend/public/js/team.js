@@ -57,12 +57,12 @@ class TeamManager {
             card.innerHTML = `
                 <div style="display:flex; align-items:center; gap:1.25rem;">
                     <div class="user-avatar" style="width:65px; height:65px; font-size:1.5rem; border: 3px solid var(--bg-surface-hover); box-shadow: var(--shadow-sm); background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark)); color:white;">
-                        ${initials}
+                        ${Utils.escapeHTML(initials)}
                     </div>
                     <div style="flex:1;">
-                        <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--text-main);">${member.full_name}</h3>
+                        <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--text-main);">${Utils.escapeHTML(member.full_name)}</h3>
                         <div style="font-size:0.9rem; color:var(--brand-primary); font-weight:700; margin-top:0.2rem;">
-                            @${member.username}
+                            @${Utils.escapeHTML(member.username)}
                         </div>
                     </div>
                     <div class="status-dot" style="position:absolute; top:1.5rem; left:1.5rem;" title="نشط"></div>
@@ -75,16 +75,16 @@ class TeamManager {
                 <div style="display:flex; flex-direction:column; gap:0.75rem; background: var(--bg-body); padding:1rem; border-radius:14px; border:1px solid var(--border-color);">
                     <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.9rem; color:var(--text-muted);">
                         <i class="fas fa-envelope" style="width:16px; color:var(--brand-primary);"></i>
-                        <span style="font-weight:600;">${member.email}</span>
+                        <span style="font-weight:600;">${Utils.escapeHTML(member.email)}</span>
                     </div>
                     <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.9rem; color:var(--text-muted);">
                         <i class="fas fa-briefcase" style="width:16px; color:var(--brand-primary);"></i>
-                        <span style="font-weight:600;">${member.specialization || 'تدريب عام'}</span>
+                        <span style="font-weight:600;">${member.specialization ? Utils.escapeHTML(member.specialization) : 'تدريب عام'}</span>
                     </div>
                 </div>
 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-top:0.5rem;">
-                    <button class="btn btn-outline" style="border-radius:12px; font-weight:700; font-size:0.85rem; border-style:dashed;" onclick="TeamManager.copyMemberInfo('${member.username}', '${member.full_name}')">
+                    <button class="btn btn-outline btn-copy-member" style="border-radius:12px; font-weight:700; font-size:0.85rem; border-style:dashed;">
                         <i class="fas fa-copy"></i> نسخ البيانات
                     </button>
                     <button class="btn btn-outline" style="border-radius:12px; font-weight:700; font-size:0.85rem; color:var(--danger); border-color:var(--danger)44;" onclick="TeamManager.deleteMember(${member.id})">
@@ -92,6 +92,12 @@ class TeamManager {
                     </button>
                 </div>
             `;
+
+            // ربط زر "نسخ البيانات" عبر مستمع حدث بدلاً من onclick لتفادي حقن الشيفرة
+            // عبر اسم المستخدم أو الاسم الكامل (تهريب HTML وحده لا يحمي داخل onclick)
+            card.querySelector('.btn-copy-member')
+                .addEventListener('click', () => this.copyMemberInfo(member.username, member.full_name));
+
             grid.appendChild(card);
         });
     }

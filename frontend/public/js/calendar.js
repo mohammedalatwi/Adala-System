@@ -107,7 +107,7 @@ class CalendarManager {
                     </div>
                     <div>
                         <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">مقر / مكان انعقاد الجلسة</div>
-                        <div style="font-size: 0.95rem; color: var(--text-main); font-weight: 700;">${props.location || 'قاعة افتراضية / غير محدد'}</div>
+                        <div style="font-size: 0.95rem; color: var(--text-main); font-weight: 700;">${props.location ? Utils.escapeHTML(props.location) : 'قاعة افتراضية / غير محدد'}</div>
                     </div>
                 </div>
             `;
@@ -166,14 +166,14 @@ class CalendarManager {
                         <i class="fas ${priorityIcon}" style="color: ${priorityColor}; font-size: 1.1rem;"></i>
                         <div>
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">الأولوية</div>
-                            <div style="font-size: 0.9rem; color: ${priorityColor}; font-weight: 800;">${props.priority || 'عادية'}</div>
+                            <div style="font-size: 0.9rem; color: ${priorityColor}; font-weight: 800;">${props.priority ? Utils.escapeHTML(props.priority) : 'عادية'}</div>
                         </div>
                     </div>
                     <div style="display: flex; gap: 0.75rem; align-items: center; background: ${statusBg}; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05);">
                         <i class="fas ${statusIcon}" style="color: ${statusColor}; font-size: 1.1rem;"></i>
                         <div>
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">حالة المهمة</div>
-                            <div style="font-size: 0.9rem; color: ${statusColor}; font-weight: 800;">${props.status || 'قيد الانتظار'}</div>
+                            <div style="font-size: 0.9rem; color: ${statusColor}; font-weight: 800;">${props.status ? Utils.escapeHTML(props.status) : 'قيد الانتظار'}</div>
                         </div>
                     </div>
                 </div>
@@ -215,7 +215,7 @@ class CalendarManager {
                 <div class="modal-body" style="padding: 1.75rem; display: flex; flex-direction: column; gap: 1.25rem;">
                     <!-- اسم الحدث والتصنيف -->
                     <div>
-                        <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.5;">${event.title}</h3>
+                        <h3 style="font-size: 1.35rem; font-weight: 800; color: var(--text-main); margin-bottom: 0.5rem; line-height: 1.5;">${Utils.escapeHTML(event.title)}</h3>
                         <span style="font-size: 0.8rem; color: ${themeColor}; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.8rem; border-radius: 30px; background: ${isSession ? 'rgba(59, 130, 246, 0.08)' : 'rgba(245, 158, 11, 0.08)'}; border: 1px solid ${isSession ? 'rgba(59, 130, 246, 0.15)' : 'rgba(245, 158, 11, 0.15)'};">
                             <span style="width: 6px; height: 6px; border-radius: 50%; background: ${themeColor}; display: inline-block;"></span>
                             ${type}

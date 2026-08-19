@@ -46,7 +46,7 @@ class TasksManager {
             const res = await API.get('/cases?limit=100');
             if (res.success) {
                 const cases = res.data.cases || res.data;
-                const options = cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                const options = cases.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.title)}</option>`).join('');
                 document.getElementById('taskCase').insertAdjacentHTML('beforeend', options);
             }
         } catch (e) {
@@ -59,7 +59,7 @@ class TasksManager {
             const res = await API.get('/team');
             if (res.success) {
                 const members = res.data;
-                const options = members.map(m => `<option value="${m.id}">${m.full_name} (${m.role})</option>`).join('');
+                const options = members.map(m => `<option value="${m.id}">${Utils.escapeHTML(m.full_name)} (${Utils.escapeHTML(m.role)})</option>`).join('');
                 document.getElementById('taskAssignedTo').insertAdjacentHTML('beforeend', options);
             }
         } catch (e) {
@@ -92,7 +92,7 @@ class TasksManager {
             }
         } catch (error) {
             if (grid.children.length === 0) {
-                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${error.message}</div>`;
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${Utils.escapeHTML(error.message)}</div>`;
             }
         }
     }
@@ -133,23 +133,23 @@ class TasksManager {
             <div class="card task-card" style="display:flex; flex-direction:column; gap:1.25rem; opacity: ${isCompleted ? '0.75' : '1'}; border-right: 5px solid ${priorityColor};">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
                     <div style="flex:1;">
-                        <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:var(--text-main); ${isCompleted ? 'text-decoration:line-through;' : ''}">${task.title}</h3>
+                        <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:var(--text-main); ${isCompleted ? 'text-decoration:line-through;' : ''}">${Utils.escapeHTML(task.title)}</h3>
                         <div style="display:flex; flex-wrap:wrap; gap:0.8rem; margin-top:0.5rem; font-size:0.8rem;">
                              <span style="color:var(--brand-primary); font-weight:700;">
-                                <i class="fas fa-gavel"></i> ${task.case_title || 'مهمة عامة'}
+                                <i class="fas fa-gavel"></i> ${task.case_title ? Utils.escapeHTML(task.case_title) : 'مهمة عامة'}
                              </span>
                              <span style="color:var(--text-muted); font-weight:600;">
-                                <i class="fas fa-user"></i> ${task.assigned_to_name || 'غير مسندة'}
+                                <i class="fas fa-user"></i> ${task.assigned_to_name ? Utils.escapeHTML(task.assigned_to_name) : 'غير مسندة'}
                              </span>
                         </div>
                     </div>
                     <div class="badge" style="background:${priorityColor}22; color:${priorityColor}; padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800; border: 1px solid ${priorityColor}33;">
-                        ${task.priority}
+                        ${Utils.escapeHTML(task.priority)}
                     </div>
                 </div>
 
                 <p style="font-size:0.9rem; color:var(--text-muted); line-height:1.6; min-height:40px;">
-                    ${task.description || 'لا يوجد وصف لهذه المهمة...'}
+                    ${task.description ? Utils.escapeHTML(task.description) : 'لا يوجد وصف لهذه المهمة...'}
                 </p>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">

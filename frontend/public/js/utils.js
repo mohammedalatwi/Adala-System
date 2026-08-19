@@ -192,6 +192,17 @@ class Utils {
         return str.charAt(0).toUpperCase() + str.slice(1);
     }
 
+    // ✅ تعقيم النص قبل إدراجه في innerHTML لمنع هجمات XSS
+    static escapeHTML(value) {
+        if (value === null || value === undefined) return '';
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     // ✅ تقليم النص وإضافة ...
     static truncate(text, length = 50) {
         if (!text) return '';
@@ -374,7 +385,7 @@ class Utils {
         document.querySelectorAll('.brand-logo-container').forEach(container => {
             if (firm_logo) {
                 // استخدام الصورة المخصصة
-                container.innerHTML = `<img src="${firm_logo}" alt="${firm_name || 'Logo'}" onerror="this.src='/img/default-logo.png'; this.parentElement.innerHTML='<i class=\'fas fa-balance-scale\'></i>'">`;
+                container.innerHTML = `<img src="${this.escapeHTML(firm_logo)}" alt="${this.escapeHTML(firm_name || 'Logo')}" onerror="this.src='/img/default-logo.png'; this.parentElement.innerHTML='<i class=\'fas fa-balance-scale\'></i>'">`;
                 container.style.background = 'white'; // خلفية بيضاء للشعارات الملونة لضمان الوضوح
                 container.style.padding = '4px';
             } else {
@@ -787,8 +798,8 @@ class Utils {
                 <i class="fas ${icons[notif.type] || icons.info}"></i>
             </div>
             <div class="toast-content">
-                <div class="toast-title">${notif.title}</div>
-                <div class="toast-message">${notif.message}</div>
+                <div class="toast-title">${this.escapeHTML(notif.title)}</div>
+                <div class="toast-message">${this.escapeHTML(notif.message)}</div>
             </div>
         `;
 

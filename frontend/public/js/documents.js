@@ -78,7 +78,7 @@ class DocumentsManager {
             const result = await API.get('/cases?limit=100');
             if (result.success) {
                 const cases = result.data.cases || result.data;
-                const options = cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                const options = cases.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.title)}</option>`).join('');
                 document.getElementById('caseFilter').insertAdjacentHTML('beforeend', options);
                 document.getElementById('docCase').insertAdjacentHTML('beforeend', options);
             }
@@ -107,7 +107,7 @@ class DocumentsManager {
                 this.renderDocuments(result.data.documents);
             }
         } catch (error) {
-            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${error.message}</div>`;
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:red;">خطأ: ${Utils.escapeHTML(error.message)}</div>`;
         }
     }
 
@@ -136,16 +136,16 @@ class DocumentsManager {
                 <div style="height:140px; background: linear-gradient(135deg, ${iconColor}08, ${iconColor}15); display:flex; align-items:center; justify-content:center; position:relative; border-bottom:1px solid var(--border-color);">
                     <i class="${iconClass}" style="font-size:3.5rem; color:${iconColor}; filter: drop-shadow(0 4px 6px ${iconColor}33);"></i>
                     <div style="position:absolute; bottom:0.75rem; right:0.75rem; background:rgba(255,255,255,0.9); padding:4px 10px; border-radius:8px; font-size:0.7rem; font-weight:800; color:${iconColor}; border:1px solid ${iconColor}22;">
-                        ${doc.file_type ? doc.file_type.split('/')[1].toUpperCase() : 'DOC'}
+                        ${doc.file_type ? Utils.escapeHTML(doc.file_type.split('/')[1].toUpperCase()) : 'DOC'}
                     </div>
                 </div>
                 <div style="padding:1.25rem;">
-                    <h4 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${doc.title}">
-                        ${doc.title}
+                    <h4 style="margin:0; font-size:1rem; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${Utils.escapeHTML(doc.title)}">
+                        ${Utils.escapeHTML(doc.title)}
                     </h4>
                     <div style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.5rem;">
                         <div style="font-size:0.85rem; color:var(--brand-primary); font-weight:700;">
-                            <i class="fas fa-briefcase" style="width:16px;"></i> ${doc.case_title || 'مستند عام'}
+                            <i class="fas fa-briefcase" style="width:16px;"></i> ${doc.case_title ? Utils.escapeHTML(doc.case_title) : 'مستند عام'}
                         </div>
                         <div style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">
                             <i class="far fa-clock" style="width:16px;"></i> ${new Date(doc.uploaded_at).toLocaleDateString('ar-SA')}

@@ -206,13 +206,13 @@ class FinanceManager {
 
         tbody.innerHTML = expenses.map(exp => `
             <tr>
-                <td style="font-weight:bold;">${exp.title}</td>
-                <td><span class="badge" style="background:var(--bg-body); color:var(--text-muted); border:1px solid var(--border-color);">${exp.category || '-'}</span></td>
+                <td style="font-weight:bold;">${Utils.escapeHTML(exp.title)}</td>
+                <td><span class="badge" style="background:var(--bg-body); color:var(--text-muted); border:1px solid var(--border-color);">${exp.category ? Utils.escapeHTML(exp.category) : '-'}</span></td>
                 <td>${new Date(exp.expense_date).toLocaleDateString('ar-SA')}</td>
                 <td style="font-weight:bold;">${Number(exp.amount).toFixed(2)}</td>
                 <td>${exp.is_billable ? '<i class="fas fa-check-circle text-success" title="نعم"></i>' : '<i class="fas fa-times-circle text-muted" title="لا"></i>'}</td>
-                <td>${exp.case_title || '<span class="text-muted">عام</span>'}</td>
-                <td><div style="font-size:0.85rem;">${exp.recorded_by_name || '-'}</div></td>
+                <td>${exp.case_title ? Utils.escapeHTML(exp.case_title) : '<span class="text-muted">عام</span>'}</td>
+                <td><div style="font-size:0.85rem;">${exp.recorded_by_name ? Utils.escapeHTML(exp.recorded_by_name) : '-'}</div></td>
             </tr>
         `).join('');
     }
@@ -230,7 +230,7 @@ class FinanceManager {
         if (res.success) {
             const cases = res.data.cases || res.data;
             document.getElementById('expCase').innerHTML = '<option value="">عام</option>' +
-                cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                cases.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.title)}</option>`).join('');
         }
     }
 
@@ -319,8 +319,8 @@ class FinanceManager {
             const due = parseFloat(inv.amount) - parseFloat(inv.paid_amount);
             return `
                 <tr>
-                    <td style="font-weight:bold;">${inv.invoice_number}</td>
-                    <td>${inv.client_name || '-'}</td>
+                    <td style="font-weight:bold;">${Utils.escapeHTML(inv.invoice_number)}</td>
+                    <td>${inv.client_name ? Utils.escapeHTML(inv.client_name) : '-'}</td>
                     <td>${new Date(inv.issue_date).toLocaleDateString('ar-SA')}</td>
                     <td>${Number(inv.amount).toFixed(2)}</td>
                     <td class="text-success">${Number(inv.paid_amount).toFixed(2)}</td>
@@ -359,7 +359,7 @@ class FinanceManager {
             'overdue': { text: 'متأخر جداً', color: '#7f1d1d', bg: 'rgba(127, 29, 29, 0.1)' }
         };
         const s = map[status] || { text: status, color: '#666', bg: '#eee' };
-        return `<span style="background:${s.bg}; color:${s.color}; padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:800; border:1px solid ${s.color}22;">${s.text}</span>`;
+        return `<span style="background:${s.bg}; color:${s.color}; padding:4px 10px; border-radius:8px; font-size:0.75rem; font-weight:800; border:1px solid ${s.color}22;">${Utils.escapeHTML(s.text)}</span>`;
     }
 
     static async loadClients() {
@@ -367,7 +367,7 @@ class FinanceManager {
         if (res.success) {
             const clients = res.data.clients || res.data;
             document.getElementById('invClient').innerHTML = '<option value="">اختر العميل</option>' +
-                clients.map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
+                clients.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.full_name)}</option>`).join('');
         }
     }
 
@@ -376,7 +376,7 @@ class FinanceManager {
         if (res.success) {
             const cases = res.data.cases || res.data;
             document.getElementById('invCase').innerHTML = '<option value="">(اختياري)</option>' +
-                cases.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+                cases.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.title)}</option>`).join('');
         }
     }
 

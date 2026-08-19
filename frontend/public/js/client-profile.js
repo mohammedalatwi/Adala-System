@@ -75,15 +75,15 @@ class ClientProfile {
 
         container.innerHTML = `
             <div class="profile-avatar-large">
-                ${c.full_name.charAt(0).toUpperCase()}
+                ${Utils.escapeHTML(c.full_name.charAt(0).toUpperCase())}
             </div>
             <div class="profile-info">
-                <h1 class="profile-name">${c.full_name}</h1>
+                <h1 class="profile-name">${Utils.escapeHTML(c.full_name)}</h1>
                 <div class="profile-meta">
-                    ${c.national_id ? `<div class="profile-meta-item"><i class="fas fa-id-card"></i> ${c.national_id}</div>` : ''}
-                    ${c.phone ? `<div class="profile-meta-item"><i class="fas fa-phone"></i> ${c.phone}</div>` : ''}
-                    ${c.email ? `<div class="profile-meta-item"><i class="fas fa-envelope"></i> ${c.email}</div>` : ''}
-                    ${c.address ? `<div class="profile-meta-item"><i class="fas fa-map-marker-alt"></i> ${c.address}</div>` : ''}
+                    ${c.national_id ? `<div class="profile-meta-item"><i class="fas fa-id-card"></i> ${Utils.escapeHTML(c.national_id)}</div>` : ''}
+                    ${c.phone ? `<div class="profile-meta-item"><i class="fas fa-phone"></i> ${Utils.escapeHTML(c.phone)}</div>` : ''}
+                    ${c.email ? `<div class="profile-meta-item"><i class="fas fa-envelope"></i> ${Utils.escapeHTML(c.email)}</div>` : ''}
+                    ${c.address ? `<div class="profile-meta-item"><i class="fas fa-map-marker-alt"></i> ${Utils.escapeHTML(c.address)}</div>` : ''}
                 </div>
                 <div style="margin-top: 1rem;">
                     <span class="badge" style="background:${c.is_active ? 'var(--success)' : 'var(--danger)'}22; color:${c.is_active ? 'var(--success)' : 'var(--danger)'}; padding:5px 12px; font-size:0.9rem;">
@@ -107,12 +107,12 @@ class ClientProfile {
         container.innerHTML = cases.map(c => `
             <div class="card" style="display:flex; flex-direction:column; gap:1rem; cursor:pointer;" onclick="window.location.href='/cases?case_id=${c.id}'">
                 <div style="display:flex; justify-content:space-between;">
-                    <div class="badge" style="background:var(--brand-primary)22; color:var(--brand-primary);">${c.case_number}</div>
-                    <div class="badge" style="background:#fef3c7; color:#d97706;">${c.status}</div>
+                    <div class="badge" style="background:var(--brand-primary)22; color:var(--brand-primary);">${Utils.escapeHTML(c.case_number)}</div>
+                    <div class="badge" style="background:#fef3c7; color:#d97706;">${Utils.escapeHTML(c.status)}</div>
                 </div>
-                <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-main);">${c.title}</h3>
+                <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--text-main);">${Utils.escapeHTML(c.title)}</h3>
                 <div style="color:var(--text-muted); font-size:0.85rem;">
-                    <i class="fas fa-university"></i> ${c.court_name || 'جهة غير محددة'}
+                    <i class="fas fa-university"></i> ${c.court_name ? Utils.escapeHTML(c.court_name) : 'جهة غير محددة'}
                 </div>
                 <div style="font-size:0.8rem; color:var(--text-muted); margin-top:auto; padding-top:1rem; border-top:1px solid var(--border-color);">
                     تاريخ الفتح: ${new Date(c.created_at).toLocaleDateString()}
@@ -135,15 +135,15 @@ class ClientProfile {
             return `
             <div class="card" style="display:flex; flex-direction:column; gap:0.5rem; border-right: 4px solid var(--brand-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                    <div style="font-size:1.1rem; font-weight:800; color:var(--text-main);">${s.case_title}</div>
-                    <span class="badge" style="background:#e0e7ff; color:var(--brand-primary);">${s.status}</span>
+                    <div style="font-size:1.1rem; font-weight:800; color:var(--text-main);">${Utils.escapeHTML(s.case_title)}</div>
+                    <span class="badge" style="background:#e0e7ff; color:var(--brand-primary);">${Utils.escapeHTML(s.status)}</span>
                 </div>
                 <div style="color:var(--text-main); display:flex; gap:0.5rem; align-items:center;">
                     <i class="fas fa-clock" style="color:var(--text-muted);"></i>
                     <strong>${sDate.toLocaleDateString('ar-SA')} - ${sDate.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</strong>
                 </div>
                 <div style="color:var(--text-muted); font-size:0.9rem;">
-                    <i class="fas fa-map-marker-alt"></i> ${s.location} (${s.session_type})
+                    <i class="fas fa-map-marker-alt"></i> ${Utils.escapeHTML(s.location)} (${Utils.escapeHTML(s.session_type)})
                 </div>
             </div>
             `;
@@ -164,7 +164,7 @@ class ClientProfile {
             return `
             <tr>
                 <td>${new Date(t.transaction_date).toLocaleDateString()}</td>
-                <td style="font-family:monospace; color:var(--text-muted);">${t.receipt_number || '—'}</td>
+                <td style="font-family:monospace; color:var(--text-muted);">${t.receipt_number ? Utils.escapeHTML(t.receipt_number) : '—'}</td>
                 <td>
                     <span class="badge" style="background:${isIncome ? 'var(--success)' : 'var(--danger)'}22; color:${isIncome ? 'var(--success)' : 'var(--danger)'};">
                         ${isIncome ? 'سند قبض' : 'سند صرف'}
@@ -173,8 +173,8 @@ class ClientProfile {
                 <td style="font-weight:bold; color:${isIncome ? 'var(--success)' : 'var(--danger)'};">
                     ${isIncome ? '+' : '-'}${parseFloat(t.amount).toLocaleString()} ر.س
                 </td>
-                <td>${t.case_title}</td>
-                <td>${this.translatePaymentMethod(t.payment_method)}</td>
+                <td>${Utils.escapeHTML(t.case_title)}</td>
+                <td>${Utils.escapeHTML(this.translatePaymentMethod(t.payment_method))}</td>
             </tr>
             `;
         }).join('');
@@ -195,9 +195,9 @@ class ClientProfile {
                     <i class="fas fa-file-alt"></i>
                 </div>
                 <div style="flex:1;">
-                    <h4 style="margin:0; font-size:1rem; font-weight:700; color:var(--text-main);">${doc.title}</h4>
+                    <h4 style="margin:0; font-size:1rem; font-weight:700; color:var(--text-main);">${Utils.escapeHTML(doc.title)}</h4>
                     <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
-                        ${doc.case_title}
+                        ${Utils.escapeHTML(doc.case_title)}
                     </div>
                 </div>
                 <div style="color:var(--text-muted); font-size:0.85rem;">

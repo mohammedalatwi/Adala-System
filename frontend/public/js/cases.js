@@ -81,7 +81,7 @@ class CasesManager {
                 // Backend now returns { clients, pagination } in data
                 const clients = result.data.clients || result.data; // fallback if it's still an array
                 select.innerHTML = '<option value="">اختر العميل</option>' +
-                    clients.map(c => `<option value="${c.id}">${c.full_name}</option>`).join('');
+                    clients.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.full_name)}</option>`).join('');
             }
         } catch (error) {
             console.error('Failed to load clients:', error);
@@ -94,7 +94,7 @@ class CasesManager {
             if (result.success) {
                 const select = document.getElementById('lawyerSelect');
                 select.innerHTML = '<option value="">اختر المحامي</option>' +
-                    result.data.map(l => `<option value="${l.id}">${l.full_name}</option>`).join('');
+                    result.data.map(l => `<option value="${l.id}">${Utils.escapeHTML(l.full_name)}</option>`).join('');
             }
         } catch (error) {
             console.error('Failed to load lawyers:', error);
@@ -119,12 +119,12 @@ class CasesManager {
             <div class="card" style="border-top: 5px solid ${this.getPriorityColor(c.priority)}; display: flex; flex-direction: column; gap: 1rem; position: relative;">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.25rem;">رقم القضية: ${c.case_number}</div>
-                        <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--text-main); line-height:1.4;">${c.title}</h3>
+                        <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.25rem;">رقم القضية: ${Utils.escapeHTML(c.case_number)}</div>
+                        <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--text-main); line-height:1.4;">${Utils.escapeHTML(c.title)}</h3>
                     </div>
                     <div style="display:flex; flex-direction:column; align-items:flex-end; gap:0.5rem;">
                         <span class="badge" style="background:${this.getStatusColor(c.status)}22; color:${this.getStatusColor(c.status)}; padding:4px 12px; border-radius:8px; font-weight:700; font-size:0.8rem; border: 1px solid ${this.getStatusColor(c.status)}44;">
-                            ${c.status}
+                            ${Utils.escapeHTML(c.status)}
                         </span>
                         <button onclick="event.stopPropagation(); CasesManager.deleteCase(${c.id})" class="btn-icon" style="color:var(--danger); background:transparent; border:none; cursor:pointer; font-size:1.1rem; opacity:0.7;" title="حذف">
                             <i class="fas fa-trash-alt"></i>
@@ -134,14 +134,14 @@ class CasesManager {
                 
                 <div style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem;">
                     <div style="display:flex; align-items:center; gap:0.6rem; color:var(--text-main); font-weight:600; font-size:0.95rem;">
-                         <i class="fas fa-user-circle" style="color:var(--brand-primary);"></i> ${c.client_name || 'عميل غير معروف'}
+                         <i class="fas fa-user-circle" style="color:var(--brand-primary);"></i> ${c.client_name ? Utils.escapeHTML(c.client_name) : 'عميل غير معروف'}
                     </div>
                 </div>
 
                 <div style="margin-top:auto; padding-top:1.25rem; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; flex-direction:column; gap:0.25rem;">
                         <span style="font-size:0.8rem; color:var(--text-muted);"><i class="fas fa-calendar-alt"></i> ${Utils.formatDate(c.start_date)}</span>
-                        <span style="font-size:0.85rem; font-weight:600; color:var(--brand-primary);">${c.case_type}</span>
+                        <span style="font-size:0.85rem; font-weight:600; color:var(--brand-primary);">${Utils.escapeHTML(c.case_type)}</span>
                     </div>
                     <div style="display:flex; gap:0.6rem;">
                         <button onclick="event.stopPropagation(); window.location.href='/sessions?case_id=${c.id}'" 

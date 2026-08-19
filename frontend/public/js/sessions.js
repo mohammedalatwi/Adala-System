@@ -73,7 +73,7 @@ class SessionsManager {
             if (result && result.success) {
                 const cases = result.data.cases || result.data;
                 const options = '<option value="">اختر القضية</option>' +
-                    cases.map(c => `<option value="${c.id}">${c.case_number} - ${c.title}</option>`).join('');
+                    cases.map(c => `<option value="${c.id}">${Utils.escapeHTML(c.case_number)} - ${Utils.escapeHTML(c.title)}</option>`).join('');
 
                 document.getElementById('caseFilter').innerHTML = '<option value="">جميع القضايا</option>' + options;
                 document.getElementById('sessionCase').innerHTML = options;
@@ -211,15 +211,15 @@ class SessionsManager {
                 </div>
                 <div class="session-details-col">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <h3 class="session-title" onclick="window.location.href='/cases?case_id=${s.case_id}'">${s.case_title}</h3>
+                        <h3 class="session-title" onclick="window.location.href='/cases?case_id=${s.case_id}'">${Utils.escapeHTML(s.case_title)}</h3>
                         <span class="badge" style="background:${statusColor}22; color:${statusColor}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
-                            ${s.status}
+                            ${Utils.escapeHTML(s.status)}
                         </span>
                     </div>
                     <div class="session-meta">
-                        <span><i class="fas fa-gavel"></i> ${s.session_type}</span>
-                        <span><i class="fas fa-map-marker-alt"></i> ${s.city || ''} ${s.location ? '- ' + s.location : ''}</span>
-                        <span><i class="fas fa-user-tie"></i> ${s.judge_name || 'القاضي غير محدد'}</span>
+                        <span><i class="fas fa-gavel"></i> ${Utils.escapeHTML(s.session_type)}</span>
+                        <span><i class="fas fa-map-marker-alt"></i> ${s.city ? Utils.escapeHTML(s.city) : ''} ${s.location ? '- ' + Utils.escapeHTML(s.location) : ''}</span>
+                        <span><i class="fas fa-user-tie"></i> ${s.judge_name ? Utils.escapeHTML(s.judge_name) : 'القاضي غير محدد'}</span>
                         <span style="opacity:0.6;"><i class="fas fa-hashtag"></i> #${s.id}</span>
                     </div>
                 </div>

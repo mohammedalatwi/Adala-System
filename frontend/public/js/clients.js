@@ -92,10 +92,10 @@ class ClientsManager {
             <div class="card" style="display:flex; flex-direction:column; gap:1.25rem; position:relative;">
                 <div style="display:flex; align-items:center; gap:1.25rem;">
                     <div class="user-avatar" style="width:55px; height:55px; font-size:1.3rem; border: 3px solid var(--bg-surface-hover); box-shadow: var(--shadow-sm);">
-                        ${client.full_name.charAt(0).toUpperCase()}
+                        ${Utils.escapeHTML(client.full_name.charAt(0).toUpperCase())}
                     </div>
                     <div style="flex:1;">
-                        <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-main);">${client.full_name}</h3>
+                        <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:var(--text-main);">${Utils.escapeHTML(client.full_name)}</h3>
                         <div style="display:flex; gap:0.5rem; margin-top:0.25rem;">
                              <span class="badge" style="background:${client.is_active ? 'var(--success)' : 'var(--danger)'}22; color:${client.is_active ? 'var(--success)' : 'var(--danger)'}; padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
                                 ${client.is_active ? 'نشط' : 'غير نشط'}
@@ -107,10 +107,10 @@ class ClientsManager {
 
                 <div style="display:flex; flex-direction:column; gap:0.6rem; background:rgba(0,0,0,0.02); padding:0.85rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
                     <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="fas fa-phone-alt" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${client.phone || '—'}
+                        <i class="fas fa-phone-alt" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${client.phone ? Utils.escapeHTML(client.phone) : '—'}
                     </div>
                     <div style="font-size:0.9rem; color:var(--text-main); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="fas fa-envelope" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${client.email || '—'}
+                        <i class="fas fa-envelope" style="color:var(--brand-primary); font-size:0.85rem;"></i> ${client.email ? Utils.escapeHTML(client.email) : '—'}
                     </div>
                 </div>
 

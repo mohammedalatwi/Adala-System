@@ -65,10 +65,10 @@ class PortalManager {
         container.innerHTML = data.map(c => `
             <div style="padding:1rem; border: 1px solid var(--border-color); border-radius:12px; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
                 <div>
-                    <div style="font-weight:700; color:var(--text-main);">${c.title}</div>
-                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">${c.case_number} | ${c.court_name || 'المحكمة العامة'}</div>
+                    <div style="font-weight:700; color:var(--text-main);">${Utils.escapeHTML(c.title)}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">${Utils.escapeHTML(c.case_number)} | ${c.court_name ? Utils.escapeHTML(c.court_name) : 'المحكمة العامة'}</div>
                 </div>
-                <span class="badge" style="background:var(--portal-primary); color:white; font-size:0.7rem; padding:4px 10px; border-radius:50px;">${c.status}</span>
+                <span class="badge" style="background:var(--portal-primary); color:white; font-size:0.7rem; padding:4px 10px; border-radius:50px;">${Utils.escapeHTML(c.status)}</span>
             </div>
         `).join('');
     }
@@ -90,8 +90,8 @@ class PortalManager {
                         <span style="font-size:0.8rem; color:#b45309; font-weight:700;">${date.toLocaleDateString('ar-SA')}</span>
                         <span style="font-size:0.8rem; color:var(--text-muted);">${date.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
-                    <div style="font-weight:700;">${s.session_type} - ${s.case_title || 'قضية قائمة'}</div>
-                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:3px;"><i class="fas fa-map-marker-alt"></i> ${s.location || 'موعد افتراضي'}</div>
+                    <div style="font-weight:700;">${Utils.escapeHTML(s.session_type)} - ${s.case_title ? Utils.escapeHTML(s.case_title) : 'قضية قائمة'}</div>
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:3px;"><i class="fas fa-map-marker-alt"></i> ${s.location ? Utils.escapeHTML(s.location) : 'موعد افتراضي'}</div>
                 </div>
             `;
         }).join('');
@@ -130,7 +130,7 @@ class PortalManager {
                     <i class="fas fa-file-pdf"></i>
                 </div>
                 <div style="flex:1; overflow:hidden;">
-                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${d.title}</div>
+                    <div style="font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${Utils.escapeHTML(d.title)}</div>
                     <div style="font-size:0.75rem; color:var(--text-muted);">مستند رسمي - ${new Date(d.created_at).toLocaleDateString('ar-SA')}</div>
                 </div>
                 <a href="/api/documents/${d.id}/download" class="btn btn-sm btn-icon" title="تحميل">
@@ -179,8 +179,8 @@ class PortalManager {
                         <i class="fas ${e.type === 'case' ? 'fa-folder-plus' : 'fa-calendar-check'}"></i>
                         ${e.date.toLocaleDateString('ar-SA')} 
                     </div>
-                    <div class="event-title">${e.title}</div>
-                    <p style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">${e.desc}</p>
+                    <div class="event-title">${Utils.escapeHTML(e.title)}</div>
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-top:5px;">${Utils.escapeHTML(e.desc)}</p>
                 </div>
             </div>
         `).join('');
