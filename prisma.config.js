@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const { defineConfig, env } = require('prisma/config');
 
 module.exports = defineConfig({
