@@ -18,6 +18,7 @@ class AuthController extends BaseController {
         req.session.userId = user.id;
         req.session.userRole = user.role;
         req.session.officeId = user.office_id;
+        req.session.clientId = user.client_id;
 
         this.sendSuccess(res, {
             user: {
