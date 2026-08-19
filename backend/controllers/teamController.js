@@ -34,28 +34,15 @@ class TeamController extends BaseController {
         this.sendSuccess(res, lawyers);
     });
 
-    // ✅ إضافة متدرب جديد
-    addTrainee = this.asyncWrapper(async (req, res) => {
-        const { full_name, username, email, password, phone, specialization } = req.body;
-        const supervisorId = req.session.userId;
-        const officeId = req.session.officeId;
+    // ✅ إضافة عضو فريق جديد (محامي/متدرب/عميل بوابة) — مسار موحّد
+    addMember = this.asyncWrapper(async (req, res) => {
+        // المحامي (بخلاف الأدمن) يقدر يضيف متدربين فقط، لا محامين آخرين ولا حسابات بوابة
+        if (req.session.userRole === 'lawyer' && req.body.role !== 'trainee') {
+            throw new Error('غير مصرح لك بإنشاء هذا النوع من الحسابات');
+        }
 
-        // Reuse logic from UserService if compatible, but TeamController has specific supervisor_id
-        // For now, let's keep it here but using asyncWrapper
-        // استثناء مقصود: لا يوجد عزل office_id هنا لأن username/email فريدان على مستوى النظام كله
-        const existing = await db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username, email]);
-        if (existing) throw new Error('اسم المستخدم أو البريد الإلكتروني موجود مسبقاً');
-
-        const bcrypt = require('bcryptjs');
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        await db.run(
-            `INSERT INTO users (full_name, username, email, password_hash, phone, role, specialization, supervisor_id, office_id)
-             VALUES (?, ?, ?, ?, ?, 'trainee', ?, ?, ?)`,
-            [full_name, username, email, passwordHash, phone, specialization, supervisorId, officeId]
-        );
-
-        this.sendCreated(res, null, 'تم إضافة المتدرب بنجاح');
+        const result = await UserService.createUser(req.body, req.session.officeId, req.session.userId);
+        this.sendCreated(res, result, 'تم إنشاء الحساب بنجاح');
     });
 
     // ✅ حذف عضو من الفريق

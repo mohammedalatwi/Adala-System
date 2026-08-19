@@ -32,6 +32,23 @@ class ValidationMiddleware {
         ];
     }
 
+    // مسار موحّد لإضافة عضو فريق (محامي/متدرب/عميل بوابة) عبر POST /api/team/members —
+    // مستقل عن validateRegister لأن الدلالة مختلفة: role إلزامي هنا، وclient_id مطلوب
+    // شرطيًا فقط لدور 'client' (لا معنى له بمسار /register الذاتي).
+    static get validateCreateTeamMember() {
+        return [
+            body('full_name').trim().notEmpty().withMessage('الاسم الكامل مطلوب'),
+            body('username').trim().notEmpty().withMessage('اسم المستخدم مطلوب'),
+            body('email').trim().isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
+            body('password').isLength({ min: 6 }).withMessage('كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
+            body('role').notEmpty().isIn(['lawyer', 'trainee', 'client']).withMessage('دور غير صالح'),
+            body('client_id')
+                .if(body('role').equals('client'))
+                .notEmpty().withMessage('يجب اختيار عميل موجود عند إنشاء حساب بوابة'),
+            validate
+        ];
+    }
+
     static get validateLogin() {
         return [
             body('email').trim().notEmpty().withMessage('يرجى إدخال البريد الإلكتروني أو اسم المستخدم'),

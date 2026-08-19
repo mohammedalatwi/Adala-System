@@ -8,19 +8,34 @@ class UserService {
     }
 
     async createUser(userData, officeId, currentUserId) {
-        const { full_name, username, email, password, phone, role, specialization, license_number } = userData;
+        const { full_name, username, email, password, phone, role, specialization, license_number, client_id } = userData;
 
         // استثناء مقصود: لا يوجد عزل office_id هنا لأن email/username فريدان على مستوى النظام كله
         const existingUser = await this.db.get('SELECT id FROM users WHERE email = ? OR username = ?', [email, username]);
         if (existingUser) throw new Error('البريد الإلكتروني أو اسم المستخدم موجود مسبقاً');
 
+        // المتدرب يُسند تلقائيًا لمن أنشأ حسابه كمشرف عليه
+        const supervisorId = role === 'trainee' ? currentUserId : null;
+
+        // حساب بوابة العميل يجب أن يُربط بسجل عميل موجود فعلًا بنفس المكتب،
+        // وإلا يبقى client_id فارغًا كما كان يحدث قبل هذا الإصلاح
+        let linkedClientId = null;
+        if (role === 'client') {
+            if (!client_id) throw new Error('يجب اختيار عميل موجود عند إنشاء حساب بوابة');
+            const clientRow = await this.db.get('SELECT id FROM clients WHERE id = ? AND office_id = ?', [client_id, officeId]);
+            if (!clientRow) throw new Error('العميل المحدد غير موجود بمكتبك');
+            linkedClientId = clientRow.id;
+        }
+
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash(password, saltRounds);
 
+        // must_change_password=1: من أنشأ هذا الحساب هو من اختار كلمة السر الأولية،
+        // فيُجبر صاحب الحساب على تغييرها عند أول دخول
         const result = await this.db.run(
-            `INSERT INTO users (full_name, username, email, password_hash, phone, role, specialization, license_number, office_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [full_name, username, email, passwordHash, phone, role, specialization, license_number, officeId]
+            `INSERT INTO users (full_name, username, email, password_hash, phone, role, specialization, license_number, client_id, supervisor_id, must_change_password, office_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+            [full_name, username, email, passwordHash, phone, role, specialization, license_number, linkedClientId, supervisorId, officeId]
         );
 
         await ActivityService.logActivity({
