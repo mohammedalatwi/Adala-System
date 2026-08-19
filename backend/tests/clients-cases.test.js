@@ -8,6 +8,7 @@ process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = 'test-secret-for-jest';
 
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const { createTestDatabase } = require('./setup/testDb');
 const app = require('../../server');
 const db = require('../db/database');
@@ -22,6 +23,7 @@ const owner = {
 
 let agent;
 let lawyerId;
+let officeId;
 let clientId;
 
 beforeAll(async () => {
@@ -34,6 +36,7 @@ beforeAll(async () => {
         .set('Accept', 'application/json')
         .send(owner);
     lawyerId = registerRes.body.data.userId;
+    officeId = registerRes.body.data.officeId;
 
     await agent
         .post('/api/auth/login')
@@ -132,5 +135,78 @@ describe('Cases CRUD', () => {
 
         expect(res.body.success).toBe(false);
         expect(res.status).toBeGreaterThanOrEqual(400);
+    });
+});
+
+describe('Client portal role filtering', () => {
+    let portalAgent;
+    let otherClientId;
+
+    beforeAll(async () => {
+        // عميل ثانٍ غير مرتبط بحساب البوابة، للتأكد أن الفلترة تستثنيه فعليًا
+        const otherClientRes = await agent
+            .post('/api/clients')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'عميل آخر', phone: '0544444444', email: 'other@example.com' });
+        otherClientId = otherClientRes.body.data.id;
+
+        const passwordHash = await bcrypt.hash('password123', 10);
+        await db.run(
+            `INSERT INTO users (full_name, username, email, password_hash, role, client_id, office_id)
+             VALUES (?, ?, ?, ?, 'client', ?, ?)`,
+            ['عميل بوابة', 'test_portal_client', 'portal_client@example.com', passwordHash, clientId, officeId]
+        );
+
+        portalAgent = request.agent(app);
+        await portalAgent
+            .post('/api/auth/login')
+            .set('Accept', 'application/json')
+            .send({ email: 'portal_client@example.com', password: 'password123' });
+    });
+
+    test('client role only sees its own record in the list', async () => {
+        const res = await portalAgent.get('/api/clients').set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        const ids = res.body.data.clients.map(c => c.id);
+        expect(ids).toEqual([clientId]);
+    });
+
+    test('client role can view its own record by id', async () => {
+        const res = await portalAgent.get(`/api/clients/${clientId}`).set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.client.id).toBe(clientId);
+    });
+
+    test('client role is rejected when viewing another client by id', async () => {
+        const res = await portalAgent.get(`/api/clients/${otherClientId}`).set('Accept', 'application/json');
+
+        expect(res.status).toBe(403);
+        expect(res.body.success).toBe(false);
+    });
+
+    test('client role is rejected from creating a client', async () => {
+        const res = await portalAgent
+            .post('/api/clients')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'محاولة إنشاء', phone: '0555555555' });
+
+        expect(res.status).toBe(403);
+    });
+
+    test('client role is rejected from updating its own record', async () => {
+        const res = await portalAgent
+            .put(`/api/clients/${clientId}`)
+            .set('Accept', 'application/json')
+            .send({ full_name: 'محاولة تعديل' });
+
+        expect(res.status).toBe(403);
+    });
+
+    test('client role is rejected from deleting its own record', async () => {
+        const res = await portalAgent.delete(`/api/clients/${clientId}`).set('Accept', 'application/json');
+
+        expect(res.status).toBe(403);
     });
 });

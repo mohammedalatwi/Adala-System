@@ -5,6 +5,8 @@ const db = require('../db/database');
 class ClientController extends BaseController {
     // ✅ إنشاء عميل جديد
     createClient = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const result = await ClientService.createClient(req.body, req.session.userId, req.session.officeId);
         this.sendCreated(res, result, 'تم إنشاء العميل بنجاح');
     });
@@ -21,6 +23,13 @@ class ClientController extends BaseController {
         if (search) {
             whereConditions.push('(c.full_name LIKE ? OR c.phone LIKE ? OR c.email LIKE ? OR c.national_id LIKE ?)');
             params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        }
+
+        // --- RBAC ---
+        // عميل البوابة يرى سجله فقط (قائمة من عنصر واحد كحد أقصى)
+        if (req.session.userRole === 'client') {
+            whereConditions.push('c.id = ?');
+            params.push(req.session.clientId);
         }
 
         const whereClause = whereConditions.join(' AND ');
@@ -60,6 +69,12 @@ class ClientController extends BaseController {
         `, [id, officeId]);
 
         if (!client) throw new Error('العميل غير موجود');
+
+        // --- RBAC ---
+        // عميل البوابة يقدر يرى سجله فقط
+        if (req.session.userRole === 'client' && client.id !== req.session.clientId) {
+            throw new Error('غير مصرح لك بالوصول لهذا العميل');
+        }
 
         // جلب القضايا
         const cases = await db.all('SELECT * FROM cases WHERE client_id = ? AND office_id = ? ORDER BY created_at DESC', [id, officeId]);
@@ -113,12 +128,16 @@ class ClientController extends BaseController {
 
     // ✅ تحديث عميل
     updateClient = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         await ClientService.updateClient(req.params.id, req.body, req.session.userId, req.session.officeId);
         this.sendSuccess(res, null, 'تم تحديث العميل بنجاح');
     });
 
     // ✅ حذف عميل
     deleteClient = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         await ClientService.deleteClient(req.params.id, req.session.userId, req.session.officeId);
         this.sendSuccess(res, null, 'تم حذف العميل بنجاح');
     });
