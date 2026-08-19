@@ -18,6 +18,7 @@ router.get('/', caseController.getAllCases);
 router.get('/stats', caseController.getCaseStats);
 router.get('/:id', caseController.getCaseById);
 router.put('/:id',
+    validationMiddleware.validateCaseUpdate,
     caseController.updateCase
 );
 router.delete('/:id', caseController.deleteCase);

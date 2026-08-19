@@ -10,7 +10,7 @@ router.use(authMiddleware.requireAuth);
 router.post('/invoices', validationMiddleware.validateInvoice, financeController.createInvoice);
 router.get('/invoices', financeController.getAllInvoices);
 router.get('/invoices/:id/download', financeController.downloadInvoicePDF);
-router.post('/payments', financeController.recordPayment);
+router.post('/payments', validationMiddleware.validatePayment, financeController.recordPayment);
 
 // Expenses
 router.post('/expenses', validationMiddleware.validateExpense, financeController.createExpense);

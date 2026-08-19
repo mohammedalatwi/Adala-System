@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const officeController = require('../controllers/officeController');
 const authMiddleware = require('../middleware/auth');
+const validationMiddleware = require('../middleware/validation');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -40,7 +41,7 @@ router.use(authMiddleware.requireAuth);
 
 // ✅ Routes إعدادات المكتب
 router.get('/settings', officeController.getOfficeSettings);
-router.put('/settings', officeController.updateOfficeSettings);
+router.put('/settings', validationMiddleware.validateOfficeSettings, officeController.updateOfficeSettings);
 router.post('/logo', upload.single('logo'), officeController.uploadLogo);
 
 module.exports = router;

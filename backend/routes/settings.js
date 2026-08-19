@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const settingsController = require('../controllers/settingsController');
 const authMiddleware = require('../middleware/auth');
+const validationMiddleware = require('../middleware/validation');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -34,7 +35,7 @@ const upload = multer({
 
 // المسارات
 router.get('/', authMiddleware.requireAuth, settingsController.getSettings);
-router.post('/', authMiddleware.requireAuth, settingsController.updateSettings);
+router.post('/', authMiddleware.requireAuth, validationMiddleware.validateSettingsUpdate, settingsController.updateSettings);
 router.post('/logo', authMiddleware.requireAuth, upload.single('logo'), settingsController.uploadLogo);
 
 // إعدادات التنبيهات

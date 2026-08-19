@@ -1,4 +1,4 @@
-const { body, validationResult } = require('express-validator');
+const { body, checkExact, validationResult } = require('express-validator');
 
 /**
  * Common middleware to check for validation errors
@@ -108,6 +108,125 @@ class ValidationMiddleware {
             body('amount').notEmpty().withMessage('قيمة المصروف مطلوبة')
                 .isFloat({ gt: 0 }).withMessage('قيمة المصروف يجب أن تكون رقماً أكبر من صفر'),
             body('expense_date').notEmpty().withMessage('تاريخ المصروف مطلوب'),
+            validate
+        ];
+    }
+
+    // Case Update Validation (partial — mirrors CaseService.updateCase's allowlist)
+    static get validateCaseUpdate() {
+        return [
+            body('case_number').optional().trim().notEmpty().withMessage('رقم القضية لا يمكن أن يكون فارغاً'),
+            body('title').optional().trim().notEmpty().withMessage('عنوان القضية لا يمكن أن يكون فارغاً'),
+            body('client_id').optional().notEmpty().withMessage('معرّف الموكل غير صالح'),
+            body('lawyer_id').optional().notEmpty().withMessage('معرّف المحامي غير صالح'),
+            body('case_type').optional().trim().notEmpty()
+                .isIn(['مدني', 'جنائي', 'تجاري', 'أسرة', 'عمل', 'إداري']).withMessage('نوع القضية غير صالح'),
+            validate
+        ];
+    }
+
+    // Client Update Validation (partial — mirrors ClientService.updateClient's allowlist)
+    static get validateClientUpdate() {
+        return [
+            body('full_name').optional().trim().notEmpty().withMessage('اسم الموكل لا يمكن أن يكون فارغاً'),
+            body('phone').optional().trim().notEmpty().withMessage('رقم الهاتف لا يمكن أن يكون فارغاً'),
+            body('email').optional().custom((value) => {
+                if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    throw new Error('يرجى إدخال بريد إلكتروني صحيح');
+                }
+                return true;
+            }),
+            validate
+        ];
+    }
+
+    // Session Update Validation (partial — mirrors SessionService.updateSession's allowlist)
+    static get validateSessionUpdate() {
+        return [
+            body('session_date').optional().notEmpty().withMessage('تاريخ الجلسة لا يمكن أن يكون فارغاً'),
+            body('session_type').optional().trim().notEmpty().withMessage('نوع الجلسة لا يمكن أن يكون فارغاً'),
+            validate
+        ];
+    }
+
+    // Task Update Validation (partial — mirrors TaskService.updateTask's allowlist)
+    static get validateTaskUpdate() {
+        return [
+            body('title').optional().trim().notEmpty().withMessage('عنوان المهمة لا يمكن أن يكون فارغاً'),
+            body('assigned_to').optional({ checkFalsy: true }),
+            body('due_date').optional({ checkFalsy: true }).isISO8601().withMessage('تاريخ الاستحقاق غير صالح'),
+            validate
+        ];
+    }
+
+    // Document Update Validation (partial — mirrors DocumentService.updateDocument's allowlist)
+    static get validateDocumentUpdate() {
+        return [
+            body('title').optional().trim().notEmpty().withMessage('عنوان المستند لا يمكن أن يكون فارغاً'),
+            body('is_confidential').optional().isBoolean().withMessage('قيمة السرية غير صالحة'),
+            validate
+        ];
+    }
+
+    // User Update Validation (partial — mirrors UserService.updateUser's allowlist; note password is not part of that allowlist)
+    static get validateUserUpdate() {
+        return [
+            body('full_name').optional().trim().notEmpty().withMessage('الاسم الكامل لا يمكن أن يكون فارغاً'),
+            body('username').optional().trim().notEmpty().withMessage('اسم المستخدم لا يمكن أن يكون فارغاً'),
+            body('email').optional().trim().isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
+            validate
+        ];
+    }
+
+    // User Status Update Validation
+    static get validateUserStatusUpdate() {
+        return [
+            body('is_active').notEmpty().withMessage('حالة التفعيل مطلوبة')
+                .isBoolean().withMessage('قيمة حالة التفعيل غير صالحة'),
+            validate
+        ];
+    }
+
+    // Office Settings Update Validation (partial — mirrors OfficeService.updateOfficeSettings's allowlist)
+    static get validateOfficeSettings() {
+        return [
+            body('name').optional().trim().notEmpty().withMessage('اسم المكتب لا يمكن أن يكون فارغاً'),
+            body('email').optional().custom((value) => {
+                if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                    throw new Error('يرجى إدخال بريد إلكتروني صحيح');
+                }
+                return true;
+            }),
+            body('settings').optional().isObject().withMessage('صيغة الإعدادات غير صالحة'),
+            validate
+        ];
+    }
+
+    // Payment Validation
+    static get validatePayment() {
+        return [
+            body('invoice_id').notEmpty().withMessage('يجب اختيار فاتورة صالحة'),
+            body('amount').notEmpty().withMessage('قيمة الدفعة مطلوبة')
+                .isFloat({ gt: 0 }).withMessage('قيمة الدفعة يجب أن تكون رقماً أكبر من صفر')
+                .toFloat(),
+            body('payment_date').notEmpty().withMessage('تاريخ الدفعة مطلوب'),
+            body('payment_method').trim().notEmpty().withMessage('طريقة الدفع مطلوبة'),
+            validate
+        ];
+    }
+
+    // Office Branding Settings Update Validation (partial — allowlist based on
+    // SettingsService.getSettings' known keys; SettingsService.updateSettings itself
+    // merges req.body into settings_json with no key restriction, so this is enforced here)
+    static get validateSettingsUpdate() {
+        const chains = [
+            body('firm_name').optional().trim().notEmpty().withMessage('اسم المكتب لا يمكن أن يكون فارغاً'),
+            body('firm_logo').optional({ nullable: true }).isString().withMessage('صيغة الشعار غير صالحة'),
+            body('primary_color').optional().matches(/^#[0-9A-Fa-f]{6}$/).withMessage('صيغة اللون غير صالحة (مثال: #2563eb)'),
+        ];
+        return [
+            ...chains,
+            checkExact(chains, { message: 'حقل غير مسموح به في هذا الطلب' }),
             validate
         ];
     }

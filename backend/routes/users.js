@@ -18,6 +18,7 @@ router.post('/',
 );
 router.put('/:id',
     authMiddleware.requireRole(['admin']),
+    validationMiddleware.validateUserUpdate,
     userController.updateUser
 );
 router.delete('/:id',
@@ -26,6 +27,7 @@ router.delete('/:id',
 );
 router.put('/:id/status',
     authMiddleware.requireRole(['admin']),
+    validationMiddleware.validateUserStatusUpdate,
     userController.updateUserStatus
 );
 

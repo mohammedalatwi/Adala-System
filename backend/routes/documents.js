@@ -19,6 +19,7 @@ router.get('/', documentController.getAllDocuments);
 router.get('/stats', documentController.getDocumentStats);
 router.get('/:id', documentController.getDocumentById);
 router.put('/:id',
+    validationMiddleware.validateDocumentUpdate,
     documentController.updateDocument
 );
 router.delete('/:id', documentController.deleteDocument);

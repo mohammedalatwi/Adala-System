@@ -17,6 +17,7 @@ router.get('/', clientController.getAllClients);
 router.get('/stats', clientController.getClientStats);
 router.get('/:id', clientController.getClientById);
 router.put('/:id',
+    validationMiddleware.validateClientUpdate,
     clientController.updateClient
 );
 router.delete('/:id', clientController.deleteClient);

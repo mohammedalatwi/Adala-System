@@ -27,15 +27,39 @@ class OfficeService {
     }
 
     async updateOfficeSettings(officeId, updateData, userId) {
-        const { name, address, phone, email, settings } = updateData;
-        const settingsJson = settings ? JSON.stringify(settings) : '{}';
+        const existingOffice = await this.db.get('SELECT settings_json FROM offices WHERE id = ?', [officeId]);
+        if (!existingOffice) throw new Error('لم يتم العثور على بيانات المكتب');
 
-        await this.db.run(
-            `UPDATE offices 
-             SET name = ?, address = ?, phone = ?, email = ?, settings_json = ?, updated_at = CURRENT_TIMESTAMP
-             WHERE id = ?`,
-            [name, address, phone, email, settingsJson, officeId]
-        );
+        const allowedFields = ['name', 'address', 'phone', 'email'];
+        const updates = [];
+        const values = [];
+
+        Object.keys(updateData).forEach(key => {
+            if (allowedFields.includes(key) && updateData[key] !== undefined) {
+                updates.push(`${key} = ?`);
+                values.push(updateData[key]);
+            }
+        });
+
+        if (updateData.settings !== undefined) {
+            let currentSettings = {};
+            if (existingOffice.settings_json && typeof existingOffice.settings_json === 'string') {
+                try {
+                    currentSettings = JSON.parse(existingOffice.settings_json);
+                } catch (e) {
+                    currentSettings = {};
+                }
+            }
+            updates.push('settings_json = ?');
+            values.push(JSON.stringify({ ...currentSettings, ...updateData.settings }));
+        }
+
+        if (updates.length === 0) throw new Error('لا توجد بيانات لتحديثها');
+
+        updates.push('updated_at = CURRENT_TIMESTAMP');
+        values.push(officeId);
+
+        await this.db.run(`UPDATE offices SET ${updates.join(', ')} WHERE id = ?`, values);
 
         await ActivityService.logActivity({
             userId,
