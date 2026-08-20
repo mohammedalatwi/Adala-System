@@ -123,6 +123,7 @@ const SCHEMA = `
         attendees TEXT,
         city TEXT,
         judgment_content TEXT,
+        sent_reminders TEXT DEFAULT '[]',
         is_active BOOLEAN DEFAULT 1,
         created_by INTEGER,
         office_id INTEGER,
@@ -181,6 +182,7 @@ const SCHEMA = `
         due_date DATETIME,
         priority TEXT DEFAULT 'متوسط',
         status TEXT DEFAULT 'قيد الانتظار',
+        notification_sent BOOLEAN DEFAULT 0,
         is_active BOOLEAN DEFAULT 1,
         office_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP

@@ -1,6 +1,5 @@
 const db = require('../db/database');
 const ActivityService = require('../services/ActivityService');
-const NotificationService = require('../services/NotificationService');
 
 // المسارات المستثناة من حظر كلمة المرور المؤقتة. الاستثناءات الثلاثة فقط هي ما
 // يحتاجه المستخدم المحظور للخروج من الحظر أو لفهم سببه:
@@ -263,13 +262,6 @@ class AuthMiddleware {
      */
     async logActivity(...args) {
         return ActivityService.logActivity(...args);
-    }
-
-    /**
-     * @deprecated Use NotificationService.createNotification instead
-     */
-    async createNotification(...args) {
-        return NotificationService.createNotification(...args);
     }
 }
 

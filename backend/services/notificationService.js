@@ -17,19 +17,18 @@ class NotificationService {
         type = 'info',
         relatedEntityType = null,
         relatedEntityId = null,
-        actionUrl = null,
         officeId = null
     }) {
         try {
             const sql = `
                 INSERT INTO notifications (
-                    user_id, title, message, type, 
-                    related_entity_type, related_entity_id, action_url, office_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    user_id, title, message, type,
+                    related_entity_type, related_entity_id, office_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
             `;
             const params = [
                 userId, title, message, type,
-                relatedEntityType, relatedEntityId, actionUrl, officeId
+                relatedEntityType, relatedEntityId, officeId
             ];
 
             await this.db.run(sql, params);
@@ -63,7 +62,7 @@ class NotificationService {
 
         for (const interval of intervals) {
             const sessions = await this.db.all(`
-                SELECT s.*, c.title as case_title, 
+                SELECT s.*, c.title as case_title, c.lawyer_id, c.assistant_lawyer_id,
                        l.full_name as lawyer_name, l.email as lawyer_email,
                        a.full_name as assistant_name, a.email as assistant_email
                 FROM sessions s
