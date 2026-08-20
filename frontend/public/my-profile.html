@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعداداتي - نظام عدالة</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/main.css">
+    <style>
+        .profile-card {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.1rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: var(--text-muted);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .info-value {
+            font-weight: 700;
+            color: var(--text-main);
+            text-align: left;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 5px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .status-pill.is-active {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-pill.is-inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .password-required-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: rgba(245, 158, 11, 0.1);
+            color: #b45309;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 12px;
+            padding: 1rem 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .password-required-banner i {
+            font-size: 1.3rem;
+        }
+
+        .tab-btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-logo-container">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <span class="brand-name">نظام عدالة</span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item">
+                    <i class="fas fa-home"></i> <span>الرئيسية</span>
+                </a>
+                <a href="/cases" class="nav-item">
+                    <i class="fas fa-gavel"></i> <span>القضايا</span>
+                </a>
+                <a href="/sessions" class="nav-item">
+                    <i class="fas fa-calendar-alt"></i> <span>الجلسات</span>
+                </a>
+                <a href="/clients" class="nav-item">
+                    <i class="fas fa-users"></i> <span>العملاء</span>
+                </a>
+                <a href="/documents" class="nav-item">
+                    <i class="fas fa-file-contract"></i> <span>المستندات</span>
+                </a>
+                <a href="/financial" class="nav-item">
+                    <i class="fas fa-file-invoice-dollar"></i> <span>المالية</span>
+                </a>
+                <a href="/reports" class="nav-item">
+                    <i class="fas fa-chart-bar"></i> <span>التقارير</span>
+                </a>
+                <a href="/tasks" class="nav-item">
+                    <i class="fas fa-tasks"></i> <span>المهام</span>
+                </a>
+                <a href="/team" class="nav-item">
+                    <i class="fas fa-user-graduate"></i> <span>فريق العمل</span>
+                </a>
+                <!-- يظهر لدور العميل فقط (يُفعَّل من my-profile.js) حتى لا يبقى بلا طريق
+                     عودة، لأن كل روابط التنقل أعلاه مخفية عنه عبر applyRoleRestrictions -->
+                <a href="/portal" class="nav-item" id="portalBackLink" style="display: none;">
+                    <i class="fas fa-briefcase"></i> <span>بوابتي</span>
+                </a>
+                <div style="margin-top: auto; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <a href="/settings" class="nav-item">
+                        <i class="fas fa-cog"></i> <span>إعدادات المكتب</span>
+                    </a>
+                    <a href="/my-profile" class="nav-item active">
+                        <i class="fas fa-user-circle"></i> <span>إعداداتي</span>
+                    </a>
+                    <a href="#" class="nav-item js-theme-toggle">
+                        <i class="fas fa-adjust"></i> <span>المظهر</span>
+                    </a>
+                    <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
+                        <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <main class="main-content">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2.5rem;">
+                    <div>
+                        <h1 style="font-size:2rem; font-weight:800; margin-bottom:0.5rem;">إعداداتي</h1>
+                        <p style="color:var(--text-muted); font-size:1.1rem;">إدارة بياناتك الشخصية والاطلاع على تفاصيل
+                            حسابك في النظام.</p>
+                    </div>
+                </div>
+
+                <!-- بانر يظهر فقط عند إجبار المستخدم على تغيير كلمة مرور مؤقتة (يُدار من my-profile.js) -->
+                <div id="passwordRequiredBanner" class="password-required-banner" style="display: none;">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <span>تم إنشاء حسابك بكلمة مرور مؤقتة، يرجى تعيين كلمة مرور جديدة للمتابعة.</span>
+                </div>
+
+                <!-- التبويبات -->
+                <div class="profile-card"
+                    style="margin-bottom:2rem; background:var(--bg-surface-hover); padding:5px; border-radius:14px; display:inline-flex; gap:6px; box-shadow: var(--shadow-sm); border: 1.5px solid var(--border-color);">
+                    <button class="btn btn-sm tab-btn active" id="tabPersonal" data-action="switch-tab" data-tab="personal"
+                        style="border-radius:10px; background:var(--brand-primary); color:white; font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
+                        <i class="fas fa-id-card"></i> بياناتي الشخصية
+                    </button>
+                    <button class="btn btn-sm tab-btn" id="tabAccount" data-action="switch-tab" data-tab="account"
+                        style="border-radius:10px; background:transparent; color:var(--text-muted); font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
+                        <i class="fas fa-circle-info"></i> معلومات الحساب
+                    </button>
+                    <button class="btn btn-sm tab-btn" id="tabPassword" data-action="switch-tab" data-tab="password"
+                        style="border-radius:10px; background:transparent; color:var(--text-muted); font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
+                        <i class="fas fa-key"></i> تغيير كلمة المرور
+                    </button>
+                </div>
+
+                <!-- تبويب: بياناتي الشخصية -->
+                <div id="personalView" class="profile-card card" style="margin-bottom: 5rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding: 2rem;">
+                        <h2 style="font-size: 1.5rem; color: var(--text-main);"><i class="fas fa-id-card"
+                                style="color: var(--brand-primary);"></i> بياناتي الشخصية</h2>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem;">هذه البيانات خاصة بحسابك، ويمكنك
+                            تعديلها في أي وقت</p>
+                    </div>
+
+                    <div class="card-body" style="padding: 2.5rem;">
+                        <form id="profileForm">
+                            <div class="form-group" style="margin-bottom: 2rem;">
+                                <label for="full_name" class="form-label">الاسم الكامل</label>
+                                <input type="text" id="full_name" class="form-control"
+                                    style="height: 50px; font-size: 1.1rem;" placeholder="مثال: خالد محمد العتيبي"
+                                    required>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom: 2rem;">
+                                <label for="phone" class="form-label">رقم الهاتف</label>
+                                <input type="tel" id="phone" class="form-control"
+                                    style="height: 50px; font-size: 1.1rem;" placeholder="05XXXXXXXX">
+                            </div>
+
+                            <!-- حقول مهنية: تظهر للمحامي والمتدرب فقط (تُدار من my-profile.js) -->
+                            <div id="professionalFields" style="display: none;">
+                                <div
+                                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                                    <div class="form-group">
+                                        <label for="specialization" class="form-label">التخصص</label>
+                                        <input type="text" id="specialization" class="form-control"
+                                            placeholder="مثال: قانون تجاري">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="license_number" class="form-label">رقم الترخيص</label>
+                                        <input type="text" id="license_number" class="form-control"
+                                            placeholder="مثال: LIC-12345">
+                                    </div>
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 2rem;">
+                                    <label for="experience_years" class="form-label">سنوات الخبرة</label>
+                                    <input type="number" id="experience_years" class="form-control" min="0" step="1"
+                                        placeholder="0">
+                                </div>
+
+                                <div class="form-group" style="margin-bottom: 2rem;">
+                                    <label for="bio" class="form-label">نبذة تعريفية</label>
+                                    <textarea id="bio" class="form-control" rows="4"
+                                        placeholder="نبذة مختصرة عن خبراتك ومجالات عملك..."></textarea>
+                                </div>
+                            </div>
+
+                            <div
+                                style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+                                <button type="button" class="btn btn-outline" id="resetProfileBtn">إلغاء
+                                    التعديلات</button>
+                                <button type="submit" class="btn btn-primary" style="padding: 0.8rem 2.5rem;">حفظ
+                                    التغييرات</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- تبويب: معلومات الحساب -->
+                <div id="accountView" class="profile-card card" style="display: none; margin-bottom: 5rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding: 2rem;">
+                        <h2 style="font-size: 1.5rem; color: var(--text-main);"><i class="fas fa-circle-info"
+                                style="color: var(--brand-secondary);"></i> معلومات الحساب</h2>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem;">بيانات للاطلاع فقط، يديرها مدير المكتب
+                            ولا يمكن تعديلها من هنا</p>
+                    </div>
+
+                    <div class="card-body" style="padding: 1rem 2.5rem 2.5rem 2.5rem;">
+                        <div id="accountInfoList">
+                            <!-- تُبنى من my-profile.js -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- تبويب: تغيير كلمة المرور -->
+                <div id="passwordView" class="profile-card card" style="display: none; margin-bottom: 5rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding: 2rem;">
+                        <h2 style="font-size: 1.5rem; color: var(--text-main);"><i class="fas fa-key"
+                                style="color: var(--brand-primary);"></i> تغيير كلمة المرور</h2>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem;">أدخل كلمة المرور الحالية ثم كلمة
+                            المرور الجديدة</p>
+                    </div>
+
+                    <div class="card-body" style="padding: 2.5rem;">
+                        <form id="passwordForm">
+                            <div class="form-group" style="margin-bottom: 2rem;">
+                                <label for="current_password" class="form-label">كلمة المرور الحالية</label>
+                                <input type="password" id="current_password" class="form-control"
+                                    style="height: 50px; font-size: 1.1rem;" required>
+                            </div>
+
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                                <div class="form-group">
+                                    <label for="new_password" class="form-label">كلمة المرور الجديدة</label>
+                                    <input type="password" id="new_password" class="form-control" minlength="6"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirm_password" class="form-label">تأكيد كلمة المرور الجديدة</label>
+                                    <input type="password" id="confirm_password" class="form-control" minlength="6"
+                                        required>
+                                </div>
+                            </div>
+
+                            <div
+                                style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+                                <button type="submit" class="btn btn-primary" style="padding: 0.8rem 2.5rem;">تحديث
+                                    كلمة المرور</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/theme.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/my-profile.js"></script>
+</body>
+
+</html>

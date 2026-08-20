@@ -110,9 +110,16 @@ class LoginManager {
 
                 this.showAlert('تم تسجيل الدخول بنجاح، جاري التحويل...', 'success');
 
-                // توجيه بناءً على الدور
+                // BaseController.sendSuccess يُغلّف الاستجابة بـ {success, message, data}،
+                // فبيانات المستخدم في data.data.user وليس data.user مباشرة
+                const user = data.data && data.data.user;
+
+                // توجيه بناءً على الدور، إلا إذا كانت كلمة المرور مؤقتة فيُوجَّه أولاً
+                // لصفحة "إعداداتي" التي تجبره على تغييرها قبل أي شيء آخر
                 setTimeout(() => {
-                    if (data.user && data.user.role === 'client') {
+                    if (user && user.must_change_password) {
+                        window.location.href = '/my-profile';
+                    } else if (user && user.role === 'client') {
                         window.location.href = '/portal';
                     } else {
                         window.location.href = '/dashboard';
