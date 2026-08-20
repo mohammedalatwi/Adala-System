@@ -239,6 +239,11 @@ class ProfileManager {
                 payload[field] = parseInt(value, 10);
                 return;
             }
+
+            // رقم الهاتف لا يمكن تفريغه ذاتيًا (الخادم يرفض قيمة فارغة بـ400)، فحقل
+            // فارغ هنا يعني "بلا تغيير" فلا يُرسَل، تمامًا كحقل سنوات الخبرة الفارغ
+            if (field === 'phone' && value === '') return;
+
             payload[field] = value;
         });
 

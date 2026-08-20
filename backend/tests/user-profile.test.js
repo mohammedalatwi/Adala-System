@@ -140,3 +140,61 @@ describe('PUT /api/users/me', () => {
         expect(updated.email).toBe('updated_email@example.com');
     });
 });
+
+// عضو فريق بلا هاتف: POST /api/team/members لا يفرض إرسال phone عند الإنشاء
+describe('PUT /api/users/me — مستخدم بلا هاتف مسجّل يقدر يحفظ تعديلات أخرى', () => {
+    const phonelessMember = {
+        full_name: 'محامٍ بلا هاتف',
+        username: 'phoneless_lawyer',
+        email: 'phoneless_lawyer@example.com',
+        password: 'password123',
+        role: 'lawyer'
+    };
+    let phonelessAgent;
+
+    beforeAll(async () => {
+        await agent
+            .post('/api/team/members')
+            .set('Accept', 'application/json')
+            .send(phonelessMember);
+
+        phonelessAgent = request.agent(app);
+        await phonelessAgent
+            .post('/api/auth/login')
+            .set('Accept', 'application/json')
+            .send({ email: phonelessMember.email, password: phonelessMember.password });
+
+        // UserService.createUser يضبط must_change_password=1 لكل حساب ينشئه شخص آخر،
+        // وهذا يحظر كل مسار API غير المسارات الثلاثة المستثناة (auth/password وما شابه)
+        await db.run('UPDATE users SET must_change_password = 0 WHERE email = ?', [phonelessMember.email]);
+    });
+
+    test('confirms the account genuinely has no phone on file before testing the fix', async () => {
+        const row = await db.get('SELECT phone FROM users WHERE email = ?', [phonelessMember.email]);
+        expect(row.phone).toBeNull();
+    });
+
+    test('saves other fields when phone is omitted from the payload (the fixed frontend behavior)', async () => {
+        const res = await phonelessAgent
+            .put('/api/users/me')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'محامٍ بلا هاتف — محدّث' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        const row = await db.get('SELECT full_name, phone FROM users WHERE email = ?', [phonelessMember.email]);
+        expect(row.full_name).toBe('محامٍ بلا هاتف — محدّث');
+        expect(row.phone).toBeNull();
+    });
+
+    test('still rejects an explicitly empty phone string with 400 (why the frontend omits it instead of sending "")', async () => {
+        const res = await phonelessAgent
+            .put('/api/users/me')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'محاولة إرسال هاتف فارغ', phone: '' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+    });
+});
