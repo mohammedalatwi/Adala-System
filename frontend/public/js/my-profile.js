@@ -234,9 +234,10 @@ class ProfileManager {
 
             const value = input.value.trim();
             if (field === 'experience_years') {
-                // الخادم يقبل عددًا صحيحًا غير سالب فقط، والحقل الفارغ يعني "بلا تغيير"
-                if (value === '') return;
-                payload[field] = parseInt(value, 10);
+                // بخلاف phone، سنوات الخبرة بيانات اختيارية ويمكن تفريغها فعليًا،
+                // فحقل فارغ هنا يعني "امسح القيمة" ويُرسَل null صراحةً لا أن يُحذف
+                // الحقل من الحمولة (حذفه كان يجعل القيمة القديمة تبقى محفوظة بصمت)
+                payload[field] = value === '' ? null : parseInt(value, 10);
                 return;
             }
 

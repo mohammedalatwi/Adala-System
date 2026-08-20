@@ -223,7 +223,7 @@ class ValidationMiddleware {
             body('avatar_url').optional({ nullable: true }).isString().withMessage('صيغة الصورة الشخصية غير صالحة'),
             body('specialization').optional({ nullable: true }).trim(),
             body('license_number').optional({ nullable: true }).trim(),
-            body('experience_years').optional().isInt({ min: 0 }).withMessage('سنوات الخبرة يجب أن تكون رقماً صحيحاً غير سالب'),
+            body('experience_years').optional({ nullable: true }).isInt({ min: 0 }).withMessage('سنوات الخبرة يجب أن تكون رقماً صحيحاً غير سالب'),
             body('bio').optional({ nullable: true }).trim(),
             body('email').optional().trim().isEmail().withMessage('يرجى إدخال بريد إلكتروني صحيح'),
             body('current_password').optional().notEmpty().withMessage('كلمة المرور الحالية مطلوبة'),

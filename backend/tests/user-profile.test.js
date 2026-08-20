@@ -198,3 +198,39 @@ describe('PUT /api/users/me — مستخدم بلا هاتف مسجّل يقدر
         expect(res.body.success).toBe(false);
     });
 });
+
+describe('PUT /api/users/me — تفريغ experience_years يمسح القيمة فعليًا', () => {
+    test('sets an initial experience_years value to prepare the clearing test', async () => {
+        const res = await agent
+            .put('/api/users/me')
+            .set('Accept', 'application/json')
+            .send({ full_name: lawyer.full_name, experience_years: 8 });
+
+        expect(res.status).toBe(200);
+        const row = await db.get('SELECT experience_years FROM users WHERE username = ?', [lawyer.username]);
+        expect(row.experience_years).toBe(8);
+    });
+
+    test('sending experience_years: null clears the stored value instead of leaving the old one', async () => {
+        const res = await agent
+            .put('/api/users/me')
+            .set('Accept', 'application/json')
+            .send({ full_name: lawyer.full_name, experience_years: null });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        const row = await db.get('SELECT experience_years FROM users WHERE username = ?', [lawyer.username]);
+        expect(row.experience_years).toBeNull();
+    });
+
+    test('still rejects a negative experience_years value (null is the only accepted "empty")', async () => {
+        const res = await agent
+            .put('/api/users/me')
+            .set('Accept', 'application/json')
+            .send({ full_name: lawyer.full_name, experience_years: -1 });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+    });
+});
