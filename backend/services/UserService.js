@@ -166,6 +166,16 @@ class UserService {
 
         await this.db.run(`UPDATE users SET ${updates.join(', ')} WHERE id = ? AND office_id = ?`, values);
 
+        // حساب بوابة العميل (role='client') مرتبط بسجل clients عبر client_id، وهو السجل
+        // الذي يراه المكتب فعليًا في صفحة العملاء — بدون هذه المزامنة، تعديل العميل
+        // لهاتفه من صفحة بروفايله يحدّث users.phone فقط ولا يصل للمكتب أبدًا
+        if (existingUser.role === 'client' && existingUser.client_id && updateData.phone !== undefined) {
+            await this.db.run(
+                'UPDATE clients SET phone = ?, updated_at = datetime("now") WHERE id = ? AND office_id = ?',
+                [updateData.phone, existingUser.client_id, officeId]
+            );
+        }
+
         await ActivityService.logActivity({
             userId,
             actionType: 'update',

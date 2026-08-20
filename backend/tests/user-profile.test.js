@@ -234,3 +234,52 @@ describe('PUT /api/users/me — تفريغ experience_years يمسح القيم�
         expect(res.body.success).toBe(false);
     });
 });
+
+describe('PUT /api/users/me — تعديل هاتف عميل البوابة يزامن clients.phone', () => {
+    const clientPortalMember = {
+        full_name: 'عميل بوابة - مزامنة الهاتف',
+        username: 'portal_sync_client',
+        email: 'portal_sync_client@example.com',
+        password: 'password123',
+        role: 'client'
+    };
+    let clientId;
+    let clientPortalAgent;
+
+    beforeAll(async () => {
+        const clientRes = await agent
+            .post('/api/clients')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'عميل مزامنة الهاتف', phone: '0500009999', email: 'sync_client_record@example.com' });
+        clientId = clientRes.body.data.id;
+
+        await agent
+            .post('/api/team/members')
+            .set('Accept', 'application/json')
+            .send({ ...clientPortalMember, client_id: clientId });
+
+        clientPortalAgent = request.agent(app);
+        await clientPortalAgent
+            .post('/api/auth/login')
+            .set('Accept', 'application/json')
+            .send({ email: clientPortalMember.email, password: clientPortalMember.password });
+
+        await db.run('UPDATE users SET must_change_password = 0 WHERE email = ?', [clientPortalMember.email]);
+    });
+
+    test('updating phone from the client portal profile also updates the linked clients.phone the office sees', async () => {
+        const res = await clientPortalAgent
+            .put('/api/users/me')
+            .set('Accept', 'application/json')
+            .send({ full_name: clientPortalMember.full_name, phone: '0511119999' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+
+        const userRow = await db.get('SELECT phone FROM users WHERE email = ?', [clientPortalMember.email]);
+        expect(userRow.phone).toBe('0511119999');
+
+        const clientRow = await db.get('SELECT phone FROM clients WHERE id = ?', [clientId]);
+        expect(clientRow.phone).toBe('0511119999');
+    });
+});
