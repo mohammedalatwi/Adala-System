@@ -183,7 +183,7 @@ app.use('/api/exports', require('./backend/routes/exports'));
 app.use('/api/calendar', require('./backend/routes/calendar'));
 
 // ==================== Routes الصفحات (SPA Support) ====================
-const pages = ['/login', '/register', '/dashboard', '/cases', '/clients', '/documents', '/sessions', '/financial', '/reports', '/tasks', '/portal', '/settings', '/team', '/calendar'];
+const pages = ['/login', '/register', '/dashboard', '/cases', '/clients', '/documents', '/sessions', '/financial', '/reports', '/tasks', '/portal', '/settings', '/my-profile', '/team', '/calendar'];
 
 pages.forEach(route => {
     app.get(route, (req, res) => {

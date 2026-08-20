@@ -39,9 +39,15 @@
                             <div style="font-weight:bold; font-size:0.9rem;" id="clientName">...</div>
                             <div style="font-size:0.8rem; color:var(--text-muted);">عميل معتمد</div>
                         </div>
+                        <!-- بوابة العميل لا تحتوي القائمة الجانبية المشتركة، فيُضاف رابط
+                             "إعداداتي" هنا حتى يصل إليه دور العميل مثل بقية الأدوار -->
+                        <a href="/my-profile" class="btn btn-sm btn-icon" title="إعداداتي"
+                            style="margin-right: 15px; color: var(--text-muted);">
+                            <i class="fas fa-user-circle"></i>
+                        </a>
                         <button class="btn btn-sm btn-icon" id="logoutBtn"
                             data-confirm="هل أنت متأكد من تسجيل الخروج؟"
-                            style="margin-right: 15px; color: var(--danger);">
+                            style="margin-right: 5px; color: var(--danger);">
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
