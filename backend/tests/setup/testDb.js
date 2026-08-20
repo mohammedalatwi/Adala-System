@@ -107,13 +107,34 @@ const SCHEMA = `
     CREATE TABLE IF NOT EXISTS sessions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         case_id INTEGER NOT NULL,
+        session_number INTEGER,
         session_date DATETIME NOT NULL,
-        office_id INTEGER
+        session_type TEXT CHECK(session_type IN ('استماع', 'نظر', 'تحكيم', 'إثبات', 'حكم')),
+        location TEXT,
+        judge_name TEXT,
+        session_notes TEXT,
+        session_result TEXT,
+        decisions_taken TEXT,
+        next_steps TEXT,
+        status TEXT DEFAULT 'مجدول' CHECK(status IN ('مجدول', 'منعقد', 'ملغي', 'مؤجل', 'منتهي')),
+        preparation_status TEXT DEFAULT 'غير معد' CHECK(preparation_status IN ('غير معد', 'قيد الإعداد', 'مكتمل')),
+        documents_required TEXT,
+        adjournment_reason TEXT,
+        attendees TEXT,
+        city TEXT,
+        judgment_content TEXT,
+        is_active BOOLEAN DEFAULT 1,
+        created_by INTEGER,
+        office_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS documents (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         case_id INTEGER,
+        is_active BOOLEAN DEFAULT 1,
+        uploaded_by INTEGER,
         uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         office_id INTEGER
     );
@@ -122,6 +143,9 @@ const SCHEMA = `
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         case_id INTEGER,
         client_id INTEGER NOT NULL,
+        amount DECIMAL(15,2),
+        paid_amount DECIMAL(15,2) DEFAULT 0,
+        is_active BOOLEAN DEFAULT 1,
         office_id INTEGER
     );
 
@@ -133,6 +157,47 @@ const SCHEMA = `
         payment_method TEXT,
         reference_number TEXT,
         office_id INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS activities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        action_type TEXT NOT NULL,
+        entity_type TEXT,
+        entity_id INTEGER,
+        description TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        office_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        case_id INTEGER,
+        title TEXT NOT NULL,
+        description TEXT,
+        assigned_to INTEGER,
+        due_date DATETIME,
+        priority TEXT DEFAULT 'متوسط',
+        status TEXT DEFAULT 'قيد الانتظار',
+        is_active BOOLEAN DEFAULT 1,
+        office_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        title TEXT NOT NULL,
+        message TEXT,
+        type TEXT DEFAULT 'info',
+        is_read BOOLEAN DEFAULT 0,
+        related_entity_type TEXT,
+        related_entity_id INTEGER,
+        is_active BOOLEAN DEFAULT 1,
+        office_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 `;
 

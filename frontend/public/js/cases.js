@@ -11,7 +11,8 @@ class CasesManager {
         await Promise.all([
             this.loadCases(),
             this.loadClients(), // For the modal dropdown
-            this.loadLawyers() // For the modal dropdown
+            this.loadLawyers(), // For the modal dropdown
+            this.loadTrainees() // For the modal dropdown
         ]);
 
         // Check for URL parameters
@@ -124,6 +125,19 @@ class CasesManager {
         }
     }
 
+    static async loadTrainees() {
+        try {
+            const result = await API.get('/team/trainees');
+            if (result.success) {
+                const select = document.getElementById('assistantLawyerSelect');
+                select.innerHTML = '<option value="">بدون متدرب</option>' +
+                    result.data.map(t => `<option value="${t.id}">${Utils.escapeHTML(t.full_name)}</option>`).join('');
+            }
+        } catch (error) {
+            console.error('Failed to load trainees:', error);
+        }
+    }
+
     static renderCases(cases) {
         const container = document.getElementById('casesContainer');
 
@@ -223,6 +237,7 @@ class CasesManager {
             status: document.getElementById('caseStatus').value,
             client_id: document.getElementById('clientSelect').value,
             lawyer_id: document.getElementById('lawyerSelect').value,
+            assistant_lawyer_id: document.getElementById('assistantLawyerSelect').value || null,
             priority: document.getElementById('casePriority').value,
             court_name: document.getElementById('courtName').value,
             start_date: document.getElementById('startDate').value
@@ -267,6 +282,7 @@ class CasesManager {
                 document.getElementById('caseStatus').value = c.status;
                 document.getElementById('clientSelect').value = c.client_id;
                 document.getElementById('lawyerSelect').value = c.lawyer_id || '';
+                document.getElementById('assistantLawyerSelect').value = c.assistant_lawyer_id || '';
                 document.getElementById('courtName').value = c.court_name || '';
                 document.getElementById('startDate').value = c.start_date ? c.start_date.split('T')[0] : '';
                 document.getElementById('casePriority').value = c.priority;

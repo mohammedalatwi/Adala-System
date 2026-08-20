@@ -139,7 +139,8 @@ class CaseController extends BaseController {
         const { userRole, userId, clientId } = req.session;
         let hasAccess = userRole === 'admin' ||
             (userRole === 'client' && caseData.client_id === clientId) ||
-            ((userRole === 'lawyer' || userRole === 'assistant') && (caseData.lawyer_id === userId || caseData.assistant_lawyer_id === userId));
+            ((userRole === 'lawyer' || userRole === 'assistant') && (caseData.lawyer_id === userId || caseData.assistant_lawyer_id === userId)) ||
+            (userRole === 'trainee' && caseData.assistant_lawyer_id === userId);
 
         if (!hasAccess) throw new Error('غير مصرح لك بالوصول لهذه القضية');
 

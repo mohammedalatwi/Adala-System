@@ -23,17 +23,19 @@ class DashboardService {
             `;
             params = Array(10).fill(officeId);
         } else {
+            // المتدرب يُسنَد له عبر assistant_lawyer_id، أما المحامي فعبر lawyer_id
+            const ownerColumn = userRole === 'trainee' ? 'assistant_lawyer_id' : 'lawyer_id';
             query = `
-                SELECT 
-                    (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND is_active = 1 AND office_id = ?) as total_cases,
+                SELECT
+                    (SELECT COUNT(*) FROM cases WHERE ${ownerColumn} = ? AND is_active = 1 AND office_id = ?) as total_cases,
                     (SELECT COUNT(*) FROM clients WHERE created_by = ? AND is_active = 1 AND office_id = ?) as total_clients,
-                    (SELECT COUNT(*) FROM sessions s JOIN cases c ON s.case_id = c.id WHERE s.session_date > datetime('now') AND s.status = 'مجدول' AND c.lawyer_id = ? AND s.office_id = ?) as upcoming_sessions,
+                    (SELECT COUNT(*) FROM sessions s JOIN cases c ON s.case_id = c.id WHERE s.session_date > datetime('now') AND s.status = 'مجدول' AND c.${ownerColumn} = ? AND s.office_id = ?) as upcoming_sessions,
                     (SELECT COUNT(*) FROM documents WHERE uploaded_by = ? AND is_active = 1 AND office_id = ?) as total_documents,
-                    (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'جديد' AND is_active = 1 AND office_id = ?) as new_cases,
-                    (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'قيد الدراسة' AND is_active = 1 AND office_id = ?) as in_progress_cases,
-                    (SELECT COUNT(*) FROM cases WHERE lawyer_id = ? AND status = 'منتهي' AND is_active = 1 AND office_id = ?) as completed_cases,
-                    (SELECT SUM(amount) FROM invoices i JOIN cases c ON i.case_id = c.id WHERE c.lawyer_id = ? AND i.office_id = ? AND c.is_active = 1) as total_invoiced,
-                    (SELECT SUM(paid_amount) FROM invoices i JOIN cases c ON i.case_id = c.id WHERE c.lawyer_id = ? AND i.office_id = ? AND c.is_active = 1) as total_paid
+                    (SELECT COUNT(*) FROM cases WHERE ${ownerColumn} = ? AND status = 'جديد' AND is_active = 1 AND office_id = ?) as new_cases,
+                    (SELECT COUNT(*) FROM cases WHERE ${ownerColumn} = ? AND status = 'قيد الدراسة' AND is_active = 1 AND office_id = ?) as in_progress_cases,
+                    (SELECT COUNT(*) FROM cases WHERE ${ownerColumn} = ? AND status = 'منتهي' AND is_active = 1 AND office_id = ?) as completed_cases,
+                    (SELECT SUM(amount) FROM invoices i JOIN cases c ON i.case_id = c.id WHERE c.${ownerColumn} = ? AND i.office_id = ? AND c.is_active = 1) as total_invoiced,
+                    (SELECT SUM(paid_amount) FROM invoices i JOIN cases c ON i.case_id = c.id WHERE c.${ownerColumn} = ? AND i.office_id = ? AND c.is_active = 1) as total_paid
             `;
             params = [userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId, userId, officeId];
         }
@@ -46,7 +48,8 @@ class DashboardService {
             query = `SELECT s.*, c.case_number, c.title as case_title, cl.full_name as client_name, u.full_name as lawyer_name FROM sessions s LEFT JOIN cases c ON s.case_id = c.id LEFT JOIN clients cl ON c.client_id = cl.id LEFT JOIN users u ON c.lawyer_id = u.id WHERE s.session_date > datetime('now') AND s.status = 'مجدول' AND s.office_id = ? ORDER BY s.session_date ASC LIMIT 10`;
             params = [officeId];
         } else {
-            query = `SELECT s.*, c.case_number, c.title as case_title, cl.full_name as client_name, u.full_name as lawyer_name FROM sessions s LEFT JOIN cases c ON s.case_id = c.id LEFT JOIN clients cl ON c.client_id = cl.id LEFT JOIN users u ON c.lawyer_id = u.id WHERE s.session_date > datetime('now') AND s.status = 'مجدول' AND c.lawyer_id = ? AND s.office_id = ? ORDER BY s.session_date ASC LIMIT 10`;
+            const ownerColumn = userRole === 'trainee' ? 'assistant_lawyer_id' : 'lawyer_id';
+            query = `SELECT s.*, c.case_number, c.title as case_title, cl.full_name as client_name, u.full_name as lawyer_name FROM sessions s LEFT JOIN cases c ON s.case_id = c.id LEFT JOIN clients cl ON c.client_id = cl.id LEFT JOIN users u ON c.lawyer_id = u.id WHERE s.session_date > datetime('now') AND s.status = 'مجدول' AND c.${ownerColumn} = ? AND s.office_id = ? ORDER BY s.session_date ASC LIMIT 10`;
             params = [userId, officeId];
         }
         return await this.db.all(query, params) || [];
@@ -58,7 +61,8 @@ class DashboardService {
             query = `SELECT c.*, cl.full_name as client_name, u.full_name as lawyer_name FROM cases c LEFT JOIN clients cl ON c.client_id = cl.id LEFT JOIN users u ON c.lawyer_id = u.id WHERE c.is_active = 1 AND c.office_id = ? ORDER BY c.created_at DESC LIMIT 10`;
             params = [officeId];
         } else {
-            query = `SELECT c.*, cl.full_name as client_name, u.full_name as lawyer_name FROM cases c LEFT JOIN clients cl ON c.client_id = cl.id LEFT JOIN users u ON c.lawyer_id = u.id WHERE c.is_active = 1 AND c.lawyer_id = ? AND c.office_id = ? ORDER BY c.created_at DESC LIMIT 10`;
+            const ownerColumn = userRole === 'trainee' ? 'assistant_lawyer_id' : 'lawyer_id';
+            query = `SELECT c.*, cl.full_name as client_name, u.full_name as lawyer_name FROM cases c LEFT JOIN clients cl ON c.client_id = cl.id LEFT JOIN users u ON c.lawyer_id = u.id WHERE c.is_active = 1 AND c.${ownerColumn} = ? AND c.office_id = ? ORDER BY c.created_at DESC LIMIT 10`;
             params = [userId, officeId];
         }
         return await this.db.all(query, params) || [];

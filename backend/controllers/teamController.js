@@ -34,6 +34,16 @@ class TeamController extends BaseController {
         this.sendSuccess(res, lawyers);
     });
 
+    // ✅ قائمة مبسّطة بالمتدربين لإسناد القضايا (متاحة لأي مستخدم مسجّل دخول)
+    getTrainees = this.asyncWrapper(async (req, res) => {
+        const officeId = req.session.officeId;
+        const trainees = await db.all(
+            `SELECT id, full_name FROM users WHERE office_id = ? AND role = 'trainee' AND is_active = 1 ORDER BY full_name`,
+            [officeId]
+        );
+        this.sendSuccess(res, trainees);
+    });
+
     // ✅ إضافة عضو فريق جديد (محامي/متدرب/عميل بوابة) — مسار موحّد
     addMember = this.asyncWrapper(async (req, res) => {
         // المحامي (بخلاف الأدمن) يقدر يضيف متدربين فقط، لا محامين آخرين ولا حسابات بوابة

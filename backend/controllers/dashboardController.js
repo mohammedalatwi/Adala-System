@@ -51,18 +51,20 @@ class DashboardController extends BaseController {
     // ✅ جلب بيانات الرسم البياني
     getChartData = this.asyncWrapper(async (req, res) => {
         const { userId, userRole, officeId } = req.session;
+        // المتدرب يُسنَد له عبر assistant_lawyer_id، أما المحامي فعبر lawyer_id
+        const ownerColumn = userRole === 'trainee' ? 'assistant_lawyer_id' : 'lawyer_id';
 
         // 1. Cases monthly trend
         const monthlyCases = await db.all(`
             SELECT strftime('%Y-%m', created_at) as month, COUNT(*) as count
-            FROM cases WHERE is_active = 1 AND office_id = ? ${userRole !== 'admin' ? 'AND lawyer_id = ?' : ''}
+            FROM cases WHERE is_active = 1 AND office_id = ? ${userRole !== 'admin' ? `AND ${ownerColumn} = ?` : ''}
             GROUP BY strftime('%Y-%m', created_at) ORDER BY month DESC LIMIT 6
         `, userRole !== 'admin' ? [officeId, userId] : [officeId]);
 
         // 2. Cases by status (for doughnut chart)
         const casesByStatus = await db.all(`
             SELECT status, COUNT(*) as count
-            FROM cases WHERE is_active = 1 AND office_id = ? ${userRole !== 'admin' ? 'AND lawyer_id = ?' : ''}
+            FROM cases WHERE is_active = 1 AND office_id = ? ${userRole !== 'admin' ? `AND ${ownerColumn} = ?` : ''}
             GROUP BY status
         `, userRole !== 'admin' ? [officeId, userId] : [officeId]);
 
