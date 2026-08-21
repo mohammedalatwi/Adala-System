@@ -24,17 +24,20 @@ class ProfileManager {
 
     // true بين لحظة اكتشاف must_change_password=1 ونجاح تغيير كلمة المرور — يقفل
     // تبويبي "بياناتي الشخصية" و"معلومات الحساب" لأن GET /api/users/me سيُرفض بـ403
-    // على أي حال طالما هذا العلم قائم (يحظره requireNoPendingPasswordChange عالميًا)
+    // على أي حال طالما هذا العلم قائم (يحظره requireNoPendingPasswordChange عالميًا)،
+    // ويقفل تبويب "التفضيلات" أيضًا اتساقًا مع بقية التبويبات رغم عدم اعتماده على ذلك الطلب
     static forcedPasswordChange = false;
 
     static TABS = {
         personal: { view: 'personalView', btn: 'tabPersonal' },
         account: { view: 'accountView', btn: 'tabAccount' },
-        password: { view: 'passwordView', btn: 'tabPassword' }
+        password: { view: 'passwordView', btn: 'tabPassword' },
+        preferences: { view: 'preferencesView', btn: 'tabPreferences' }
     };
 
     static async init() {
         this.setupEventListeners();
+        this.syncThemeSwitch(ThemeManager.getCurrentTheme());
         await this.loadProfile();
     }
 
@@ -72,6 +75,21 @@ class ProfileManager {
                 }
             });
         }
+
+        const themeSwitch = document.getElementById('themeSwitchInput');
+        if (themeSwitch) {
+            themeSwitch.addEventListener('change', () => ThemeManager.toggle());
+        }
+
+        // ThemeManager.setTheme يبث 'themechange' على كل تبديل مهما كان مصدره (هذا
+        // المفتاح أو رابط "المظهر" بالقائمة الجانبية)، فيبقى المفتاح متزامنًا فورًا
+        // مع الحالة الفعلية بدل الاعتماد على قراءة مبدئية واحدة عند تحميل الصفحة
+        document.addEventListener('themechange', (e) => this.syncThemeSwitch(e.detail.theme));
+    }
+
+    static syncThemeSwitch(theme) {
+        const themeSwitch = document.getElementById('themeSwitchInput');
+        if (themeSwitch) themeSwitch.checked = theme === 'dark';
     }
 
     static switchTab(tab) {
@@ -130,6 +148,7 @@ class ProfileManager {
         document.getElementById('passwordRequiredBanner').style.display = 'flex';
         document.getElementById('tabPersonal').disabled = true;
         document.getElementById('tabAccount').disabled = true;
+        document.getElementById('tabPreferences').disabled = true;
 
         this.switchTab('password');
     }
@@ -140,6 +159,7 @@ class ProfileManager {
         document.getElementById('passwordRequiredBanner').style.display = 'none';
         document.getElementById('tabPersonal').disabled = false;
         document.getElementById('tabAccount').disabled = false;
+        document.getElementById('tabPreferences').disabled = false;
 
         await this.loadProfile();
         this.switchTab('personal');

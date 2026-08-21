@@ -87,6 +87,55 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        .theme-switch {
+            position: relative;
+            display: inline-block;
+            width: 54px;
+            height: 30px;
+            flex-shrink: 0;
+        }
+
+        .theme-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .theme-switch-slider {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+            background: var(--border-color);
+            border-radius: 30px;
+            transition: var(--transition-base);
+        }
+
+        .theme-switch-slider::before {
+            content: "";
+            position: absolute;
+            height: 24px;
+            width: 24px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-base);
+        }
+
+        .theme-switch input:checked+.theme-switch-slider {
+            background: var(--brand-primary);
+        }
+
+        .theme-switch input:checked+.theme-switch-slider::before {
+            transform: translateX(24px);
+        }
+
+        .theme-switch input:focus-visible+.theme-switch-slider {
+            outline: 2px solid var(--brand-primary);
+            outline-offset: 2px;
+        }
     </style>
 </head>
 
@@ -182,6 +231,10 @@
                     <button class="btn btn-sm tab-btn" id="tabPassword" data-action="switch-tab" data-tab="password"
                         style="border-radius:10px; background:transparent; color:var(--text-muted); font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
                         <i class="fas fa-key"></i> تغيير كلمة المرور
+                    </button>
+                    <button class="btn btn-sm tab-btn" id="tabPreferences" data-action="switch-tab" data-tab="preferences"
+                        style="border-radius:10px; background:transparent; color:var(--text-muted); font-weight:700; padding:0.6rem 1.8rem; border:none; transition: var(--transition-base);">
+                        <i class="fas fa-sliders"></i> التفضيلات
                     </button>
                 </div>
 
@@ -302,6 +355,33 @@
                                     كلمة المرور</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+
+                <!-- تبويب: التفضيلات -->
+                <div id="preferencesView" class="profile-card card" style="display: none; margin-bottom: 5rem;">
+                    <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding: 2rem;">
+                        <h2 style="font-size: 1.5rem; color: var(--text-main);"><i class="fas fa-sliders"
+                                style="color: var(--brand-primary);"></i> التفضيلات</h2>
+                        <p style="color: var(--text-muted); margin-top: 0.5rem;">تخصيص شكل النظام حسب رغبتك</p>
+                    </div>
+
+                    <div class="card-body" style="padding: 2.5rem;">
+                        <div class="info-row" style="border-bottom: none;">
+                            <span class="info-label"><i class="fas fa-moon"></i> الوضع الليلي</span>
+                            <div style="display:flex; align-items:center; gap:0.7rem;">
+                                <i class="fas fa-sun" style="color:#f59e0b;"></i>
+                                <label class="theme-switch" title="تبديل الوضع الليلي/النهاري">
+                                    <input type="checkbox" id="themeSwitchInput">
+                                    <span class="theme-switch-slider"></span>
+                                </label>
+                                <i class="fas fa-moon" style="color:#4b5563;"></i>
+                            </div>
+                        </div>
+                        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">
+                            يتم حفظ هذا الاختيار على هذا المتصفح فقط، ويمكنك أيضًا التبديل بسرعة من رابط "المظهر"
+                            بالقائمة الجانبية.
+                        </p>
                     </div>
                 </div>
             </main>

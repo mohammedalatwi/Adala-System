@@ -13,10 +13,18 @@ class ThemeManager {
         document.body.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
         this.updateIcon(theme);
+
+        // بث الحدث لتتزامن أي عناصر تحكّم أخرى بالمظهر بنفس الصفحة (مثل مفتاح
+        // التبديل بتبويب التفضيلات) فورًا مع أي تغيير، من أي مصدر استدعاه
+        document.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
+    }
+
+    static getCurrentTheme() {
+        return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
     }
 
     static toggle() {
-        const current = localStorage.getItem('theme') === 'dark' ? 'light' : 'dark';
+        const current = this.getCurrentTheme() === 'dark' ? 'light' : 'dark';
         this.setTheme(current);
     }
 
