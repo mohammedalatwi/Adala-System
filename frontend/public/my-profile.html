@@ -190,9 +190,6 @@
                     <a href="/my-profile" class="nav-item active">
                         <i class="fas fa-user-circle"></i> <span>إعداداتي</span>
                     </a>
-                    <a href="#" class="nav-item js-theme-toggle">
-                        <i class="fas fa-adjust"></i> <span>المظهر</span>
-                    </a>
                     <a href="#" id="logoutBtn" class="nav-item" style="color: #f87171;">
                         <i class="fas fa-sign-out-alt"></i> <span>خروج</span>
                     </a>
@@ -209,6 +206,9 @@
                         <p style="color:var(--text-muted); font-size:1.1rem;">إدارة بياناتك الشخصية والاطلاع على تفاصيل
                             حسابك في النظام.</p>
                     </div>
+                    <!-- هذه الصفحة بلا شريط علوي، فيُوضع زر تبديل المظهر في صف العنوان -->
+                    <button id="themeToggle" class="btn btn-outline js-theme-toggle" style="border:none;"
+                        title="تبديل المظهر"><i class="fas fa-moon"></i></button>
                 </div>
 
                 <!-- بانر يظهر فقط عند إجبار المستخدم على تغيير كلمة مرور مؤقتة (يُدار من my-profile.js) -->
