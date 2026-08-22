@@ -6,6 +6,8 @@ const fs = require('fs');
 class Database {
     constructor() {
         this.db = null;
+        // ذيل طابور لتسلسل كل transaction عبر transaction() أدناه — راجع التعليق هناك.
+        this._transactionQueue = Promise.resolve();
     }
 
     init() {
@@ -78,19 +80,44 @@ class Database {
         });
     }
 
-    // ✅ بدء transaction
-    beginTransaction() {
-        return this.run('BEGIN TRANSACTION');
+    /**
+     * ينفّذ fn داخل BEGIN/COMMIT، مع ضمان عدم فتح transaction ثانية على نفس الاتصال
+     * المشترك قبل إغلاق الأولى (commit أو rollback). هذا الاتصال واحد لكل التطبيق
+     * (لا connection pool)، وSQLite ترفض BEGIN ثانية فوق transaction مفتوحة أصلًا
+     * بخطأ SQL فوري "cannot start a transaction within a transaction" — فبدون هذا
+     * التسلسل، أي طلبين متزامنين يفتحان transaction (حتى لو لا علاقة بينهما، كتسجيل
+     * مستخدمين مختلفين بمكتبين مختلفين) يتصادمان: أحدهما ينجح والآخر ينهار بخطأ SQL
+     * خام. كل الطلبات التي تستدعي transaction() تُصفّ هنا وتُنفَّذ واحدة تلو الأخرى،
+     * بغض النظر عن نجاح أو فشل ما قبلها، فلا يعلق الطابور عند فشل أحد الطلبات.
+     *
+     * أي قراءة يعتمد عليها حساب لاحق (كقراءة paid_amount قبل حساب دفعة جديدة) يجب أن
+     * تحدث داخل fn نفسها لا قبل استدعاء transaction() — وإلا بقيت عرضة لقراءة قيمة
+     * قديمة أثناء انتظار دورها بالطابور، فيتحول انهيار مرئي (الوضع الحالي) إلى حساب
+     * خاطئ صامت (أسوأ).
+     */
+    transaction(fn) {
+        const runInTurn = () => this._runTransaction(fn);
+        const result = this._transactionQueue.then(runInTurn, runInTurn);
+        // الذيل يواصل الطابور دومًا بغض النظر عن نجاح/فشل هذه المعاملة، لكن الطلب
+        // نفسه (result) يُعاد للمستدعي بنتيجته الحقيقية (نجاحًا أو رفضًا) دون ابتلاع.
+        this._transactionQueue = result.catch(() => {});
+        return result;
     }
 
-    // ✅ تأكيد transaction
-    commit() {
-        return this.run('COMMIT');
-    }
-
-    // ✅ تراجع transaction
-    rollback() {
-        return this.run('ROLLBACK');
+    async _runTransaction(fn) {
+        await this.run('BEGIN TRANSACTION');
+        try {
+            const value = await fn();
+            await this.run('COMMIT');
+            return value;
+        } catch (error) {
+            try {
+                await this.run('ROLLBACK');
+            } catch (rollbackError) {
+                console.error('❌ فشل التراجع (ROLLBACK) بعد خطأ داخل transaction:', rollbackError.message);
+            }
+            throw error;
+        }
     }
 
     // ✅ إغلاق الاتصال

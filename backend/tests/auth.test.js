@@ -130,6 +130,35 @@ describe('Auth flow', () => {
     });
 });
 
+describe('POST /api/auth/register — concurrent registrations', () => {
+    // backend/db/database.js يستخدم اتصال sqlite3 واحد مشترك للتطبيق كله (لا connection
+    // pool)، وAuthService.register يفتح BEGIN/COMMIT حوله. قبل إضافة db.transaction()
+    // (الطابور التسلسلي)، تحققنا يدويًا أن تسجيلين متزامنين لمستخدمين لا علاقة بينهما
+    // إطلاقًا (لا مكتب مشترك، لا صف مشترك) يتصادمان: أحدهما ينجح والآخر يفشل بخطأ SQL
+    // خام "cannot start a transaction within a transaction" — أي عطل بنيوي بالاتصال
+    // الواحد، لا تنازع على بيانات. هذا الاختبار يثبّت أن db.transaction() يحل ذلك: كلا
+    // التسجيلين ينجحان، ولا بيانات مفقودة أو متداخلة بين المكتبين.
+    test('two unrelated users registering at the same time both succeed with distinct offices', async () => {
+        const userA = { full_name: 'مستخدم تزامن أول', username: 'race_reg_a', email: 'race_reg_a@example.com', password: 'password123', phone: '0599990001' };
+        const userB = { full_name: 'مستخدم تزامن ثانٍ', username: 'race_reg_b', email: 'race_reg_b@example.com', password: 'password123', phone: '0599990002' };
+
+        const [resA, resB] = await Promise.all([
+            request(app).post('/api/auth/register').set('Accept', 'application/json').send(userA),
+            request(app).post('/api/auth/register').set('Accept', 'application/json').send(userB)
+        ]);
+
+        expect(resA.status).toBe(201);
+        expect(resB.status).toBe(201);
+        expect(resA.body.data.officeId).not.toBe(resB.body.data.officeId);
+        expect(resA.body.data.userId).not.toBe(resB.body.data.userId);
+
+        const rowA = await db.get('SELECT office_id FROM users WHERE username = ?', ['race_reg_a']);
+        const rowB = await db.get('SELECT office_id FROM users WHERE username = ?', ['race_reg_b']);
+        expect(rowA.office_id).toBe(resA.body.data.officeId);
+        expect(rowB.office_id).toBe(resB.body.data.officeId);
+    });
+});
+
 describe('PUT /api/auth/password', () => {
     let pwdUser;
     let agent;

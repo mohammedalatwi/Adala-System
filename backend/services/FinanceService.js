@@ -23,10 +23,8 @@ class FinanceService {
         const invoice_number = 'INV-' + Date.now();
         const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
-        await this.db.run('BEGIN TRANSACTION');
-
-        try {
-            const invoiceResult = await this.db.run(
+        const invoiceResult = await this.db.transaction(async () => {
+            const result = await this.db.run(
                 `INSERT INTO invoices (case_id, client_id, invoice_number, issue_date, due_date, amount, notes, created_by, office_id)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [case_id, client_id, invoice_number, issue_date, due_date, totalAmount, notes, userId, officeId]
@@ -36,41 +34,40 @@ class FinanceService {
                 await this.db.run(
                     `INSERT INTO invoice_items (invoice_id, description, quantity, unit_price, total)
                      VALUES (?, ?, ?, ?, ?)`,
-                    [invoiceResult.id, item.description, item.quantity, item.unit_price, item.quantity * item.unit_price]
+                    [result.id, item.description, item.quantity, item.unit_price, item.quantity * item.unit_price]
                 );
             }
 
-            await this.db.run('COMMIT');
+            return result;
+        });
 
-            await ActivityService.logActivity({
-                userId,
-                actionType: 'create',
-                entityType: 'invoice',
-                entityId: invoiceResult.id,
-                description: `إنشاء فاتورة جديدة برقم: ${invoice_number}`,
-                officeId
-            });
+        await ActivityService.logActivity({
+            userId,
+            actionType: 'create',
+            entityType: 'invoice',
+            entityId: invoiceResult.id,
+            description: `إنشاء فاتورة جديدة برقم: ${invoice_number}`,
+            officeId
+        });
 
-            return { id: invoiceResult.id, invoice_number, amount: totalAmount };
-        } catch (error) {
-            await this.db.run('ROLLBACK');
-            throw error;
-        }
+        return { id: invoiceResult.id, invoice_number, amount: totalAmount };
     }
 
     async recordPayment(paymentData, userId, officeId) {
         const { invoice_id, amount, payment_date, payment_method, reference_number, notes } = paymentData;
 
-        const invoice = await this.db.get('SELECT * FROM invoices WHERE id = ? AND office_id = ?', [invoice_id, officeId]);
-        if (!invoice) throw new Error('الفاتورة غير موجودة');
+        const { paymentResult, invoiceNumber, newStatus } = await this.db.transaction(async () => {
+            // القراءة والتحقق من المتبقي يجب أن يحدثا هنا، داخل نفس المنطقة المحمية
+            // بطابور transaction() — لا قبل استدعائها — وإلا بقيت عرضة لقراءة
+            // paid_amount قديمة أثناء انتظار الدور، فيتحول الانهيار المرئي السابق إلى
+            // حساب خاطئ صامت.
+            const invoice = await this.db.get('SELECT * FROM invoices WHERE id = ? AND office_id = ?', [invoice_id, officeId]);
+            if (!invoice) throw new Error('الفاتورة غير موجودة');
 
-        if (invoice.paid_amount + amount > invoice.amount) {
-            throw new Error('المبلغ المدفوع يتجاوز قيمة الفاتورة المتبقية');
-        }
+            if (invoice.paid_amount + amount > invoice.amount) {
+                throw new Error('المبلغ المدفوع يتجاوز قيمة الفاتورة المتبقية');
+            }
 
-        await this.db.run('BEGIN TRANSACTION');
-
-        try {
             const paymentResult = await this.db.run(
                 `INSERT INTO payments (invoice_id, amount, payment_date, payment_method, reference_number, notes, recorded_by, office_id)
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -87,22 +84,19 @@ class FinanceService {
                 [newPaidAmount, newStatus, invoice_id, officeId]
             );
 
-            await this.db.run('COMMIT');
+            return { paymentResult, invoiceNumber: invoice.invoice_number, newStatus };
+        });
 
-            await ActivityService.logActivity({
-                userId,
-                actionType: 'create',
-                entityType: 'payment',
-                entityId: paymentResult.id,
-                description: `تسجيل دفعة بقيمة ${amount} للفاتورة ${invoice.invoice_number}`,
-                officeId
-            });
+        await ActivityService.logActivity({
+            userId,
+            actionType: 'create',
+            entityType: 'payment',
+            entityId: paymentResult.id,
+            description: `تسجيل دفعة بقيمة ${amount} للفاتورة ${invoiceNumber}`,
+            officeId
+        });
 
-            return { id: paymentResult.id, amount, newStatus };
-        } catch (error) {
-            await this.db.run('ROLLBACK');
-            throw error;
-        }
+        return { id: paymentResult.id, amount, newStatus };
     }
 
     async createExpense(expenseData, userId, officeId) {
