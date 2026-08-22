@@ -608,19 +608,14 @@ describe('POST /api/finance/payments — concurrent payments on the same invoice
     });
 });
 
-describe('FinanceService.createInvoice — concurrent creation', () => {
-    // نفس آلية db.transaction() تحمي createInvoice أيضًا (لا مزيد من "cannot start a
-    // transaction within a transaction" — تحقّقنا يدويًا 4 مرات متتالية بعد الإصلاح
-    // ولم يظهر ذلك الخطأ إطلاقًا بأي منها). لكن أول محاولة لاختبار هذا عبر HTTP
-    // بـPromise.all كشفت خللًا حقيقيًا آخر لم يكن ظاهرًا سابقًا (كان الانهيار على
-    // BEGIN المتداخلة يحدث أولًا ويُخفيه): invoice_number = 'INV-' + Date.now() غير
-    // آمن من التصادم — إنشاءان بنفس المللي ثانية يتصادمان على قيد UNIQUE. لاحظنا هذا
-    // فعليًا (تصادم في ~2 من 4 تشغيلات متتالية عبر HTTP، راجع سجل الجلسة)، لا افتراضًا.
-    //
-    // لعزل إثبات أن طابور transaction() نفسه يعمل بشكل صحيح عن مشكلة invoice_number
-    // المنفصلة، الاختباران التاليان يستدعيان FinanceService مباشرة (بتجاوز HTTP) مع
-    // التحكم بـDate.now() بشكل حتمي — لا نعتمد على توقيت عشوائي حقيقي قد يتصادم أو لا
-    // يتصادم، فيصير الاختبار متذبذبًا (flaky) بلا داعٍ.
+describe('FinanceService.createInvoice — concurrent creation and sequential numbering', () => {
+    // كانت invoice_number = 'INV-' + Date.now() (راجع تاريخ Git لهذا الملف): إنشاءان
+    // بنفس المللي ثانية يتصادمان على قيد UNIQUE، والثاني يُفقد بخطأ SQL خام — خلل
+    // اكتُشف أثناء التحقق من إصلاح طابور transaction() (كان انهيار BEGIN المتداخلة
+    // يحدث أولًا ويُخفيه). الإصلاح: رقم تسلسلي مقروء لكل مكتب ولكل سنة
+    // (INV-{سنة}-{4 خانات})، محسوب من MAX(sequence_number)+1 لنفس (office_id, السنة)
+    // داخل نفس db.transaction() المحمية بالطابور — فلا حاجة بعد الآن للتحكم بـ
+    // Date.now() لجعل الاختبار حتميًا؛ التسلسل نفسه حتمي الآن تحت التزامن الحقيقي.
     let ownerId;
 
     beforeAll(async () => {
@@ -628,13 +623,16 @@ describe('FinanceService.createInvoice — concurrent creation', () => {
         ownerId = row.id;
     });
 
-    afterEach(() => {
-        jest.restoreAllMocks();
-    });
+    async function currentMaxSequence(forOfficeId, year) {
+        const row = await db.get(
+            `SELECT MAX(sequence_number) as maxSeq FROM invoices WHERE office_id = ? AND strftime('%Y', issue_date) = ?`,
+            [forOfficeId, year]
+        );
+        return row.maxSeq || 0;
+    }
 
-    test('two concurrent creations with distinct invoice_number values both succeed correctly (proves the transaction queue itself is safe)', async () => {
-        let call = 0;
-        jest.spyOn(Date, 'now').mockImplementation(() => (call++ === 0 ? 5000000000001 : 5000000000002));
+    test('two concurrent creations for the same office get distinct, correctly formatted, consecutive invoice numbers', async () => {
+        const startSeq = await currentMaxSequence(officeId, '2026');
 
         const [r1, r2] = await Promise.all([
             FinanceService.createInvoice({ client_id: clientId, issue_date: '2026-02-07', items: [{ description: 'بند أول', quantity: 1, unit_price: 111 }] }, ownerId, officeId),
@@ -643,36 +641,54 @@ describe('FinanceService.createInvoice — concurrent creation', () => {
 
         expect(r1.id).not.toBe(r2.id);
         expect(r1.invoice_number).not.toBe(r2.invoice_number);
+        expect(r1.invoice_number).toMatch(/^INV-2026-\d{4}$/);
+        expect(r2.invoice_number).toMatch(/^INV-2026-\d{4}$/);
+
+        const rows = await db.all('SELECT sequence_number FROM invoices WHERE id IN (?, ?) ORDER BY sequence_number', [r1.id, r2.id]);
+        expect(rows.map(r => r.sequence_number)).toEqual([startSeq + 1, startSeq + 2]);
 
         const items1 = await db.all('SELECT unit_price FROM invoice_items WHERE invoice_id = ?', [r1.id]);
         const items2 = await db.all('SELECT unit_price FROM invoice_items WHERE invoice_id = ?', [r2.id]);
         expect(items1).toHaveLength(1);
         expect(items2).toHaveLength(1);
-        expect(items1[0].unit_price).toBe(111);
-        expect(items2[0].unit_price).toBe(222);
     });
 
-    test('NEWLY DISCOVERED KNOWN ISSUE: two invoices created within the exact same millisecond collide on invoice_number and the second is lost with a raw SQL error', async () => {
-        jest.spyOn(Date, 'now').mockReturnValue(5000000000099);
+    test('five concurrent creations for the same office all succeed with a complete, gap-free, non-duplicated sequence', async () => {
+        const startSeq = await currentMaxSequence(officeId, '2026');
 
         const make = () => FinanceService.createInvoice(
-            { client_id: clientId, issue_date: '2026-02-07', items: [{ description: 'بند متصادم', quantity: 1, unit_price: 50 }] },
+            { client_id: clientId, issue_date: '2026-02-08', items: [{ description: 'بند متعدد', quantity: 1, unit_price: 10 }] },
             ownerId,
             officeId
         );
 
-        const results = await Promise.allSettled([make(), make()]);
-        const fulfilled = results.filter(r => r.status === 'fulfilled');
-        const rejected = results.filter(r => r.status === 'rejected');
+        const results = await Promise.all([make(), make(), make(), make(), make()]);
+        const ids = results.map(r => r.id);
+        expect(new Set(ids).size).toBe(5); // لا معرّفات مكررة
 
-        expect(fulfilled).toHaveLength(1);
-        expect(rejected).toHaveLength(1);
-        expect(rejected[0].reason.message).toMatch(/UNIQUE constraint failed: invoices\.invoice_number/i);
+        const rows = await db.all(`SELECT sequence_number FROM invoices WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
+        const seqs = rows.map(r => r.sequence_number).sort((a, b) => a - b);
+        expect(seqs).toEqual([startSeq + 1, startSeq + 2, startSeq + 3, startSeq + 4, startSeq + 5]);
+    });
 
-        // الفاتورة التي نجحت فقط هي الموجودة فعلًا — لا فاتورة "شبح" بلا بنود، ولا بند مكرر
-        const invoiceRows = await db.all('SELECT id FROM invoices WHERE invoice_number = ?', ['INV-5000000000099']);
-        expect(invoiceRows).toHaveLength(1);
-        const items = await db.all('SELECT id FROM invoice_items WHERE invoice_id = ?', [invoiceRows[0].id]);
-        expect(items).toHaveLength(1);
+    test('numbering is independent per office — concurrent creation in two different offices does not share or skip sequence numbers', async () => {
+        const office2ClientRes = await agent2
+            .post('/api/clients')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'عميل ترقيم مستقل', phone: '0533330099' });
+        const office2ClientId = office2ClientRes.body.data.id;
+        const owner2Row = await db.get('SELECT id FROM users WHERE email = ?', ['finance_owner2@example.com']);
+
+        const startSeqOffice1 = await currentMaxSequence(officeId, '2026');
+        const startSeqOffice2 = await currentMaxSequence(officeId2, '2026');
+
+        const [r1, r2] = await Promise.all([
+            FinanceService.createInvoice({ client_id: clientId, issue_date: '2026-02-09', items: [{ description: 'بند مكتب 1', quantity: 1, unit_price: 10 }] }, ownerId, officeId),
+            FinanceService.createInvoice({ client_id: office2ClientId, issue_date: '2026-02-09', items: [{ description: 'بند مكتب 2', quantity: 1, unit_price: 10 }] }, owner2Row.id, officeId2)
+        ]);
+
+        // كل مكتب يبدأ من الرقم التالي بعد آخر رقم له فقط — لا يستهلك أحدهما رقمًا من الآخر
+        expect(r1.invoice_number).toBe(`INV-2026-${String(startSeqOffice1 + 1).padStart(4, '0')}`);
+        expect(r2.invoice_number).toBe(`INV-2026-${String(startSeqOffice2 + 1).padStart(4, '0')}`);
     });
 });

@@ -20,14 +20,26 @@ class FinanceService {
             throw new Error('يجب إضافة بند واحد على الأقل للفاتورة');
         }
 
-        const invoice_number = 'INV-' + Date.now();
         const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+        // سنة رقم الفاتورة مبنية على issue_date (تاريخ المستند)، لا وقت الإنشاء الفعلي —
+        // فاتورة بتاريخ إصدار 2026 تحمل رقم INV-2026-xxxx دائمًا بغض النظر عن متى أُدخلت.
+        const year = String(issue_date).slice(0, 4);
 
         const invoiceResult = await this.db.transaction(async () => {
+            // حساب الرقم التسلسلي والتحقق من التصادم يجب أن يحدثا هنا، داخل نفس المنطقة
+            // المحمية بطابور transaction() — بنفس منطق نقل قراءة paid_amount بـ
+            // recordPayment أدناه — وإلا بقي عرضة لتصادم بين إنشاءين متزامنين لنفس المكتب.
+            const maxRow = await this.db.get(
+                `SELECT MAX(sequence_number) as maxSeq FROM invoices WHERE office_id = ? AND strftime('%Y', issue_date) = ?`,
+                [officeId, year]
+            );
+            const sequenceNumber = (maxRow.maxSeq || 0) + 1;
+            const invoiceNumber = `INV-${year}-${String(sequenceNumber).padStart(4, '0')}`;
+
             const result = await this.db.run(
-                `INSERT INTO invoices (case_id, client_id, invoice_number, issue_date, due_date, amount, notes, created_by, office_id)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [case_id, client_id, invoice_number, issue_date, due_date, totalAmount, notes, userId, officeId]
+                `INSERT INTO invoices (case_id, client_id, invoice_number, sequence_number, issue_date, due_date, amount, notes, created_by, office_id)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [case_id, client_id, invoiceNumber, sequenceNumber, issue_date, due_date, totalAmount, notes, userId, officeId]
             );
 
             for (const item of items) {
@@ -38,7 +50,7 @@ class FinanceService {
                 );
             }
 
-            return result;
+            return { id: result.id, invoice_number: invoiceNumber };
         });
 
         await ActivityService.logActivity({
@@ -46,11 +58,11 @@ class FinanceService {
             actionType: 'create',
             entityType: 'invoice',
             entityId: invoiceResult.id,
-            description: `إنشاء فاتورة جديدة برقم: ${invoice_number}`,
+            description: `إنشاء فاتورة جديدة برقم: ${invoiceResult.invoice_number}`,
             officeId
         });
 
-        return { id: invoiceResult.id, invoice_number, amount: totalAmount };
+        return { id: invoiceResult.id, invoice_number: invoiceResult.invoice_number, amount: totalAmount };
     }
 
     async recordPayment(paymentData, userId, officeId) {

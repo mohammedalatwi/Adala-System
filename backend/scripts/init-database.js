@@ -129,8 +129,8 @@ async function addSampleData() {
                 [2, 'CASE-002', 'نزاع عقاري', 'مدني', 2, 1, 'جديد', 'متوسط', '2024-02-01', 1]);
 
             // بيانات الفواتير
-            db.run(`INSERT INTO invoices (id, case_id, client_id, invoice_number, issue_date, amount, status, created_by, office_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [1, 1, 1, 'INV-001', '2024-03-01', 5000.00, 'unpaid', 1, 1]);
+            db.run(`INSERT INTO invoices (id, case_id, client_id, invoice_number, sequence_number, issue_date, amount, status, created_by, office_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [1, 1, 1, 'INV-2024-0001', 1, '2024-03-01', 5000.00, 'unpaid', 1, 1]);
 
             console.log('✅ تم إضافة البيانات الأولية');
         });

@@ -191,11 +191,17 @@ CREATE TABLE IF NOT EXISTS documents (
 );
 
  -- جدول الفواتير
+-- invoice_number مقروء وتسلسلي لكل مكتب (INV-{سنة}-{رقم بـ4 خانات}، يُصفَّر كل سنة)،
+-- يُحسَب من sequence_number = MAX(sequence_number) + 1 لنفس (office_id, السنة)، محسوبة
+-- داخل db.transaction() في FinanceService.createInvoice فلا يتصادم تحت التزامن. القيد
+-- UNIQUE مركّب على (office_id, invoice_number) لا عالمي: أرقام فواتير مكتبين مختلفين لا
+-- علاقة بينهما، فلا داعي أن يتصادما لمجرد تطابق الصيغة بنفس السنة.
 CREATE TABLE IF NOT EXISTS invoices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_id INTEGER,
     client_id INTEGER NOT NULL,
-    invoice_number TEXT UNIQUE NOT NULL,
+    invoice_number TEXT NOT NULL,
+    sequence_number INTEGER NOT NULL,
     issue_date DATE NOT NULL,
     due_date DATE,
     amount DECIMAL(15,2) NOT NULL,
@@ -209,7 +215,8 @@ CREATE TABLE IF NOT EXISTS invoices (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (case_id) REFERENCES cases (id),
     FOREIGN KEY (client_id) REFERENCES clients (id),
-    FOREIGN KEY (created_by) REFERENCES users (id)
+    FOREIGN KEY (created_by) REFERENCES users (id),
+    UNIQUE (office_id, invoice_number)
 );
 
 -- جدول بنود الفاتورة
