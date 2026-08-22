@@ -845,3 +845,121 @@ describe('FinanceService.createInvoice — concurrent creation and sequential nu
         expect(r2.invoice_number).toBe(`INV-2026-${String(startSeqOffice2 + 1).padStart(4, '0')}`);
     });
 });
+
+describe('KNOWN ISSUE: createInvoice/createExpense do not verify that client_id/case_id belong to the caller\'s own office', () => {
+    // FinanceService.createInvoice وcreateExpense يُدخلان client_id/case_id من الطلب
+    // مباشرة في INSERT دون أي تحقق من أنهما ينتميان لـoffice_id الخاص بالجلسة الحالية
+    // (خلافًا لـrecordPayment وdownloadInvoicePDF أدناه، اللذين يشترطان office_id في
+    // WHERE فيرفضان أي صف من مكتب آخر). النتيجة: مستخدم بمكتب 1 يستطيع حاليًا ربط
+    // فاتورة/مصروف بعميل أو قضية يملكهما مكتب آخر تمامًا. هذه الاختبارات توثّق
+    // السلوك الحالي كما هو دون إصلاحه.
+    let office2ClientId, office2CaseId;
+
+    beforeAll(async () => {
+        const clientRes = await agent2
+            .post('/api/clients')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'عميل لاختبار عزل الإنشاء', phone: '0544440001' });
+        office2ClientId = clientRes.body.data.id;
+
+        const owner2Row = await db.get('SELECT id FROM users WHERE email = ?', ['finance_owner2@example.com']);
+
+        const caseRes = await agent2
+            .post('/api/cases')
+            .set('Accept', 'application/json')
+            .send({ case_number: 'FIN-CASE-OFFICE2-001', title: 'قضية مكتب 2 لاختبار العزل', case_type: 'مدني', client_id: office2ClientId, lawyer_id: owner2Row.id });
+        office2CaseId = caseRes.body.data.id;
+    });
+
+    test('KNOWN ISSUE: createInvoice accepts a client_id belonging to another office', async () => {
+        const res = await agent
+            .post('/api/finance/invoices')
+            .set('Accept', 'application/json')
+            .send({
+                client_id: office2ClientId,
+                issue_date: '2026-04-01',
+                items: [{ description: 'بند بعميل من مكتب آخر', quantity: 1, unit_price: 100 }]
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+
+        const stored = await db.get('SELECT client_id, office_id FROM invoices WHERE id = ?', [res.body.data.id]);
+        expect(stored.office_id).toBe(officeId);
+        expect(stored.client_id).toBe(office2ClientId);
+    });
+
+    test('KNOWN ISSUE: createInvoice accepts a case_id belonging to another office', async () => {
+        const res = await agent
+            .post('/api/finance/invoices')
+            .set('Accept', 'application/json')
+            .send({
+                client_id: clientId,
+                case_id: office2CaseId,
+                issue_date: '2026-04-01',
+                items: [{ description: 'بند بقضية من مكتب آخر', quantity: 1, unit_price: 100 }]
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+
+        const stored = await db.get('SELECT case_id, office_id FROM invoices WHERE id = ?', [res.body.data.id]);
+        expect(stored.office_id).toBe(officeId);
+        expect(stored.case_id).toBe(office2CaseId);
+    });
+
+    test('KNOWN ISSUE: createExpense accepts a case_id belonging to another office', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({
+                case_id: office2CaseId,
+                title: 'مصروف بقضية من مكتب آخر',
+                amount: 50,
+                expense_date: '2026-04-01'
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+
+        const stored = await db.get('SELECT case_id, office_id FROM expenses WHERE id = ?', [res.body.data.id]);
+        expect(stored.office_id).toBe(officeId);
+        expect(stored.case_id).toBe(office2CaseId);
+    });
+});
+
+describe('GET /api/finance/invoices/:id/download', () => {
+    test('downloads a valid PDF for an existing invoice', async () => {
+        const res = await agent
+            .get(`/api/finance/invoices/${invoiceA}/download`)
+            .buffer(true);
+
+        expect(res.status).toBe(200);
+        expect(res.headers['content-type']).toMatch(/application\/pdf/);
+        expect(Buffer.isBuffer(res.body)).toBe(true);
+        expect(res.body.slice(0, 5).toString('latin1')).toBe('%PDF-');
+    });
+
+    test('returns an error for a nonexistent invoice', async () => {
+        const res = await agent
+            .get('/api/finance/invoices/999999/download')
+            .set('Accept', 'application/json');
+
+        // نفس نمط الخطأ الموثّق أعلاه لـrecordPayment: throw new Error('الفاتورة غير
+        // موجودة') لا يحوي 'غير مصرح'، فيسقط على 500 الافتراضي في errorHandler.js
+        // بدل 404 الصحيح منطقيًا.
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBe('الفاتورة غير موجودة');
+    });
+
+    test('office isolation: rejects downloading an invoice belonging to another office (unlike the creation paths above, WHERE office_id here actually blocks it)', async () => {
+        const res = await agent2
+            .get(`/api/finance/invoices/${invoiceA}/download`)
+            .set('Accept', 'application/json');
+
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBe('الفاتورة غير موجودة');
+    });
+});
