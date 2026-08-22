@@ -20,6 +20,7 @@
 // ترتيب الحذف معكوس لترتيب الإنشاء احترامًا للمفاتيح الأجنبية
 const DROP_TABLES = `
 DROP TABLE IF EXISTS session_reminders;
+DROP TABLE IF EXISTS notification_settings;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS tasks;
 DROP TABLE IF EXISTS activities;
@@ -100,13 +101,6 @@ CREATE TABLE IF NOT EXISTS clients (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users (id)
 );
-
--- ... باقي الجداول (يمكنك نسخها كما هي من الملف الأصلي أو إبقائها) ...
--- (To keep the response short, I assume I don't need to repeat all tables if I'm not changing them, 
--- BUT since I'm using replace_file_content on a large block, I must provide the full content or valid chunks.
--- Since I am replacing the CREATE TABLES part, I must include ALL of them to avoid breaking the script structure if I replace a huge block.)
-
--- (Let's stick to the instruction: I will provide the FULL createTables string with the fix)
 
 -- جدول القضايا
 CREATE TABLE IF NOT EXISTS cases (
