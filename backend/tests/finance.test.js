@@ -508,3 +508,95 @@ describe('POST /api/finance/payments', () => {
         expect(invoice.paid_amount).toBe(0);
     });
 });
+
+describe('POST /api/finance/payments — concurrent payments on the same invoice (KNOWN ISSUE)', () => {
+    // FinanceService.recordPayment (backend/services/FinanceService.js) reads the invoice,
+    // checks the remaining balance, then runs BEGIN/INSERT/UPDATE/COMMIT on the single
+    // shared sqlite3 connection (backend/db/database.js has exactly one `this.db`, no
+    // connection pool). sqlite does not support a second BEGIN TRANSACTION on a connection
+    // that already has one open, so when two payment requests for the same invoice are
+    // truly concurrent, the second one's BEGIN fails outright with a raw SQLite error —
+    // it is rejected, not queued and retried.
+    //
+    // What we feared going in (per the coverage-planning analysis) was silent data
+    // corruption: both requests reading the same stale paid_amount and one overwriting
+    // the other's update, so the invoice ends up under-counting a real payment while the
+    // `payments` ledger still shows both rows. That is NOT what happens. Verified
+    // reproducibly across 5 back-to-back runs before finalizing this test: the invoice
+    // and `payments` ledger stay consistent with each other (no undercount, no double-
+    // count) — one request's payment is fully recorded, the other's is fully rejected and
+    // rolled back, nothing partial. So the actual bug is availability/UX, not silent
+    // financial corruption: a legitimate second payment attempt (two staff members
+    // recording a payment around the same time, or a double-submitted request) is thrown
+    // away with an opaque, untranslated internal error instead of being queued, retried,
+    // or rejected with a clear Arabic message telling the caller to retry.
+    test('one concurrent payment succeeds, the other fails with a raw SQLite error instead of being queued or retried — but no silent data corruption', async () => {
+        const invRes = await agent
+            .post('/api/finance/invoices')
+            .set('Accept', 'application/json')
+            .send({ client_id: clientId, issue_date: '2026-02-05', items: [{ description: 'بند سباق', quantity: 1, unit_price: 1000 }] });
+        const raceInvoiceId = invRes.body.data.id;
+
+        const payAttempt = () => agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: raceInvoiceId, amount: 500, payment_date: '2026-02-05', payment_method: 'cash' });
+
+        const [r1, r2] = await Promise.all([payAttempt(), payAttempt()]);
+        const results = [r1, r2];
+
+        const succeeded = results.filter(r => r.status === 200);
+        const failed = results.filter(r => r.status !== 200);
+
+        // KNOWN ISSUE: exactly one of the two legitimate, individually-valid payment
+        // attempts is thrown away instead of both being honored (there was room for both
+        // — 500 + 500 = 1000, the exact invoice amount).
+        expect(succeeded).toHaveLength(1);
+        expect(failed).toHaveLength(1);
+
+        expect(failed[0].status).toBe(500);
+        expect(failed[0].body.success).toBe(false);
+        expect(failed[0].body.message).toMatch(/cannot start a transaction within a transaction/i);
+
+        // لا فساد بيانات: paid_amount والسجل الفعلي بجدول payments متطابقان تمامًا مع
+        // الدفعة الوحيدة التي نجحت فعلًا — لا دفعة "مفقودة" مسجَّلة بالسجل دون أثر
+        // بالمجموع، ولا دفعة معدودة مرتين.
+        const invoice = await db.get('SELECT paid_amount, status FROM invoices WHERE id = ?', [raceInvoiceId]);
+        const paymentRows = await db.all('SELECT amount FROM payments WHERE invoice_id = ?', [raceInvoiceId]);
+
+        expect(paymentRows).toHaveLength(1);
+        expect(paymentRows[0].amount).toBe(500);
+        expect(invoice.paid_amount).toBe(500);
+        expect(invoice.status).toBe('partially_paid');
+    });
+
+    test('a payment recorded normally right after a failed concurrent attempt still accumulates correctly (no stuck transaction state)', async () => {
+        const invRes = await agent
+            .post('/api/finance/invoices')
+            .set('Accept', 'application/json')
+            .send({ client_id: clientId, issue_date: '2026-02-05', items: [{ description: 'بند سباق ٢', quantity: 1, unit_price: 1000 }] });
+        const raceInvoiceId = invRes.body.data.id;
+
+        const payAttempt = () => agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: raceInvoiceId, amount: 500, payment_date: '2026-02-05', payment_method: 'cash' });
+
+        await Promise.all([payAttempt(), payAttempt()]);
+
+        // بعد التسابق، دفعة عادية تالية (غير متزامنة) يجب أن تعمل بشكل طبيعي وتتراكم
+        // فوق ما نجح فعلًا — تأكيد أن فشل الطلب الثاني لم يترك اتصال قاعدة البيانات
+        // بحالة معلّقة (transaction لم تُغلق) تُفسد الطلبات اللاحقة.
+        const followUp = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: raceInvoiceId, amount: 500, payment_date: '2026-02-06', payment_method: 'cash' });
+
+        expect(followUp.status).toBe(200);
+        expect(followUp.body.data.newStatus).toBe('paid');
+
+        const invoice = await db.get('SELECT paid_amount, status FROM invoices WHERE id = ?', [raceInvoiceId]);
+        expect(invoice.paid_amount).toBe(1000);
+        expect(invoice.status).toBe('paid');
+    });
+});
