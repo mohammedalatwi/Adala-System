@@ -20,6 +20,13 @@ class FinanceService {
             throw new Error('يجب إضافة بند واحد على الأقل للفاتورة');
         }
 
+        const clientRow = await this.db.get('SELECT id FROM clients WHERE id = ? AND office_id = ?', [client_id, officeId]);
+        if (!clientRow) throw new Error('غير مصرح: العميل غير موجود في هذا المكتب');
+        if (case_id) {
+            const caseRow = await this.db.get('SELECT id FROM cases WHERE id = ? AND office_id = ?', [case_id, officeId]);
+            if (!caseRow) throw new Error('غير مصرح: القضية غير موجودة في هذا المكتب');
+        }
+
         const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
         // سنة رقم الفاتورة مبنية على issue_date (تاريخ المستند)، لا وقت الإنشاء الفعلي —
         // فاتورة بتاريخ إصدار 2026 تحمل رقم INV-2026-xxxx دائمًا بغض النظر عن متى أُدخلت.
@@ -113,6 +120,11 @@ class FinanceService {
 
     async createExpense(expenseData, userId, officeId) {
         const { case_id, title, amount, expense_date, category, notes, is_billable } = expenseData;
+
+        if (case_id) {
+            const caseRow = await this.db.get('SELECT id FROM cases WHERE id = ? AND office_id = ?', [case_id, officeId]);
+            if (!caseRow) throw new Error('غير مصرح: القضية غير موجودة في هذا المكتب');
+        }
 
         const result = await this.db.run(
             `INSERT INTO expenses (case_id, title, amount, expense_date, category, notes, is_billable, recorded_by, office_id)

@@ -846,13 +846,13 @@ describe('FinanceService.createInvoice — concurrent creation and sequential nu
     });
 });
 
-describe('KNOWN ISSUE: createInvoice/createExpense do not verify that client_id/case_id belong to the caller\'s own office', () => {
-    // FinanceService.createInvoice وcreateExpense يُدخلان client_id/case_id من الطلب
-    // مباشرة في INSERT دون أي تحقق من أنهما ينتميان لـoffice_id الخاص بالجلسة الحالية
-    // (خلافًا لـrecordPayment وdownloadInvoicePDF أدناه، اللذين يشترطان office_id في
-    // WHERE فيرفضان أي صف من مكتب آخر). النتيجة: مستخدم بمكتب 1 يستطيع حاليًا ربط
-    // فاتورة/مصروف بعميل أو قضية يملكهما مكتب آخر تمامًا. هذه الاختبارات توثّق
-    // السلوك الحالي كما هو دون إصلاحه.
+describe('createInvoice/createExpense reject a client_id/case_id belonging to another office', () => {
+    // FinanceService.createInvoice وcreateExpense كانا يُدخلان client_id/case_id من
+    // الطلب مباشرة في INSERT دون أي تحقق من أنهما ينتميان لـoffice_id الخاص بالجلسة
+    // الحالية. الإصلاح: التحقق من ملكية client_id (و case_id إن وُجد) لنفس office_id
+    // قبل الإدخال، ورمي رسالة تحوي 'غير مصرح' — نفس النمط المستخدم في بقية الكود —
+    // فيترجمها errorHandler.js تلقائيًا إلى 403 لأنها فعليًا محاولة وصول غير مصرح بها
+    // لبيانات لا تخص هذا المستخدم، لا بيانات غير موجودة.
     let office2ClientId, office2CaseId;
 
     beforeAll(async () => {
@@ -871,7 +871,7 @@ describe('KNOWN ISSUE: createInvoice/createExpense do not verify that client_id/
         office2CaseId = caseRes.body.data.id;
     });
 
-    test('KNOWN ISSUE: createInvoice accepts a client_id belonging to another office', async () => {
+    test('rejects createInvoice with a client_id belonging to another office', async () => {
         const res = await agent
             .post('/api/finance/invoices')
             .set('Accept', 'application/json')
@@ -881,15 +881,14 @@ describe('KNOWN ISSUE: createInvoice/createExpense do not verify that client_id/
                 items: [{ description: 'بند بعميل من مكتب آخر', quantity: 1, unit_price: 100 }]
             });
 
-        expect(res.status).toBe(201);
-        expect(res.body.success).toBe(true);
+        expect(res.status).toBe(403);
+        expect(res.body.success).toBe(false);
 
-        const stored = await db.get('SELECT client_id, office_id FROM invoices WHERE id = ?', [res.body.data.id]);
-        expect(stored.office_id).toBe(officeId);
-        expect(stored.client_id).toBe(office2ClientId);
+        const stored = await db.all('SELECT id FROM invoices WHERE client_id = ?', [office2ClientId]);
+        expect(stored).toHaveLength(0);
     });
 
-    test('KNOWN ISSUE: createInvoice accepts a case_id belonging to another office', async () => {
+    test('rejects createInvoice with a case_id belonging to another office', async () => {
         const res = await agent
             .post('/api/finance/invoices')
             .set('Accept', 'application/json')
@@ -900,15 +899,14 @@ describe('KNOWN ISSUE: createInvoice/createExpense do not verify that client_id/
                 items: [{ description: 'بند بقضية من مكتب آخر', quantity: 1, unit_price: 100 }]
             });
 
-        expect(res.status).toBe(201);
-        expect(res.body.success).toBe(true);
+        expect(res.status).toBe(403);
+        expect(res.body.success).toBe(false);
 
-        const stored = await db.get('SELECT case_id, office_id FROM invoices WHERE id = ?', [res.body.data.id]);
-        expect(stored.office_id).toBe(officeId);
-        expect(stored.case_id).toBe(office2CaseId);
+        const stored = await db.all('SELECT id FROM invoices WHERE case_id = ?', [office2CaseId]);
+        expect(stored).toHaveLength(0);
     });
 
-    test('KNOWN ISSUE: createExpense accepts a case_id belonging to another office', async () => {
+    test('rejects createExpense with a case_id belonging to another office', async () => {
         const res = await agent
             .post('/api/finance/expenses')
             .set('Accept', 'application/json')
@@ -919,12 +917,11 @@ describe('KNOWN ISSUE: createInvoice/createExpense do not verify that client_id/
                 expense_date: '2026-04-01'
             });
 
-        expect(res.status).toBe(201);
-        expect(res.body.success).toBe(true);
+        expect(res.status).toBe(403);
+        expect(res.body.success).toBe(false);
 
-        const stored = await db.get('SELECT case_id, office_id FROM expenses WHERE id = ?', [res.body.data.id]);
-        expect(stored.office_id).toBe(officeId);
-        expect(stored.case_id).toBe(office2CaseId);
+        const stored = await db.all('SELECT id FROM expenses WHERE case_id = ?', [office2CaseId]);
+        expect(stored).toHaveLength(0);
     });
 });
 
