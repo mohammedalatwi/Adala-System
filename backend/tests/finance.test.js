@@ -337,3 +337,174 @@ describe('GET /api/finance/invoices', () => {
         expect(ids).not.toContain(invoiceB);
     });
 });
+
+describe('POST /api/finance/payments', () => {
+    let invoicePartialId, invoiceFullId, invoiceInstallmentsId, invoiceOverpayId, invoiceMethodId;
+    let crossOfficeInvoiceId;
+
+    async function createInvoice(amount) {
+        const res = await agent
+            .post('/api/finance/invoices')
+            .set('Accept', 'application/json')
+            .send({ client_id: clientId, issue_date: '2026-02-01', items: [{ description: 'بند دفعة', quantity: 1, unit_price: amount }] });
+        return res.body.data.id;
+    }
+
+    beforeAll(async () => {
+        invoicePartialId = await createInvoice(1000);
+        invoiceFullId = await createInvoice(500);
+        invoiceInstallmentsId = await createInvoice(100);
+        invoiceOverpayId = await createInvoice(200);
+        invoiceMethodId = await createInvoice(150);
+
+        // فاتورة بمكتب آخر (office2)، لاختبار أن recordPayment يرفضها كما يرفض فاتورة غير موجودة
+        const office2ClientRes = await agent2
+            .post('/api/clients')
+            .set('Accept', 'application/json')
+            .send({ full_name: 'عميل مكتب آخر', phone: '0533330001' });
+        const office2ClientId = office2ClientRes.body.data.id;
+
+        const office2InvoiceRes = await agent2
+            .post('/api/finance/invoices')
+            .set('Accept', 'application/json')
+            .send({ client_id: office2ClientId, issue_date: '2026-02-01', items: [{ description: 'بند', quantity: 1, unit_price: 300 }] });
+        crossOfficeInvoiceId = office2InvoiceRes.body.data.id;
+    });
+
+    test('a partial payment moves the invoice to partially_paid and accumulates paid_amount', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoicePartialId, amount: 400, payment_date: '2026-02-02', payment_method: 'cash' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.newStatus).toBe('partially_paid');
+
+        const invoice = await db.get('SELECT paid_amount, status FROM invoices WHERE id = ?', [invoicePartialId]);
+        expect(invoice.paid_amount).toBe(400);
+        expect(invoice.status).toBe('partially_paid');
+    });
+
+    test('a payment that completes the amount moves the invoice to paid', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceFullId, amount: 500, payment_date: '2026-02-02', payment_method: 'bank_transfer' });
+
+        expect(res.status).toBe(200);
+        expect(res.body.data.newStatus).toBe('paid');
+
+        const invoice = await db.get('SELECT paid_amount, status FROM invoices WHERE id = ?', [invoiceFullId]);
+        expect(invoice.paid_amount).toBe(500);
+        expect(invoice.status).toBe('paid');
+    });
+
+    test('three sequential partial payments (33.33 + 33.33 + 33.34) sum exactly to 100.00 without a floating-point rounding rejection', async () => {
+        const first = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceInstallmentsId, amount: 33.33, payment_date: '2026-02-03', payment_method: 'cash' });
+        expect(first.status).toBe(200);
+        expect(first.body.data.newStatus).toBe('partially_paid');
+
+        const second = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceInstallmentsId, amount: 33.33, payment_date: '2026-02-03', payment_method: 'cash' });
+        expect(second.status).toBe(200);
+        expect(second.body.data.newStatus).toBe('partially_paid');
+
+        // الدفعة الأخيرة يجب ألا تُرفض بسبب خطأ تقريب (مثل 100.00000000000001 > 100)
+        const third = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceInstallmentsId, amount: 33.34, payment_date: '2026-02-03', payment_method: 'cash' });
+        expect(third.status).toBe(200);
+        expect(third.body.data.newStatus).toBe('paid');
+
+        const invoice = await db.get('SELECT paid_amount, status FROM invoices WHERE id = ?', [invoiceInstallmentsId]);
+        expect(invoice.paid_amount).toBe(100);
+        expect(invoice.status).toBe('paid');
+    });
+
+    test('rejects amount = 0 with 400 before reaching the service', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceOverpayId, amount: 0, payment_date: '2026-02-02', payment_method: 'cash' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+
+        const invoice = await db.get('SELECT paid_amount FROM invoices WHERE id = ?', [invoiceOverpayId]);
+        expect(invoice.paid_amount).toBe(0);
+    });
+
+    test('rejects a negative amount with 400 before reaching the service', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceOverpayId, amount: -50, payment_date: '2026-02-02', payment_method: 'cash' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+    });
+
+    // --- الحالات التالية توثّق سلوكًا حاليًا غير مثالي (لا تُصلحه هنا، فقط تُثبّته باختبار) ---
+
+    test('KNOWN ISSUE: an unknown invoice_id currently fails with 500, not 404 — FinanceService.recordPayment does `throw new Error(\'الفاتورة غير موجودة\')`, and errorHandler.js only maps messages containing \'غير مصرح\' to 403, so this generic error falls through to the 500 default instead of a proper 404/400', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: 999999, amount: 10, payment_date: '2026-02-02', payment_method: 'cash' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBe('الفاتورة غير موجودة');
+    });
+
+    test('KNOWN ISSUE: an invoice belonging to another office is rejected the same as an unknown invoice — also 500, not 403/404 — confirms office_id scoping in recordPayment works (cross-office payment is blocked), only the status code is wrong', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: crossOfficeInvoiceId, amount: 10, payment_date: '2026-02-02', payment_method: 'cash' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBe('الفاتورة غير موجودة');
+
+        // تأكيد أن الفاتورة بمكتبها الأصلي لم تتأثر إطلاقًا
+        const invoice = await db.get('SELECT paid_amount FROM invoices WHERE id = ?', [crossOfficeInvoiceId]);
+        expect(invoice.paid_amount).toBe(0);
+    });
+
+    test('KNOWN ISSUE: a payment exceeding the remaining balance is rejected but with 500, not 400 — this is an application-level validation (`if (invoice.paid_amount + amount > invoice.amount) throw new Error(...)`), not a server fault, and should be a 400 like the other validation failures above', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceOverpayId, amount: 250, payment_date: '2026-02-02', payment_method: 'cash' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toBe('المبلغ المدفوع يتجاوز قيمة الفاتورة المتبقية');
+
+        const invoice = await db.get('SELECT paid_amount, status FROM invoices WHERE id = ?', [invoiceOverpayId]);
+        expect(invoice.paid_amount).toBe(0);
+        expect(invoice.status).toBe('unpaid');
+    });
+
+    test('KNOWN ISSUE: an out-of-enum payment_method is not caught by validatePayment (it only checks notEmpty, not the payments.payment_method CHECK constraint values) and reaches the database, failing with a raw SQLite constraint error instead of a clean 400', async () => {
+        const res = await agent
+            .post('/api/finance/payments')
+            .set('Accept', 'application/json')
+            .send({ invoice_id: invoiceMethodId, amount: 10, payment_date: '2026-02-02', payment_method: 'visa' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.success).toBe(false);
+        expect(res.body.message).toMatch(/CHECK constraint failed/i);
+
+        const invoice = await db.get('SELECT paid_amount FROM invoices WHERE id = ?', [invoiceMethodId]);
+        expect(invoice.paid_amount).toBe(0);
+    });
+});
