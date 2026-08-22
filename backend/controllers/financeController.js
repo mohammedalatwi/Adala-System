@@ -84,6 +84,8 @@ class FinanceController extends BaseController {
         } else if (userRole === 'lawyer' || userRole === 'assistant') {
             query += ' AND (c.lawyer_id = ? OR c.assistant_lawyer_id = ?)';
             params.push(userId, userId);
+        } else if (userRole === 'trainee') {
+            query += ' AND 1=0';
         }
 
         query += ' ORDER BY e.expense_date DESC';

@@ -753,12 +753,11 @@ describe('GET /api/finance/expenses', () => {
         expect(ids).not.toContain(expenseNoCase);
     });
 
-    test('KNOWN ISSUE: trainee role sees all office expenses — getAllExpenses has no trainee branch (unlike getAllInvoices\' `1=0`), so a trainee currently gets the same unrestricted view as the office owner', async () => {
+    test('trainee role sees no expenses at all', async () => {
         const res = await traineeAgent.get('/api/finance/expenses').set('Accept', 'application/json');
 
         expect(res.status).toBe(200);
-        const ids = res.body.data.map(e => e.id);
-        expect(ids).toEqual(expect.arrayContaining([expenseOwnCase, expenseOtherLawyerCase, expenseNoCase]));
+        expect(res.body.data).toEqual([]);
     });
 });
 
