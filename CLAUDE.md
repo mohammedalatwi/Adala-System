@@ -50,7 +50,9 @@ Auth is session-based (`express-session` + SQLite store), not JWT. `backend/midd
 
 ### Tests
 
-Jest + Supertest integration tests live in `backend/tests/`. Each test file sets `process.env.DB_PATH` to a fresh temp file, builds a minimal schema via `backend/tests/setup/testDb.js` (a deliberately trimmed mirror of `backend/scripts/init-database.js` — note `database/schema.sql` is stale and not what the app or tests use), then boots the real `server.js` app with `supertest`. When adding tables/columns that tests depend on, update both `backend/scripts/init-database.js` (real schema) and `backend/tests/setup/testDb.js` (test schema) — they are not generated from a single source.
+Jest + Supertest integration tests live in `backend/tests/`. Each test file sets `process.env.DB_PATH` to a fresh temp file, builds the schema via `backend/tests/setup/testDb.js`, then boots the real `server.js` app with `supertest`.
+
+`backend/db/schema.js` is the single source of truth for the table definitions: it exports `CREATE_TABLES`/`DROP_TABLES` as side-effect-free SQL strings, and both `backend/scripts/init-database.js` (real database, plus sample data and the `--force` data-loss guard) and `backend/tests/setup/testDb.js` (tables only, no data) import from it. **Add or change tables and columns only in `backend/db/schema.js`** — the test database is not a trimmed subset any more, so both sides stay in step automatically. Test files build their own fixtures; the sample rows seeded by `init-database.js` are deliberately not part of the test database.
 
 ### Frontend
 
