@@ -164,6 +164,8 @@ class DocumentController extends BaseController {
 
     // ✅ إحصائيات المستندات
     getDocumentStats = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const officeId = req.session.officeId;
         const byType = await db.all('SELECT document_type, COUNT(*) as count, SUM(file_size) as total_size FROM documents WHERE office_id = ? GROUP BY document_type ORDER BY count DESC', [officeId]);
         const monthly = await db.all('SELECT strftime("%Y-%m", uploaded_at) as month, COUNT(*) as count, SUM(file_size) as total_size FROM documents WHERE uploaded_at >= datetime("now", "-6 months") AND office_id = ? GROUP BY month ORDER BY month', [officeId]);

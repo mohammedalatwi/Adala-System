@@ -5,6 +5,8 @@ const cacheManager = require('../middleware/cache');
 class ReportController extends BaseController {
     // ✅ تقرير القضايا الشامل
     generateCasesReport = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const { startDate, endDate, status, case_type, lawyer_id, page = 1, limit = 50 } = req.query;
         const officeId = req.session.officeId;
 
@@ -24,6 +26,8 @@ class ReportController extends BaseController {
 
     // ✅ تقرير أداء المحامين
     generatePerformanceReport = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const { period = 'month', startDate, endDate } = req.query;
         const officeId = req.session.officeId;
 
@@ -43,6 +47,8 @@ class ReportController extends BaseController {
 
     // ✅ تقرير الجلسات
     generateSessionsReport = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const { startDate, endDate, status, session_type } = req.query;
         const officeId = req.session.officeId;
 
@@ -62,12 +68,16 @@ class ReportController extends BaseController {
 
     // ✅ تقرير مالي شامل
     generateFinancialReport = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const result = await ReportService.generateFinancialReport(req.query, req.session.officeId);
         this.sendSuccess(res, result);
     });
 
     // ✅ إحصائيات النظام العامة
     getSystemStats = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const officeId = req.session.officeId;
         const cacheKey = `system_stats_${officeId}`;
         const cachedResult = cacheManager.get(cacheKey);

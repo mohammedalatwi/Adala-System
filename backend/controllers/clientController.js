@@ -144,6 +144,8 @@ class ClientController extends BaseController {
 
     // ✅ إحصائيات العملاء
     getClientStats = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const officeId = req.session.officeId;
         const overview = await db.get(`
             SELECT 

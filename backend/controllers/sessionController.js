@@ -144,6 +144,8 @@ class SessionController extends BaseController {
 
     // ✅ إحصائيات الجلسات
     getSessionStats = this.asyncWrapper(async (req, res) => {
+        if (req.session.userRole === 'client') throw new Error('غير مصرح للعميل بهذا الإجراء');
+
         const officeId = req.session.officeId;
         const [byStatus, byType, monthly] = await Promise.all([
             db.all(`SELECT status, COUNT(*) as count FROM sessions WHERE is_active = 1 AND office_id = ? GROUP BY status`, [officeId]),
