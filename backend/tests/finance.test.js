@@ -608,6 +608,160 @@ describe('POST /api/finance/payments — concurrent payments on the same invoice
     });
 });
 
+describe('POST /api/finance/expenses', () => {
+    test('rejects an unauthenticated request', async () => {
+        const res = await request(app)
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف', amount: 100, expense_date: '2026-03-01' });
+
+        expect(res.status).toBe(401);
+    });
+
+    test('creates an expense without a case_id (optional field)', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف عام', amount: 75.5, expense_date: '2026-03-01', category: 'إدارية' });
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+
+        const stored = await db.get('SELECT * FROM expenses WHERE id = ?', [res.body.data.id]);
+        expect(stored.office_id).toBe(officeId);
+        expect(stored.case_id).toBeNull();
+        expect(stored.amount).toBe(75.5);
+        expect(stored.is_billable).toBe(0);
+    });
+
+    test('creates an expense linked to a case with is_billable set', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ case_id: caseId, title: 'مصروف انتقال', amount: 120, expense_date: '2026-03-02', is_billable: true });
+
+        expect(res.status).toBe(201);
+
+        const stored = await db.get('SELECT * FROM expenses WHERE id = ?', [res.body.data.id]);
+        expect(stored.case_id).toBe(caseId);
+        expect(stored.is_billable).toBe(1);
+    });
+
+    test('rejects a missing title', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ amount: 100, expense_date: '2026-03-01' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.success).toBe(false);
+    });
+
+    test('rejects an amount of 0', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف', amount: 0, expense_date: '2026-03-01' });
+
+        expect(res.status).toBe(400);
+    });
+
+    test('rejects a negative amount', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف', amount: -20, expense_date: '2026-03-01' });
+
+        expect(res.status).toBe(400);
+    });
+
+    test('rejects a missing expense_date', async () => {
+        const res = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف', amount: 100 });
+
+        expect(res.status).toBe(400);
+    });
+});
+
+describe('GET /api/finance/expenses', () => {
+    let expenseOwnCase, expenseOtherLawyerCase, expenseNoCase, expenseOffice2;
+
+    beforeAll(async () => {
+        const r1 = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ case_id: caseId, title: 'مصروف قضية العميل الأول', amount: 60, expense_date: '2026-03-05' });
+        expenseOwnCase = r1.body.data.id;
+
+        const r2 = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ case_id: otherLawyerCaseId, title: 'مصروف قضية أخرى', amount: 40, expense_date: '2026-03-05' });
+        expenseOtherLawyerCase = r2.body.data.id;
+
+        const r3 = await agent
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف عام بلا قضية', amount: 25, expense_date: '2026-03-05' });
+        expenseNoCase = r3.body.data.id;
+
+        const r4 = await agent2
+            .post('/api/finance/expenses')
+            .set('Accept', 'application/json')
+            .send({ title: 'مصروف مكتب آخر', amount: 90, expense_date: '2026-03-05' });
+        expenseOffice2 = r4.body.data.id;
+    });
+
+    test('office owner (admin) sees expenses created in their own office, including ones without a case', async () => {
+        const res = await agent.get('/api/finance/expenses').set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        const ids = res.body.data.map(e => e.id);
+        expect(ids).toEqual(expect.arrayContaining([expenseOwnCase, expenseOtherLawyerCase, expenseNoCase]));
+    });
+
+    test('office isolation: a second office never sees the first office expenses', async () => {
+        const res = await agent2.get('/api/finance/expenses').set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        const ids = res.body.data.map(e => e.id);
+        expect(ids).toContain(expenseOffice2);
+        expect(ids).not.toContain(expenseOwnCase);
+        expect(ids).not.toContain(expenseOtherLawyerCase);
+        expect(ids).not.toContain(expenseNoCase);
+    });
+
+    test('lawyer role sees only expenses tied to their own case', async () => {
+        const res = await lawyerAgent.get('/api/finance/expenses').set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        const ids = res.body.data.map(e => e.id);
+        expect(ids).toContain(expenseOwnCase);
+        expect(ids).not.toContain(expenseOtherLawyerCase);
+        expect(ids).not.toContain(expenseNoCase);
+    });
+
+    test('client portal role sees only expenses tied to a case for their own client', async () => {
+        const res = await portalAgent.get('/api/finance/expenses').set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        const ids = res.body.data.map(e => e.id);
+        expect(ids).toContain(expenseOwnCase);
+        expect(ids).not.toContain(expenseOtherLawyerCase);
+        expect(ids).not.toContain(expenseNoCase);
+    });
+
+    test('KNOWN ISSUE: trainee role sees all office expenses — getAllExpenses has no trainee branch (unlike getAllInvoices\' `1=0`), so a trainee currently gets the same unrestricted view as the office owner', async () => {
+        const res = await traineeAgent.get('/api/finance/expenses').set('Accept', 'application/json');
+
+        expect(res.status).toBe(200);
+        const ids = res.body.data.map(e => e.id);
+        expect(ids).toEqual(expect.arrayContaining([expenseOwnCase, expenseOtherLawyerCase, expenseNoCase]));
+    });
+});
+
 describe('FinanceService.createInvoice — concurrent creation and sequential numbering', () => {
     // كانت invoice_number = 'INV-' + Date.now() (راجع تاريخ Git لهذا الملف): إنشاءان
     // بنفس المللي ثانية يتصادمان على قيد UNIQUE، والثاني يُفقد بخطأ SQL خام — خلل
