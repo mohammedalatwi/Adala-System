@@ -93,6 +93,9 @@ class SessionController extends BaseController {
         } else if (userRole === 'lawyer' || userRole === 'assistant') {
             query += ' AND (c.lawyer_id = ? OR c.assistant_lawyer_id = ?)';
             params.push(userId, userId);
+        } else if (userRole === 'trainee') {
+            query += ' AND c.assistant_lawyer_id = ?';
+            params.push(userId);
         }
 
         query += ' ORDER BY s.session_date ASC LIMIT ?';
