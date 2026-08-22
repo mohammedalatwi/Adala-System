@@ -72,7 +72,7 @@ class ReportService {
                 COUNT(CASE WHEN priority = 'متوسط' THEN 1 END) as medium_priority_cases,
                 COUNT(CASE WHEN priority = 'منخفض' THEN 1 END) as low_priority_cases,
                 AVG(JULIANDAY(COALESCE(actual_end_date, datetime('now'))) - JULIANDAY(start_date)) as avg_duration_days
-            FROM cases 
+            FROM cases c
             WHERE ${whereClause}
         `, params) || {};
     }
